@@ -55,7 +55,7 @@ def decrypt_field(value: str | None) -> str | None:
         return value
     if not isinstance(value, str) or not value.startswith(_ENCRYPTED_PREFIX):
         return value
-    cipher_text = value[len(_ENCRYPTED_PREFIX):]
+    cipher_text = value[len(_ENCRYPTED_PREFIX) :]
     return decrypt_sensitive_data(cipher_text)
 
 

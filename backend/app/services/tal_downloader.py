@@ -22,7 +22,7 @@ from __future__ import annotations
 import asyncio
 import base64
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 
@@ -172,7 +172,7 @@ class TALDownloader:
             rrdp_uri=source["rrdp_uri"],
             raw_tal=content,
             parsed=parsed,
-            downloaded_at=datetime.now(timezone.utc),
+            downloaded_at=datetime.now(UTC),
             size_bytes=len(content.encode("utf-8")),
         )
         logger.info(
@@ -199,21 +199,15 @@ class TALDownloader:
         last_error: Exception | None = None
         for attempt in range(1, self.max_retries + 1):
             try:
-                async with httpx.AsyncClient(
-                    timeout=self.timeout, follow_redirects=True
-                ) as client:
+                async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
                     response = await client.get(url)
                 if 200 <= response.status_code < 300:
                     return response.text
                 if 400 <= response.status_code < 500:
                     # 客户端错误，不重试
-                    raise ValueError(
-                        f"HTTP {response.status_code}: {response.reason_phrase}"
-                    )
+                    raise ValueError(f"HTTP {response.status_code}: {response.reason_phrase}")
                 # 5xx 服务端错误，重试
-                last_error = RuntimeError(
-                    f"HTTP {response.status_code}: {response.reason_phrase}"
-                )
+                last_error = RuntimeError(f"HTTP {response.status_code}: {response.reason_phrase}")
                 logger.warning(
                     "TAL 下载服务端错误，将重试",
                     url=url,
@@ -241,9 +235,7 @@ class TALDownloader:
                 backoff = 2 ** (attempt - 1)
                 await asyncio.sleep(backoff)
 
-        raise RuntimeError(
-            f"重试 {self.max_retries} 次后仍失败: {last_error}"
-        )
+        raise RuntimeError(f"重试 {self.max_retries} 次后仍失败: {last_error}")
 
     def parse_tal_content(self, content: str) -> TALParsed:
         """解析 TAL 文件内容。

@@ -6,21 +6,21 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from structlog.stdlib import BoundLogger
 
 from app.core.logging import get_logger
 from app.models.integration import IntegrationConfig
 from app.services.integrations.base import BaseAdapter
+from app.services.integrations.external_info import RIRAdapter
 from app.services.integrations.ipam_adapter import IPAMAdapter
 from app.services.integrations.nms_adapter import NMSAdapter
 from app.services.integrations.notification_adapter import CollaborationAdapter
-from app.services.integrations.siem_adapter import ITSMAdapter, SIEMAdapter
-from app.services.integrations.external_info import RIRAdapter
+from app.services.integrations.siem_adapter import SIEMAdapter
 
 logger: BoundLogger = get_logger("app.integration_config_service")
 
@@ -52,9 +52,7 @@ async def list_integrations(db: AsyncSession) -> list[dict[str, Any]]:
     return [_integration_to_dict(i) for i in integrations]
 
 
-async def get_integration(
-    db: AsyncSession, integration_id: int
-) -> dict[str, Any] | None:
+async def get_integration(db: AsyncSession, integration_id: int) -> dict[str, Any] | None:
     """获取集成配置。
 
     Args:
@@ -72,9 +70,7 @@ async def get_integration(
     return _integration_to_dict(integration)
 
 
-async def create_integration(
-    db: AsyncSession, config: dict[str, Any]
-) -> dict[str, Any]:
+async def create_integration(db: AsyncSession, config: dict[str, Any]) -> dict[str, Any]:
     """创建集成配置。
 
     Args:
@@ -97,7 +93,7 @@ async def create_integration(
 
     integration = IntegrationConfig(
         name=config["name"],
-        code=config.get("code", f"integration-{int(datetime.now(timezone.utc).timestamp())}"),
+        code=config.get("code", f"integration-{int(datetime.now(UTC).timestamp())}"),
         description=config.get("description"),
         integration_type=config["integration_type"],
         subtype=config.get("subtype"),
@@ -166,9 +162,7 @@ async def update_integration(
     return _integration_to_dict(integration)
 
 
-async def delete_integration(
-    db: AsyncSession, integration_id: int
-) -> bool:
+async def delete_integration(db: AsyncSession, integration_id: int) -> bool:
     """删除集成配置。
 
     Args:
@@ -194,9 +188,7 @@ async def delete_integration(
     return True
 
 
-async def test_integration(
-    db: AsyncSession, integration_id: int
-) -> dict[str, Any]:
+async def test_integration(db: AsyncSession, integration_id: int) -> dict[str, Any]:
     """测试集成连通性。
 
     根据集成类型选择对应的适配器，调用 test_connection 方法测试连通性，
@@ -237,7 +229,7 @@ async def test_integration(
         # 更新测试状态
         integration.last_test_status = "success" if result.success else "failed"
         integration.last_test_message = result.error_message or "测试成功"
-        integration.last_test_at = datetime.now(timezone.utc)
+        integration.last_test_at = datetime.now(UTC)
         await db.flush()
 
         return {
@@ -248,7 +240,7 @@ async def test_integration(
     except Exception as e:
         integration.last_test_status = "failed"
         integration.last_test_message = str(e)
-        integration.last_test_at = datetime.now(timezone.utc)
+        integration.last_test_at = datetime.now(UTC)
         await db.flush()
         return {
             "success": False,
@@ -288,16 +280,10 @@ def _integration_to_dict(integration: IntegrationConfig) -> dict[str, Any]:
         "enabled": integration.enabled,
         "last_test_status": integration.last_test_status,
         "last_test_message": integration.last_test_message,
-        "last_test_at": integration.last_test_at.isoformat()
-        if integration.last_test_at
-        else None,
+        "last_test_at": integration.last_test_at.isoformat() if integration.last_test_at else None,
         "tenant_id": integration.tenant_id,
-        "created_at": integration.created_at.isoformat()
-        if integration.created_at
-        else None,
-        "updated_at": integration.updated_at.isoformat()
-        if integration.updated_at
-        else None,
+        "created_at": integration.created_at.isoformat() if integration.created_at else None,
+        "updated_at": integration.updated_at.isoformat() if integration.updated_at else None,
     }
 
 

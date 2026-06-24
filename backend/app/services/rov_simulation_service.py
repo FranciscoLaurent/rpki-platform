@@ -20,8 +20,7 @@ from __future__ import annotations
 import csv
 import io
 import ipaddress
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,6 +37,7 @@ from app.schemas.rov import (
     AffectedPrefix,
     AttackSurfaceItem,
     DeploymentRecommendation,
+    RiskAssessment,
     ROAChangeSimulationRequest,
     ROAChangeSimulationResult,
     ROVExportRequest,
@@ -45,7 +45,6 @@ from app.schemas.rov import (
     ROVSimulationRequest,
     ROVSimulationResult,
     ROVSimulationScope,
-    RiskAssessment,
     ValidationChange,
 )
 
@@ -110,13 +109,9 @@ def _get_more_specific_prefixes(prefix: str, max_length: int) -> list[str]:
         return []
 
     surface: list[str] = []
-    current_level: list[
-        ipaddress.IPv4Network | ipaddress.IPv6Network
-    ] = [network]
+    current_level: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = [network]
     for length in range(network.prefixlen + 1, max_length + 1):
-        next_level: list[
-            ipaddress.IPv4Network | ipaddress.IPv6Network
-        ] = []
+        next_level: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = []
         for net in current_level:
             for sub in net.subnets(new_prefix=length):
                 next_level.append(sub)
@@ -210,9 +205,7 @@ def _validate_against_vrps(
         return "invalid", "resource_chain_error"
 
 
-async def _fetch_all_vrps(
-    db: AsyncSession, snapshot_time: datetime | None = None
-) -> list[VRP]:
+async def _fetch_all_vrps(db: AsyncSession, snapshot_time: datetime | None = None) -> list[VRP]:
     """获取所有 VRP（可选时间点过滤）。"""
     stmt = select(VRP)
     if snapshot_time is not None:
@@ -236,9 +229,7 @@ async def _fetch_bgp_announcements(
     return list(result.scalars().all())
 
 
-async def _build_prefix_metadata_map(
-    db: AsyncSession, prefixes: list[str]
-) -> dict[str, Prefix]:
+async def _build_prefix_metadata_map(db: AsyncSession, prefixes: list[str]) -> dict[str, Prefix]:
     """批量查询前缀元数据，返回 prefix → Prefix 的映射。"""
     if not prefixes:
         return {}
@@ -247,9 +238,7 @@ async def _build_prefix_metadata_map(
     return {p.prefix: p for p in result.scalars().all()}
 
 
-async def _build_customer_map(
-    db: AsyncSession, customer_ids: list[int]
-) -> dict[int, Customer]:
+async def _build_customer_map(db: AsyncSession, customer_ids: list[int]) -> dict[int, Customer]:
     """批量查询客户信息，返回 customer_id → Customer 的映射。"""
     if not customer_ids:
         return {}
@@ -283,9 +272,7 @@ def _filter_by_scope(
     # 路由器过滤（使用 observation_point_id 作为近似）
     if scope.router_ids:
         router_id_set = set(scope.router_ids)
-        filtered = [
-            a for a in filtered if a.observation_point_id in router_id_set
-        ]
+        filtered = [a for a in filtered if a.observation_point_id in router_id_set]
 
     # 地址族过滤
     if scope.address_families:
@@ -298,18 +285,14 @@ def _filter_by_scope(
         filtered = [
             a
             for a in filtered
-            if a.prefix in prefix_map
-            and prefix_map[a.prefix].region in region_set
+            if a.prefix in prefix_map and prefix_map[a.prefix].region in region_set
         ]
 
     # 机房过滤
     if scope.sites:
         site_set = set(scope.sites)
         filtered = [
-            a
-            for a in filtered
-            if a.prefix in prefix_map
-            and prefix_map[a.prefix].site in site_set
+            a for a in filtered if a.prefix in prefix_map and prefix_map[a.prefix].site in site_set
         ]
 
     # 业务域过滤
@@ -318,8 +301,7 @@ def _filter_by_scope(
         filtered = [
             a
             for a in filtered
-            if a.prefix in prefix_map
-            and prefix_map[a.prefix].business_service in business_set
+            if a.prefix in prefix_map and prefix_map[a.prefix].business_service in business_set
         ]
 
     # 重要度过滤
@@ -328,8 +310,7 @@ def _filter_by_scope(
         filtered = [
             a
             for a in filtered
-            if a.prefix in prefix_map
-            and prefix_map[a.prefix].importance in importance_set
+            if a.prefix in prefix_map and prefix_map[a.prefix].importance in importance_set
         ]
 
     return filtered
@@ -360,10 +341,7 @@ def _build_impact_description(
     if simulated_status == "rejected":
         return f"Invalid 路由（原因：{reason}）将被拒绝，可能导致前缀不可达"
     elif simulated_status == "de-preferenced":
-        return (
-            f"Invalid 路由（原因：{reason}）将被降权，"
-            f"优先级降低但仍保持可达"
-        )
+        return f"Invalid 路由（原因：{reason}）将被降权，优先级降低但仍保持可达"
     return ""
 
 
@@ -397,9 +375,7 @@ async def simulate_rov_policy(
     prefix_map = await _build_prefix_metadata_map(db, all_prefixes)
 
     # 按范围过滤
-    filtered_announcements = _filter_by_scope(
-        announcements, prefix_map, request.scope
-    )
+    filtered_announcements = _filter_by_scope(announcements, prefix_map, request.scope)
 
     # 对每个公告执行 RPKI 验证
     valid_count = 0
@@ -412,9 +388,7 @@ async def simulate_rov_policy(
             continue
 
         # 验证公告（基于当前 VRP 数据）
-        status, reason = _validate_against_vrps(
-            ann.prefix, ann.origin_as, vrps
-        )
+        status, reason = _validate_against_vrps(ann.prefix, ann.origin_as, vrps)
 
         # 统计验证状态
         if status == "valid":
@@ -431,9 +405,7 @@ async def simulate_rov_policy(
         if simulated_status != status:
             prefix_meta = prefix_map.get(ann.prefix)
             importance = prefix_meta.importance if prefix_meta else None
-            impact_desc = _build_impact_description(
-                status, simulated_status, reason
-            )
+            impact_desc = _build_impact_description(status, simulated_status, reason)
 
             affected_prefixes.append(
                 AffectedPrefix(
@@ -447,20 +419,14 @@ async def simulate_rov_policy(
             )
 
     # 生成受影响业务与客户清单
-    affected_business = _build_affected_business(
-        affected_prefixes, prefix_map
-    )
-    affected_customers = await _build_affected_customers(
-        db, affected_prefixes, prefix_map
-    )
+    affected_business = _build_affected_business(affected_prefixes, prefix_map)
+    affected_customers = await _build_affected_customers(db, affected_prefixes, prefix_map)
 
     # 生成部署建议
     recommendations = generate_deployment_recommendations(affected_prefixes)
 
     # 评估风险
-    risk_assessment = assess_simulation_risk(
-        affected_prefixes, affected_business
-    )
+    risk_assessment = assess_simulation_risk(affected_prefixes, affected_business)
 
     logger.info(
         "ROV 策略模拟完成",
@@ -498,16 +464,13 @@ def _build_affected_business(
     for ap in affected_prefixes:
         prefix_meta = prefix_map.get(ap.prefix)
         if prefix_meta and prefix_meta.business_service:
-            business_prefixes.setdefault(
-                prefix_meta.business_service, []
-            ).append(ap.prefix)
+            business_prefixes.setdefault(prefix_meta.business_service, []).append(ap.prefix)
 
     result: list[AffectedBusiness] = []
     for business, prefixes in business_prefixes.items():
         # 判断影响等级：含核心/重要前缀为 high，否则按数量判定
         has_critical = any(
-            prefix_map.get(p)
-            and prefix_map[p].importance in ("critical", "important")
+            prefix_map.get(p) and prefix_map[p].importance in ("critical", "important")
             for p in prefixes
         )
         if has_critical:
@@ -522,10 +485,7 @@ def _build_affected_business(
                 business_service=business,
                 affected_prefixes=prefixes,
                 impact_level=impact_level,
-                description=(
-                    f"业务 {business} 有 {len(prefixes)} 个前缀"
-                    f"受 ROV 策略影响"
-                ),
+                description=(f"业务 {business} 有 {len(prefixes)} 个前缀受 ROV 策略影响"),
             )
         )
     return result
@@ -544,16 +504,12 @@ async def _build_affected_customers(
     for ap in affected_prefixes:
         prefix_meta = prefix_map.get(ap.prefix)
         if prefix_meta and prefix_meta.customer_id:
-            customer_prefixes.setdefault(
-                prefix_meta.customer_id, []
-            ).append(ap.prefix)
+            customer_prefixes.setdefault(prefix_meta.customer_id, []).append(ap.prefix)
 
     if not customer_prefixes:
         return []
 
-    customer_map = await _build_customer_map(
-        db, list(customer_prefixes.keys())
-    )
+    customer_map = await _build_customer_map(db, list(customer_prefixes.keys()))
 
     result: list[AffectedCustomer] = []
     for customer_id, prefixes in customer_prefixes.items():
@@ -561,8 +517,7 @@ async def _build_affected_customers(
         customer_name = customer.name if customer else f"客户 {customer_id}"
 
         has_critical = any(
-            prefix_map.get(p)
-            and prefix_map[p].importance in ("critical", "important")
+            prefix_map.get(p) and prefix_map[p].importance in ("critical", "important")
             for p in prefixes
         )
         if has_critical:
@@ -607,19 +562,12 @@ def generate_deployment_recommendations(
     recommendations: list[DeploymentRecommendation] = []
 
     # 收集各类受影响前缀
-    invalid_prefixes = [
-        ap.prefix for ap in affected_prefixes if ap.current_status == "invalid"
-    ]
-    not_found_prefixes = [
-        ap.prefix
-        for ap in affected_prefixes
-        if ap.current_status == "not_found"
-    ]
+    invalid_prefixes = [ap.prefix for ap in affected_prefixes if ap.current_status == "invalid"]
+    not_found_prefixes = [ap.prefix for ap in affected_prefixes if ap.current_status == "not_found"]
     critical_invalid = [
         ap.prefix
         for ap in affected_prefixes
-        if ap.current_status == "invalid"
-        and ap.importance in ("critical", "important")
+        if ap.current_status == "invalid" and ap.importance in ("critical", "important")
     ]
 
     # 第一阶段：仅监控
@@ -641,9 +589,7 @@ def generate_deployment_recommendations(
     )
 
     # 第二阶段：降权（排除核心前缀，核心前缀待根因解决后再处理）
-    de_pref_prefixes = [
-        p for p in invalid_prefixes if p not in critical_invalid
-    ]
+    de_pref_prefixes = [p for p in invalid_prefixes if p not in critical_invalid]
     recommendations.append(
         DeploymentRecommendation(
             phase="de-preference",
@@ -673,8 +619,7 @@ def generate_deployment_recommendations(
             ),
             prerequisites=[
                 "第二阶段 de-preference 运行稳定",
-                "所有 Invalid 路由的根因已排查并修复"
-                "（ROA 配置错误、路由泄露等）",
+                "所有 Invalid 路由的根因已排查并修复（ROA 配置错误、路由泄露等）",
                 "确认无核心业务依赖 Invalid 路由",
                 "制定回滚预案（可快速切换回 de-preference 或 monitor 模式）",
             ],
@@ -767,43 +712,30 @@ def assess_simulation_risk(
         and ap.simulated_status in ("rejected", "de-preferenced")
     ]
     if critical_affected:
-        risk_factors.append(
-            f"有 {len(critical_affected)} 个核心/重要前缀受策略影响"
-        )
+        risk_factors.append(f"有 {len(critical_affected)} 个核心/重要前缀受策略影响")
         # 核心前缀被拒绝为阻断问题
-        critical_rejected = [
-            ap
-            for ap in critical_affected
-            if ap.simulated_status == "rejected"
-        ]
+        critical_rejected = [ap for ap in critical_affected if ap.simulated_status == "rejected"]
         if critical_rejected:
             blocking_issues.append(
-                f"有 {len(critical_rejected)} 个核心前缀将被拒绝，"
-                f"可能导致业务中断"
+                f"有 {len(critical_rejected)} 个核心前缀将被拒绝，可能导致业务中断"
             )
             requires_approval = True
 
     # 检查大规模合法路由受影响
     if len(affected_prefixes) > _LARGE_SCALE_THRESHOLD:
         risk_factors.append(
-            f"受影响前缀数量较大（{len(affected_prefixes)} 个），"
-            f"超过阈值 {_LARGE_SCALE_THRESHOLD}"
+            f"受影响前缀数量较大（{len(affected_prefixes)} 个），超过阈值 {_LARGE_SCALE_THRESHOLD}"
         )
         if len(affected_prefixes) > _VERY_LARGE_SCALE_THRESHOLD:
             blocking_issues.append(
-                f"受影响前缀数量极大（{len(affected_prefixes)} 个），"
-                f"建议分批实施"
+                f"受影响前缀数量极大（{len(affected_prefixes)} 个），建议分批实施"
             )
             requires_approval = True
 
     # 检查高风险业务受影响
-    high_impact_business = [
-        b for b in affected_business if b.impact_level == "high"
-    ]
+    high_impact_business = [b for b in affected_business if b.impact_level == "high"]
     if high_impact_business:
-        risk_factors.append(
-            f"有 {len(high_impact_business)} 个业务受高影响"
-        )
+        risk_factors.append(f"有 {len(high_impact_business)} 个业务受高影响")
 
     # 判定风险等级
     if blocking_issues:
@@ -844,16 +776,11 @@ def check_high_risk_block(affected_prefixes: list[AffectedPrefix]) -> bool:
     """
     # 核心前缀被拒绝
     for ap in affected_prefixes:
-        if (
-            ap.importance in ("critical", "important")
-            and ap.simulated_status == "rejected"
-        ):
+        if ap.importance in ("critical", "important") and ap.simulated_status == "rejected":
             return True
 
     # 大规模合法路由被拒绝
-    rejected_count = sum(
-        1 for ap in affected_prefixes if ap.simulated_status == "rejected"
-    )
+    rejected_count = sum(1 for ap in affected_prefixes if ap.simulated_status == "rejected")
     if rejected_count > _VERY_LARGE_SCALE_THRESHOLD:
         return True
 
@@ -899,14 +826,10 @@ async def _build_affected_announcements(
                 origin_as=ann.origin_as,
                 prefix_length=ann.prefix_length,
                 address_family=ann.address_family,
-                current_validation_status=(
-                    ann.rpki_validation_status or "not_found"
-                ),
+                current_validation_status=(ann.rpki_validation_status or "not_found"),
                 rpki_invalid_reason=ann.rpki_invalid_reason,
                 importance=prefix_meta.importance if prefix_meta else None,
-                business_service=(
-                    prefix_meta.business_service if prefix_meta else None
-                ),
+                business_service=(prefix_meta.business_service if prefix_meta else None),
             )
         )
     return affected
@@ -948,14 +871,10 @@ async def simulate_roa_change(
     simulated_vrps = _apply_roa_change(vrps, original_roa, request)
 
     # 确定受影响的前缀范围（旧 ROA 与新 ROA 覆盖的前缀）
-    affected_prefix_ranges = _get_affected_prefix_ranges(
-        original_roa, request
-    )
+    affected_prefix_ranges = _get_affected_prefix_ranges(original_roa, request)
 
     # 过滤出可能受影响的公告
-    affected_announcements = _filter_affected_announcements(
-        announcements, affected_prefix_ranges
-    )
+    affected_announcements = _filter_affected_announcements(announcements, affected_prefix_ranges)
 
     # 重新验证并计算状态变化
     validation_changes: list[ValidationChange] = []
@@ -964,14 +883,10 @@ async def simulate_roa_change(
             continue
 
         # 变更前状态（使用当前 VRP 验证）
-        old_status, old_reason = _validate_against_vrps(
-            ann.prefix, ann.origin_as, vrps
-        )
+        old_status, old_reason = _validate_against_vrps(ann.prefix, ann.origin_as, vrps)
 
         # 变更后状态（使用模拟 VRP 验证）
-        new_status, new_reason = _validate_against_vrps(
-            ann.prefix, ann.origin_as, simulated_vrps
-        )
+        new_status, new_reason = _validate_against_vrps(ann.prefix, ann.origin_as, simulated_vrps)
 
         # 仅记录有变化的公告
         if old_status != new_status:
@@ -989,14 +904,10 @@ async def simulate_roa_change(
             )
 
     # 分析新增攻击面（传入受影响公告以便识别过宽授权）
-    new_attack_surface = _analyze_attack_surface(
-        original_roa, request, affected_announcements
-    )
+    new_attack_surface = _analyze_attack_surface(original_roa, request, affected_announcements)
 
     # 构建受影响 BGP 公告清单（含前缀元数据）
-    affected_announcement_list = await _build_affected_announcements(
-        db, affected_announcements
-    )
+    affected_announcement_list = await _build_affected_announcements(db, affected_announcements)
 
     # 评估风险（将验证变化转为受影响前缀格式以复用风险评估逻辑）
     affected_prefixes_for_risk = [
@@ -1010,9 +921,7 @@ async def simulate_roa_change(
         )
         for vc in validation_changes
     ]
-    risk_assessment = assess_simulation_risk(
-        affected_prefixes_for_risk, []
-    )
+    risk_assessment = assess_simulation_risk(affected_prefixes_for_risk, [])
 
     logger.info(
         "ROA 变更模拟完成",
@@ -1073,15 +982,9 @@ def _create_simulated_vrp(
     # 确定新 VRP 的参数
     if original_roa is not None:
         # 修改场景：使用新值或回退到原值
-        prefix = (
-            request.new_prefix
-            if request.new_prefix is not None
-            else original_roa.prefix
-        )
+        prefix = request.new_prefix if request.new_prefix is not None else original_roa.prefix
         origin_as = (
-            request.new_origin_as
-            if request.new_origin_as is not None
-            else original_roa.origin_as
+            request.new_origin_as if request.new_origin_as is not None else original_roa.origin_as
         )
         prefix_family = original_roa.prefix_family
         prefix_length = original_roa.prefix_length
@@ -1109,11 +1012,7 @@ def _create_simulated_vrp(
         roa_id = None
         tal_id = None
         # max_length：新值或前缀长度（minimal ROA）
-        max_length = (
-            request.new_max_length
-            if request.new_max_length is not None
-            else prefix_length
-        )
+        max_length = request.new_max_length if request.new_max_length is not None else prefix_length
 
     # 确保 max_length 不小于 prefix_length
     if max_length < prefix_length:
@@ -1214,30 +1113,19 @@ def _build_change_reason(
     if old_status == "not_found" and new_status == "valid":
         reason_parts.append("前缀获得 ROA 覆盖，验证状态从 NotFound 变为 Valid")
     elif old_status == "valid" and new_status == "invalid":
-        reason_parts.append(
-            f"前缀验证状态从 Valid 变为 Invalid（原因：{new_reason}）"
-        )
+        reason_parts.append(f"前缀验证状态从 Valid 变为 Invalid（原因：{new_reason}）")
     elif old_status == "valid" and new_status == "not_found":
-        reason_parts.append(
-            "ROA 撤销后前缀失去覆盖，验证状态从 Valid 变为 NotFound"
-        )
+        reason_parts.append("ROA 撤销后前缀失去覆盖，验证状态从 Valid 变为 NotFound")
     elif old_status == "invalid" and new_status == "valid":
-        reason_parts.append(
-            "ROA 变更后前缀验证状态从 Invalid 变为 Valid"
-        )
+        reason_parts.append("ROA 变更后前缀验证状态从 Invalid 变为 Valid")
     elif old_status == "not_found" and new_status == "invalid":
         reason_parts.append(
-            f"新建 ROA 后前缀验证状态从 NotFound 变为 Invalid"
-            f"（原因：{new_reason}）"
+            f"新建 ROA 后前缀验证状态从 NotFound 变为 Invalid（原因：{new_reason}）"
         )
     elif old_status == "invalid" and new_status == "not_found":
-        reason_parts.append(
-            "ROA 撤销后前缀验证状态从 Invalid 变为 NotFound"
-        )
+        reason_parts.append("ROA 撤销后前缀验证状态从 Invalid 变为 NotFound")
     else:
-        reason_parts.append(
-            f"验证状态从 {old_status} 变为 {new_status}"
-        )
+        reason_parts.append(f"验证状态从 {old_status} 变为 {new_status}")
 
     return "，".join(reason_parts)
 
@@ -1278,11 +1166,7 @@ def _analyze_attack_surface(
 
     # 确定新 ROA 的参数
     if original_roa is not None:
-        new_prefix = (
-            request.new_prefix
-            if request.new_prefix is not None
-            else original_roa.prefix
-        )
+        new_prefix = request.new_prefix if request.new_prefix is not None else original_roa.prefix
         if request.new_max_length is not None:
             new_max_length = request.new_max_length
         elif original_roa.max_length is not None:
@@ -1295,9 +1179,7 @@ def _analyze_attack_surface(
             else original_roa.prefix_length
         )
         origin_as = (
-            request.new_origin_as
-            if request.new_origin_as is not None
-            else original_roa.origin_as
+            request.new_origin_as if request.new_origin_as is not None else original_roa.origin_as
         )
         old_prefix = original_roa.prefix
     else:
@@ -1308,9 +1190,7 @@ def _analyze_attack_surface(
         if network is None:
             return []
         new_max_length = (
-            request.new_max_length
-            if request.new_max_length is not None
-            else network.prefixlen
+            request.new_max_length if request.new_max_length is not None else network.prefixlen
         )
         old_max_length = 0
         origin_as = request.new_origin_as
@@ -1328,17 +1208,11 @@ def _analyze_attack_surface(
     # ── 1. 子前缀劫持风险（maxLength 扩大） ──
     if new_max_length > old_max_length:
         # 新增的子前缀范围
-        surface_prefixes = _get_more_specific_prefixes(
-            new_prefix, new_max_length
-        )
+        surface_prefixes = _get_more_specific_prefixes(new_prefix, new_max_length)
         # 排除旧攻击面已覆盖的范围
         old_surface: set[str] = set()
         if original_roa is not None and old_max_length > 0:
-            old_surface = set(
-                _get_more_specific_prefixes(
-                    old_prefix or new_prefix, old_max_length
-                )
-            )
+            old_surface = set(_get_more_specific_prefixes(old_prefix or new_prefix, old_max_length))
         new_surface = [p for p in surface_prefixes if p not in old_surface]
 
         if new_surface:
@@ -1411,9 +1285,7 @@ def _analyze_attack_surface(
     if affected_announcements:
         # 计算实际公告的最大前缀长度（仅统计同 origin AS 的公告）
         actual_lengths = [
-            a.prefix_length
-            for a in affected_announcements
-            if a.origin_as == origin_as
+            a.prefix_length for a in affected_announcements if a.origin_as == origin_as
         ]
         if actual_lengths:
             max_actual_length = max(actual_lengths)
@@ -1443,11 +1315,7 @@ def _analyze_attack_surface(
 
     # ── 4. 覆盖范围扩大风险 ──
     # ROA 前缀从较小范围扩大到更大范围
-    if (
-        original_roa is not None
-        and request.new_prefix is not None
-        and old_prefix is not None
-    ):
+    if original_roa is not None and request.new_prefix is not None and old_prefix is not None:
         old_network = _parse_network(old_prefix)
         if (
             old_network is not None
@@ -1498,7 +1366,7 @@ async def export_simulation_results(
     result = await simulate_rov_policy(db, request.simulation_request)
 
     # 生成时间戳用于文件名
-    timestamp_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    timestamp_str = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
 
     if request.format == "json":
         content = result.model_dump_json(indent=2)
@@ -1532,9 +1400,7 @@ def _result_to_csv(result: ROVSimulationResult) -> str:
 
     # 写入受影响前缀
     writer.writerow(["# 受影响前缀"])
-    writer.writerow(
-        ["前缀", "起源 AS", "当前状态", "模拟状态", "影响描述", "重要度"]
-    )
+    writer.writerow(["前缀", "起源 AS", "当前状态", "模拟状态", "影响描述", "重要度"])
     for ap in result.affected_prefixes:
         writer.writerow(
             [

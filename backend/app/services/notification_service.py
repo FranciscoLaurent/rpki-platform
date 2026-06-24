@@ -13,14 +13,13 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.core.logging import get_logger
 from app.models.detection import Incident
 from app.models.forensics import NotificationChannel, NotificationLog
@@ -74,9 +73,7 @@ async def send_webhook(url: str, payload: dict[str, Any]) -> bool:
         return False
 
 
-async def send_email(
-    to: list[str], subject: str, body: str
-) -> bool:
+async def send_email(to: list[str], subject: str, body: str) -> bool:
     """邮件发送（SMTP，预留接口）。
 
     实际 SMTP 发送逻辑待接入邮件服务后实现，当前返回占位结果。
@@ -120,9 +117,7 @@ async def send_sms(to: list[str], message: str) -> bool:
     return True
 
 
-async def send_enterprise_im(
-    channel: str, message: str
-) -> bool:
+async def send_enterprise_im(channel: str, message: str) -> bool:
     """企业协作工具通知（预留接口）。
 
     支持企业微信、钉钉、Slack、Teams 等企业协作工具。
@@ -144,9 +139,7 @@ async def send_enterprise_im(
     return True
 
 
-async def send_to_itsm(
-    incident: Incident, action: str
-) -> bool:
+async def send_to_itsm(incident: Incident, action: str) -> bool:
     """ITSM/SOC 集成（预留接口）。
 
     将事件同步到 ITSM/SOC 平台，触发工单或告警流程。
@@ -192,7 +185,7 @@ async def notify_incident(
     Returns:
         通知结果字典，包含 total_channels/sent_count/failed_count/results/errors
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # 查询事件
     incident = await _get_incident(db, incident_id)
@@ -279,9 +272,7 @@ async def notify_incident(
                 )
         except Exception as e:
             failed_count += 1
-            errors.append(
-                f"渠道 {channel_type}（ID={channel.id}）发送异常：{e}"
-            )
+            errors.append(f"渠道 {channel_type}（ID={channel.id}）发送异常：{e}")
             logger.exception(
                 "通知渠道发送异常",
                 incident_id=incident_id,
@@ -347,7 +338,7 @@ async def _dispatch_to_channel(
             "status": incident.status,
             "affected_prefixes": incident.affected_prefixes,
             "affected_asns": incident.affected_asns,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         return await send_webhook(url, payload)
 
@@ -384,9 +375,7 @@ async def _dispatch_to_channel(
 # ──────────────────────────────────────────────
 
 
-async def _get_incident(
-    db: AsyncSession, incident_id: int
-) -> Incident | None:
+async def _get_incident(db: AsyncSession, incident_id: int) -> Incident | None:
     """获取事件。"""
     stmt = select(Incident).where(Incident.id == incident_id)
     result = await db.execute(stmt)
@@ -401,13 +390,9 @@ async def _resolve_channels(
     若指定渠道类型列表，则查询匹配的启用渠道；
     否则查询所有启用的通知渠道。
     """
-    stmt = select(NotificationChannel).where(
-        NotificationChannel.enabled.is_(True)
-    )
+    stmt = select(NotificationChannel).where(NotificationChannel.enabled.is_(True))
     if channels:
-        stmt = stmt.where(
-            NotificationChannel.channel_type.in_(channels)
-        )
+        stmt = stmt.where(NotificationChannel.channel_type.in_(channels))
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -424,9 +409,7 @@ def _build_incident_content(incident: Incident) -> str:
     if incident.affected_prefixes:
         parts.append(f"受影响前缀：{', '.join(incident.affected_prefixes)}")
     if incident.affected_asns:
-        parts.append(
-            f"受影响 ASN：{', '.join(f'AS{asn}' for asn in incident.affected_asns)}"
-        )
+        parts.append(f"受影响 ASN：{', '.join(f'AS{asn}' for asn in incident.affected_asns)}")
     if incident.first_seen_at:
         parts.append(f"首次发现：{incident.first_seen_at.isoformat()}")
     return "\n".join(parts)

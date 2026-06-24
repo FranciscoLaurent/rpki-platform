@@ -5,8 +5,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -17,9 +16,7 @@ from app.core.database import get_db
 from app.core.kafka import KafkaService
 from app.models.bgp import BGPAnnouncement
 from app.models.detection import (
-    Alert,
     DetectionRule,
-    Incident,
     RiskScore,
 )
 from app.models.user import User
@@ -28,7 +25,6 @@ from app.schemas.detection import (
     AlertQueryParams,
     AlertResponse,
     AlertStatusUpdate,
-    DetectionResult,
     DetectionRuleCreate,
     DetectionRuleResponse,
     DetectionRuleUpdate,
@@ -41,13 +37,9 @@ from app.schemas.detection import (
     RiskScoreResponse,
     ScanRequest,
     ScanResponse,
-    TimelineEvent,
 )
 from app.services import alert_service, incident_service
 from app.services.detection import (
-    RuleEngine,
-    detect_rpki_invalid_propagation,
-    detect_withdraw_flap,
     evaluate_announcement,
 )
 
@@ -129,9 +121,7 @@ async def list_detection_rules(
     return [DetectionRuleResponse.model_validate(r) for r in rules]
 
 
-@router.get(
-    "/rules/{rule_id}", response_model=DetectionRuleResponse
-)
+@router.get("/rules/{rule_id}", response_model=DetectionRuleResponse)
 async def get_detection_rule(
     rule_id: int,
     db: AsyncSession = Depends(get_db),
@@ -149,9 +139,7 @@ async def get_detection_rule(
     return DetectionRuleResponse.model_validate(rule)
 
 
-@router.put(
-    "/rules/{rule_id}", response_model=DetectionRuleResponse
-)
+@router.put("/rules/{rule_id}", response_model=DetectionRuleResponse)
 async def update_detection_rule(
     rule_id: int,
     rule_update: DetectionRuleUpdate,
@@ -178,9 +166,7 @@ async def update_detection_rule(
     return DetectionRuleResponse.model_validate(rule)
 
 
-@router.delete(
-    "/rules/{rule_id}", status_code=status.HTTP_204_NO_CONTENT
-)
+@router.delete("/rules/{rule_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_detection_rule(
     rule_id: int,
     db: AsyncSession = Depends(get_db),
@@ -199,9 +185,7 @@ async def delete_detection_rule(
     await db.commit()
 
 
-@router.post(
-    "/rules/{rule_id}/enable", response_model=DetectionRuleResponse
-)
+@router.post("/rules/{rule_id}/enable", response_model=DetectionRuleResponse)
 async def enable_detection_rule(
     rule_id: int,
     db: AsyncSession = Depends(get_db),
@@ -223,9 +207,7 @@ async def enable_detection_rule(
     return DetectionRuleResponse.model_validate(rule)
 
 
-@router.post(
-    "/rules/{rule_id}/disable", response_model=DetectionRuleResponse
-)
+@router.post("/rules/{rule_id}/disable", response_model=DetectionRuleResponse)
 async def disable_detection_rule(
     rule_id: int,
     db: AsyncSession = Depends(get_db),
@@ -273,13 +255,11 @@ async def scan(
     announcement = BGPAnnouncement(
         prefix=scan_request.prefix,
         prefix_family=4 if ":" not in scan_request.prefix else 6,
-        prefix_length=int(scan_request.prefix.split("/")[-1])
-        if "/" in scan_request.prefix
-        else 32,
+        prefix_length=int(scan_request.prefix.split("/")[-1]) if "/" in scan_request.prefix else 32,
         origin_as=scan_request.origin_as,
         as_path=scan_request.as_path,
         observation_point_id=scan_request.observation_point_id,
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         address_family=4 if ":" not in scan_request.prefix else 6,
     )
 
@@ -310,9 +290,7 @@ async def list_alerts(
     prefix: str | None = Query(None, description="按前缀过滤"),
     origin_as: int | None = Query(None, description="按起源 AS 过滤"),
     severity: str | None = Query(None, description="按严重等级过滤"),
-    status_filter: str | None = Query(
-        None, alias="status", description="按处置状态过滤"
-    ),
+    status_filter: str | None = Query(None, alias="status", description="按处置状态过滤"),
     alert_type: str | None = Query(None, description="按告警类型过滤"),
     incident_id: int | None = Query(None, description="按关联事件过滤"),
     start_time: datetime | None = Query(None, description="起始时间"),
@@ -339,9 +317,7 @@ async def list_alerts(
     return [AlertResponse.model_validate(a) for a in alerts]
 
 
-@router.get(
-    "/alerts/{alert_id}", response_model=AlertResponse
-)
+@router.get("/alerts/{alert_id}", response_model=AlertResponse)
 async def get_alert(
     alert_id: int,
     db: AsyncSession = Depends(get_db),
@@ -357,9 +333,7 @@ async def get_alert(
     return AlertResponse.model_validate(alert)
 
 
-@router.put(
-    "/alerts/{alert_id}/status", response_model=AlertResponse
-)
+@router.put("/alerts/{alert_id}/status", response_model=AlertResponse)
 async def update_alert_status(
     alert_id: int,
     status_update: AlertStatusUpdate,
@@ -385,9 +359,7 @@ async def update_alert_status(
     return AlertResponse.model_validate(alert)
 
 
-@router.post(
-    "/alerts/{alert_id}/assign", response_model=AlertResponse
-)
+@router.post("/alerts/{alert_id}/assign", response_model=AlertResponse)
 async def assign_alert(
     alert_id: int,
     assign_request: AlertAssignRequest,
@@ -395,9 +367,7 @@ async def assign_alert(
     current_user: User = Depends(require_permissions(DETECTION_WRITE)),
 ) -> AlertResponse:
     """关联告警到事件（需要 ``detection:write`` 权限）。"""
-    alert = await alert_service.assign_alert_to_incident(
-        db, alert_id, assign_request.incident_id
-    )
+    alert = await alert_service.assign_alert_to_incident(db, alert_id, assign_request.incident_id)
     if alert is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -408,9 +378,7 @@ async def assign_alert(
     return AlertResponse.model_validate(alert)
 
 
-@router.get(
-    "/alerts/{alert_id}/risk-score", response_model=RiskScoreResponse
-)
+@router.get("/alerts/{alert_id}/risk-score", response_model=RiskScoreResponse)
 async def get_alert_risk_score(
     alert_id: int,
     db: AsyncSession = Depends(get_db),
@@ -447,13 +415,9 @@ async def get_alert_risk_score(
 # ──────────────────────────────────────────────
 
 
-@router.get(
-    "/incidents", response_model=list[IncidentResponse]
-)
+@router.get("/incidents", response_model=list[IncidentResponse])
 async def list_incidents(
-    status_filter: str | None = Query(
-        None, alias="status", description="按状态过滤"
-    ),
+    status_filter: str | None = Query(None, alias="status", description="按状态过滤"),
     severity: str | None = Query(None, description="按严重等级过滤"),
     assigned_to: int | None = Query(None, description="按分派用户过滤"),
     prefix: str | None = Query(None, description="按受影响前缀过滤"),
@@ -477,15 +441,11 @@ async def list_incidents(
         skip=skip,
         limit=limit,
     )
-    incidents = await incident_service.get_incidents(
-        db, query_params, skip, limit
-    )
+    incidents = await incident_service.get_incidents(db, query_params, skip, limit)
     return [IncidentResponse.model_validate(i) for i in incidents]
 
 
-@router.get(
-    "/incidents/{incident_id}", response_model=IncidentResponse
-)
+@router.get("/incidents/{incident_id}", response_model=IncidentResponse)
 async def get_incident(
     incident_id: int,
     db: AsyncSession = Depends(get_db),
@@ -518,9 +478,7 @@ async def create_incident(
     return IncidentResponse.model_validate(incident)
 
 
-@router.put(
-    "/incidents/{incident_id}", response_model=IncidentResponse
-)
+@router.put("/incidents/{incident_id}", response_model=IncidentResponse)
 async def update_incident(
     incident_id: int,
     incident_update: IncidentUpdate,
@@ -534,17 +492,13 @@ async def update_incident(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"事件 ID {incident_id} 不存在",
         )
-    incident = await incident_service.update_incident(
-        db, incident, incident_update
-    )
+    incident = await incident_service.update_incident(db, incident, incident_update)
     await db.commit()
     await db.refresh(incident)
     return IncidentResponse.model_validate(incident)
 
 
-@router.post(
-    "/incidents/{incident_id}/assign", response_model=IncidentResponse
-)
+@router.post("/incidents/{incident_id}/assign", response_model=IncidentResponse)
 async def assign_incident(
     incident_id: int,
     assign_request: IncidentAssignRequest,
@@ -552,9 +506,7 @@ async def assign_incident(
     current_user: User = Depends(require_permissions(DETECTION_WRITE)),
 ) -> IncidentResponse:
     """分派事件（需要 ``detection:write`` 权限）。"""
-    incident = await incident_service.assign_incident(
-        db, incident_id, assign_request.user_id
-    )
+    incident = await incident_service.assign_incident(db, incident_id, assign_request.user_id)
     if incident is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -565,9 +517,7 @@ async def assign_incident(
     return IncidentResponse.model_validate(incident)
 
 
-@router.post(
-    "/incidents/{incident_id}/close", response_model=IncidentResponse
-)
+@router.post("/incidents/{incident_id}/close", response_model=IncidentResponse)
 async def close_incident(
     incident_id: int,
     close_request: IncidentCloseRequest,
@@ -575,9 +525,7 @@ async def close_incident(
     current_user: User = Depends(require_permissions(DETECTION_WRITE)),
 ) -> IncidentResponse:
     """关闭事件（需要 ``detection:write`` 权限）。"""
-    incident = await incident_service.close_incident(
-        db, incident_id, close_request.resolution
-    )
+    incident = await incident_service.close_incident(db, incident_id, close_request.resolution)
     if incident is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -13,7 +13,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from app.core.config import settings
@@ -52,9 +52,7 @@ def _get_client_ip(headers: dict[str, str], client_host: str | None) -> str:
     Returns:
         客户端 IP 地址，无法获取时返回 ``"unknown"``
     """
-    forwarded = headers.get("X-Forwarded-For", "") or headers.get(
-        "x-forwarded-for", ""
-    )
+    forwarded = headers.get("X-Forwarded-For", "") or headers.get("x-forwarded-for", "")
     if forwarded:
         return forwarded.split(",")[0].strip()
     return client_host or "unknown"
@@ -69,13 +67,11 @@ def _hash_user_agent(user_agent: str) -> str:
 
 def _record_login_ip(user_id: int | str, ip: str) -> None:
     """记录用户登录 IP（用于后续异地登录检测）。"""
-    now = datetime.now(timezone.utc).timestamp()
+    now = datetime.now(UTC).timestamp()
     records = _recent_login_ips.setdefault(user_id, [])
     # 清理过期记录
     cutoff = now - _RECENT_IP_WINDOW_SECONDS
-    _recent_login_ips[user_id] = [
-        (existing_ip, ts) for existing_ip, ts in records if ts > cutoff
-    ]
+    _recent_login_ips[user_id] = [(existing_ip, ts) for existing_ip, ts in records if ts > cutoff]
     # 追加本次记录
     _recent_login_ips[user_id].append((ip, now))
 
@@ -88,21 +84,17 @@ def _is_new_ip_for_user(user_id: int | str, ip: str) -> bool:
 
 def _record_user_agent(user_id: int | str, user_agent: str) -> None:
     """记录用户登录 User-Agent。"""
-    now = datetime.now(timezone.utc).timestamp()
+    now = datetime.now(UTC).timestamp()
     ua_hash = _hash_user_agent(user_agent)
     records = _recent_user_agents.setdefault(user_id, [])
     # 清理过期记录
     cutoff = now - _RECENT_UA_WINDOW_SECONDS
-    _recent_user_agents[user_id] = [
-        (existing_ua, ts) for existing_ua, ts in records if ts > cutoff
-    ]
+    _recent_user_agents[user_id] = [(existing_ua, ts) for existing_ua, ts in records if ts > cutoff]
     # 追加本次记录
     _recent_user_agents[user_id].append((ua_hash, now))
 
 
-def _is_new_user_agent_for_user(
-    user_id: int | str, user_agent: str
-) -> bool:
+def _is_new_user_agent_for_user(user_id: int | str, user_agent: str) -> bool:
     """检查给定 User-Agent 是否为用户最近未使用过的新设备。"""
     ua_hash = _hash_user_agent(user_agent)
     records = _recent_user_agents.get(user_id, [])
@@ -121,7 +113,7 @@ def record_login_failure(ip: str, username: str) -> int:
     Returns:
         当前时间窗口内的失败次数
     """
-    now = datetime.now(timezone.utc).timestamp()
+    now = datetime.now(UTC).timestamp()
     key = (ip, username)
     records = _login_failures[key]
     # 清理过期记录
@@ -168,7 +160,7 @@ def detect_frequent_failures(ip: str, username: str) -> bool:
         是否达到频繁失败阈值
     """
     key = (ip, username)
-    now = datetime.now(timezone.utc).timestamp()
+    now = datetime.now(UTC).timestamp()
     cutoff = now - _FAILURE_WINDOW_SECONDS
     records = _login_failures.get(key, [])
     recent_count = sum(1 for ts in records if ts > cutoff)
@@ -209,11 +201,9 @@ def detect_anomalous_login(
     """
     reasons: list[str] = []
     client_ip = _get_client_ip(headers, client_host)
-    user_agent = headers.get("User-Agent", "") or headers.get(
-        "user-agent", ""
-    )[:200]
+    user_agent = headers.get("User-Agent", "") or headers.get("user-agent", "")[:200]
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     login_hour = now.hour
 
     # 1. 异常时间登录检测
@@ -284,17 +274,13 @@ def get_login_history_summary(
     """
     ip_records = _recent_login_ips.get(user_id, [])
     ua_records = _recent_user_agents.get(user_id, [])
-    now = datetime.now(timezone.utc).timestamp()
+    now = datetime.now(UTC).timestamp()
 
     ip_cutoff = now - _RECENT_IP_WINDOW_SECONDS
     ua_cutoff = now - _RECENT_UA_WINDOW_SECONDS
 
-    recent_ips = {
-        ip for ip, ts in ip_records if ts > ip_cutoff
-    }
-    recent_uas = {
-        ua for ua, ts in ua_records if ts > ua_cutoff
-    }
+    recent_ips = {ip for ip, ts in ip_records if ts > ip_cutoff}
+    recent_uas = {ua for ua, ts in ua_records if ts > ua_cutoff}
 
     return {
         "user_id": user_id,

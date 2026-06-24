@@ -45,12 +45,8 @@ class ApiKey(Base, TimestampMixin, TenantMixin):
         Index("ix_api_keys_is_active", "is_active"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="密钥名称（用于识别）"
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="密钥名称（用于识别）")
     key_hash: Mapped[str] = mapped_column(
         String(255), nullable=False, comment="密钥哈希值（bcrypt）"
     )
@@ -80,13 +76,10 @@ class ApiKey(Base, TimestampMixin, TenantMixin):
     )
 
     # 关联用户
-    user: Mapped["User"] = relationship()
+    user: Mapped[User] = relationship()
 
     def __repr__(self) -> str:
-        return (
-            f"<ApiKey(id={self.id}, name={self.name}, "
-            f"prefix={self.key_prefix})>"
-        )
+        return f"<ApiKey(id={self.id}, name={self.name}, prefix={self.key_prefix})>"
 
 
 __all__ = ["ApiKey"]

@@ -7,9 +7,8 @@
 
 from __future__ import annotations
 
-import asyncio
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -198,7 +197,7 @@ async def publish_event(
     # 构造完整事件 payload
     payload: dict[str, Any] = {
         "event_type": event_type,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "data": event_data,
     }
     # 若事件数据中包含 id，提升到顶层用作消息键
@@ -224,12 +223,9 @@ async def publish_event(
             continue
 
         # 查询该通道类型的已启用集成配置
-        stmt = (
-            select(IntegrationConfig)
-            .where(
-                IntegrationConfig.integration_type == channel_type,
-                IntegrationConfig.enabled.is_(True),
-            )
+        stmt = select(IntegrationConfig).where(
+            IntegrationConfig.integration_type == channel_type,
+            IntegrationConfig.enabled.is_(True),
         )
         db_result = await db.execute(stmt)
         configs = db_result.scalars().all()
@@ -350,7 +346,7 @@ async def _record_delivery(
             payload=payload,
             status="success" if success else "failed",
             retry_count=0,
-            last_attempt_at=datetime.now(timezone.utc),
+            last_attempt_at=datetime.now(UTC),
             response_status_code=200 if success else None,
             error_message=None if success else "推送失败",
         )
@@ -377,11 +373,7 @@ async def list_push_channels(db: AsyncSession) -> list[dict[str, Any]]:
     """
     stmt = (
         select(IntegrationConfig)
-        .where(
-            IntegrationConfig.integration_type.in_(
-                ["webhook", "syslog", "kafka"]
-            )
-        )
+        .where(IntegrationConfig.integration_type.in_(["webhook", "syslog", "kafka"]))
         .order_by(IntegrationConfig.integration_type, IntegrationConfig.name)
     )
     result = await db.execute(stmt)
@@ -397,9 +389,9 @@ async def list_push_channels(db: AsyncSession) -> list[dict[str, Any]]:
                 "subtype": integration.subtype,
                 "enabled": integration.enabled,
                 "status": integration.last_test_status or "unknown",
-                "last_test_at": integration.last_test_at.isoformat()
-                if integration.last_test_at
-                else None,
+                "last_test_at": (
+                    integration.last_test_at.isoformat() if integration.last_test_at else None
+                ),
                 "tenant_id": integration.tenant_id,
             }
         )
@@ -429,7 +421,7 @@ async def test_channel(channel_type: str, config: dict[str, Any]) -> dict[str, A
     test_event = {
         "id": f"test-{int(time.time())}",
         "event_type": "channel.test",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "severity": "P4",
         "message": "通道连通性测试",
         "data": {"test": True},

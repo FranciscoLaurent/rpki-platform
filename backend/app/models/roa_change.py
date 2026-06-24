@@ -55,9 +55,7 @@ class ROAChangeRequest(Base, TimestampMixin, TenantMixin):
         Index("ix_roa_change_requests_approved_by", "approved_by"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     change_type: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
@@ -70,9 +68,7 @@ class ROAChangeRequest(Base, TimestampMixin, TenantMixin):
     )
 
     # 变更后的值
-    prefix: Mapped[str | None] = mapped_column(
-        String(64), nullable=True, comment="变更后的前缀"
-    )
+    prefix: Mapped[str | None] = mapped_column(String(64), nullable=True, comment="变更后的前缀")
     origin_as: Mapped[int | None] = mapped_column(
         Integer, nullable=True, comment="变更后的起源 AS 号"
     )
@@ -92,9 +88,7 @@ class ROAChangeRequest(Base, TimestampMixin, TenantMixin):
     )
 
     # 变更原因与影响评估
-    reason: Mapped[str] = mapped_column(
-        Text, nullable=False, comment="变更原因"
-    )
+    reason: Mapped[str] = mapped_column(Text, nullable=False, comment="变更原因")
     impact_summary: Mapped[dict[str, Any] | None] = mapped_column(
         JSON, nullable=True, comment="影响评估摘要（JSON）"
     )
@@ -110,10 +104,7 @@ class ROAChangeRequest(Base, TimestampMixin, TenantMixin):
         String(20),
         nullable=False,
         default="pending_approval",
-        comment=(
-            "状态：draft/pending_approval/approved/rejected/"
-            "executed/failed/rolled_back"
-        ),
+        comment=("状态：draft/pending_approval/approved/rejected/executed/failed/rolled_back"),
     )
     approval_rule_id: Mapped[int | None] = mapped_column(
         ForeignKey("roa_approval_rules.id", ondelete="SET NULL"),
@@ -144,9 +135,7 @@ class ROAChangeRequest(Base, TimestampMixin, TenantMixin):
         nullable=True,
         comment="最终审批人 ID",
     )
-    approval_comments: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="审批意见"
-    )
+    approval_comments: Mapped[str | None] = mapped_column(Text, nullable=True, comment="审批意见")
 
     # 执行信息
     executed_at: Mapped[datetime | None] = mapped_column(
@@ -188,22 +177,13 @@ class ROAApprovalRule(Base, TimestampMixin, TenantMixin):
         Index("ix_roa_approval_rules_priority", "priority"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="规则名称"
-    )
-    description: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="规则描述"
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="规则名称")
+    description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="规则描述")
     rule_type: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
-        comment=(
-            "审批类型：auto_approve/single_approval/"
-            "dual_approval/committee"
-        ),
+        comment=("审批类型：auto_approve/single_approval/dual_approval/committee"),
     )
     conditions: Mapped[dict[str, Any] | None] = mapped_column(
         JSON,
@@ -234,10 +214,7 @@ class ROAApprovalRule(Base, TimestampMixin, TenantMixin):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<ROAApprovalRule(id={self.id}, name={self.name}, "
-            f"type={self.rule_type})>"
-        )
+        return f"<ROAApprovalRule(id={self.id}, name={self.name}, type={self.rule_type})>"
 
 
 __all__ = [

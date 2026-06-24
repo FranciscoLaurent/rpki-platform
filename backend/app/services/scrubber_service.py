@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import func, select
@@ -62,9 +62,7 @@ async def get_scrubber_authorization(
     db: AsyncSession, auth_id: int
 ) -> ScrubberAuthorization | None:
     """根据 ID 获取清洗商授权。"""
-    stmt = select(ScrubberAuthorization).where(
-        ScrubberAuthorization.id == auth_id
-    )
+    stmt = select(ScrubberAuthorization).where(ScrubberAuthorization.id == auth_id)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
@@ -89,23 +87,15 @@ async def get_scrubber_authorizations(
     stmt = select(ScrubberAuthorization)
     if filters:
         if filters.get("scrubber_asn") is not None:
-            stmt = stmt.where(
-                ScrubberAuthorization.scrubber_asn == filters["scrubber_asn"]
-            )
+            stmt = stmt.where(ScrubberAuthorization.scrubber_asn == filters["scrubber_asn"])
         if filters.get("customer_asn") is not None:
-            stmt = stmt.where(
-                ScrubberAuthorization.customer_asn == filters["customer_asn"]
-            )
+            stmt = stmt.where(ScrubberAuthorization.customer_asn == filters["customer_asn"])
         if filters.get("customer_prefix"):
-            stmt = stmt.where(
-                ScrubberAuthorization.customer_prefix == filters["customer_prefix"]
-            )
+            stmt = stmt.where(ScrubberAuthorization.customer_prefix == filters["customer_prefix"])
         if filters.get("status"):
             stmt = stmt.where(ScrubberAuthorization.status == filters["status"])
 
-    stmt = stmt.order_by(
-        ScrubberAuthorization.authorized_at.desc()
-    ).offset(skip).limit(limit)
+    stmt = stmt.order_by(ScrubberAuthorization.authorized_at.desc()).offset(skip).limit(limit)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -117,17 +107,11 @@ async def count_scrubber_authorizations(
     stmt = select(func.count(ScrubberAuthorization.id))
     if filters:
         if filters.get("scrubber_asn") is not None:
-            stmt = stmt.where(
-                ScrubberAuthorization.scrubber_asn == filters["scrubber_asn"]
-            )
+            stmt = stmt.where(ScrubberAuthorization.scrubber_asn == filters["scrubber_asn"])
         if filters.get("customer_asn") is not None:
-            stmt = stmt.where(
-                ScrubberAuthorization.customer_asn == filters["customer_asn"]
-            )
+            stmt = stmt.where(ScrubberAuthorization.customer_asn == filters["customer_asn"])
         if filters.get("customer_prefix"):
-            stmt = stmt.where(
-                ScrubberAuthorization.customer_prefix == filters["customer_prefix"]
-            )
+            stmt = stmt.where(ScrubberAuthorization.customer_prefix == filters["customer_prefix"])
         if filters.get("status"):
             stmt = stmt.where(ScrubberAuthorization.status == filters["status"])
 
@@ -203,7 +187,7 @@ async def check_scrubber_authorization(
     Returns:
         匹配的清洗商授权对象，无匹配返回 None
     """
-    check_time = at_time or datetime.now(timezone.utc)
+    check_time = at_time or datetime.now(UTC)
 
     stmt = (
         select(ScrubberAuthorization)

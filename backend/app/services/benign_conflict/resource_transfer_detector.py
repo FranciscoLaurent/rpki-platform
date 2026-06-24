@@ -13,7 +13,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select
@@ -29,9 +29,7 @@ from app.schemas.benign_conflict import BenignConflictAnalysisResult
 logger = get_logger("app.benign_conflict.resource_transfer")
 
 
-async def detect_resource_transfer(
-    db: AsyncSession, alert: Alert
-) -> BenignConflictAnalysisResult:
+async def detect_resource_transfer(db: AsyncSession, alert: Alert) -> BenignConflictAnalysisResult:
     """识别资源迁移/转让。
 
     Args:
@@ -62,9 +60,9 @@ async def detect_resource_transfer(
             "customer_id": prefix_record.customer_id,
             "business_service": prefix_record.business_service,
             "region": prefix_record.region,
-            "updated_at": prefix_record.updated_at.isoformat()
-            if prefix_record.updated_at
-            else None,
+            "updated_at": (
+                prefix_record.updated_at.isoformat() if prefix_record.updated_at else None
+            ),
         }
         # 前缀状态为 reserved 或 deprecated 可能表示资源迁移中
         if prefix_record.status in ("reserved", "deprecated"):
@@ -98,13 +96,10 @@ async def detect_resource_transfer(
     confidence = max(0.0, min(1.0, confidence))
 
     # 判定：存在资源迁移记录或近期 ROA 变更 → 疑似良性冲突
-    is_benign = (
-        existing_transfer is not None
-        or (
-            recent_roa_changes["has_changes"]
-            and prefix_record is not None
-            and prefix_record.status in ("reserved", "deprecated")
-        )
+    is_benign = existing_transfer is not None or (
+        recent_roa_changes["has_changes"]
+        and prefix_record is not None
+        and prefix_record.status in ("reserved", "deprecated")
     )
 
     if is_benign:
@@ -117,8 +112,7 @@ async def detect_resource_transfer(
         )
     elif recent_roa_changes["has_changes"]:
         recommendation = (
-            f"前缀 {prefix} 存在近期 ROA 变更，"
-            "但缺少明确的迁移记录。建议：人工核实资源归属变化。"
+            f"前缀 {prefix} 存在近期 ROA 变更，但缺少明确的迁移记录。建议：人工核实资源归属变化。"
         )
     else:
         recommendation = "未识别为资源迁移良性冲突，按正常告警处置流程处理。"
@@ -152,7 +146,7 @@ async def _check_recent_roa_changes(
     Returns:
         包含变更信息的字典
     """
-    since = datetime.now(timezone.utc) - timedelta(days=lookback_days)
+    since = datetime.now(UTC) - timedelta(days=lookback_days)
     stmt = (
         select(ROA)
         .where(ROA.prefix == prefix)
@@ -171,9 +165,7 @@ async def _check_recent_roa_changes(
                 "prefix": roa.prefix,
                 "origin_as": roa.origin_as,
                 "status": roa.status,
-                "updated_at": roa.updated_at.isoformat()
-                if roa.updated_at
-                else None,
+                "updated_at": roa.updated_at.isoformat() if roa.updated_at else None,
             }
             for roa in roas[:5]  # 仅保留最近 5 条
         ],

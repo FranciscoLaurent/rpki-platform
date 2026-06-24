@@ -59,9 +59,7 @@ async def list_scrubber_authorizations(
     scrubber_asn: int | None = Query(None, description="按清洗商 ASN 过滤"),
     customer_asn: int | None = Query(None, description="按客户 ASN 过滤"),
     customer_prefix: str | None = Query(None, description="按客户前缀过滤"),
-    status_filter: str | None = Query(
-        None, alias="status", description="按状态过滤"
-    ),
+    status_filter: str | None = Query(None, alias="status", description="按状态过滤"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_permissions(ASSET_READ)),
 ) -> ScrubberAuthorizationListResponse:
@@ -76,9 +74,7 @@ async def list_scrubber_authorizations(
     if status_filter is not None:
         filters["status"] = status_filter
 
-    items = await get_scrubber_authorizations(
-        db, filters=filters, skip=skip, limit=limit
-    )
+    items = await get_scrubber_authorizations(db, filters=filters, skip=skip, limit=limit)
     total = await count_scrubber_authorizations(db, filters=filters)
     return ScrubberAuthorizationListResponse(
         items=[ScrubberAuthorizationResponse.model_validate(a) for a in items],

@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import ipaddress
 import struct
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from app.core.logging import get_logger
@@ -44,8 +44,8 @@ class RTRClientInfo:
         self.writer = writer
         self.client_ip = client_ip
         self.client_port = client_port
-        self.connected_at = datetime.now(timezone.utc)
-        self.last_activity_at = datetime.now(timezone.utc)
+        self.connected_at = datetime.now(UTC)
+        self.last_activity_at = datetime.now(UTC)
         self.last_serial: int | None = None
         self.client_version: int = RTRProtocol.DEFAULT_VERSION
         self.session_state: str = "established"
@@ -54,7 +54,7 @@ class RTRClientInfo:
 
     def update_activity(self) -> None:
         """更新最近活动时间。"""
-        self.last_activity_at = datetime.now(timezone.utc)
+        self.last_activity_at = datetime.now(UTC)
 
     def __repr__(self) -> str:
         return (
@@ -145,9 +145,7 @@ class RTRServerEngine:
         """运行时长（秒）。"""
         if self._started_at is None:
             return 0
-        return int(
-            (datetime.now(timezone.utc) - self._started_at).total_seconds()
-        )
+        return int((datetime.now(UTC) - self._started_at).total_seconds())
 
     @property
     def last_error(self) -> str | None:
@@ -210,7 +208,7 @@ class RTRServerEngine:
             port=self.port,
         )
         self._running = True
-        self._started_at = datetime.now(timezone.utc)
+        self._started_at = datetime.now(UTC)
         self._last_error = None
         logger.info(
             "RTR 服务端已启动",
@@ -249,9 +247,7 @@ class RTRServerEngine:
                 logger.warning("关闭服务器异常", error=str(e))
             self._server = None
 
-        logger.info(
-            "RTR 服务端已停止", host=self.host, port=self.port
-        )
+        logger.info("RTR 服务端已停止", host=self.host, port=self.port)
 
     # ──────────────────────────────────────────────
     # 客户端连接管理
@@ -323,9 +319,7 @@ class RTRServerEngine:
             while self._running:
                 try:
                     # 先读取 8 字节头部
-                    header = await client.reader.readexactly(
-                        RTRProtocol.HEADER_LENGTH
-                    )
+                    header = await client.reader.readexactly(RTRProtocol.HEADER_LENGTH)
                 except asyncio.IncompleteReadError:
                     # 客户端正常关闭连接
                     break
@@ -333,9 +327,7 @@ class RTRServerEngine:
                     break
 
                 # 解析头部获取完整 PDU 长度
-                _, _, _, length = struct.unpack(
-                    "!BBHI", header
-                )
+                _, _, _, length = struct.unpack("!BBHI", header)
                 if length < RTRProtocol.HEADER_LENGTH:
                     logger.warning(
                         "客户端发送非法 PDU 长度",
@@ -393,9 +385,7 @@ class RTRServerEngine:
                 client_port=client.client_port,
             )
 
-    async def process_query(
-        self, query: bytes, client: RTRClientInfo
-    ) -> None:
+    async def process_query(self, query: bytes, client: RTRClientInfo) -> None:
         """处理客户端查询 PDU。
 
         根据 PDU 类型分发处理：

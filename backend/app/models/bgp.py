@@ -40,9 +40,7 @@ class BGPDataSource(Base, TimestampMixin, TenantMixin):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="数据源名称"
-    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="数据源名称")
     source_type: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
@@ -85,7 +83,7 @@ class BGPDataSource(Base, TimestampMixin, TenantMixin):
     )
 
     # 关联观察点
-    observation_points: Mapped[list["ObservationPoint"]] = relationship(
+    observation_points: Mapped[list[ObservationPoint]] = relationship(
         back_populates="data_source", cascade="all, delete-orphan"
     )
 
@@ -106,9 +104,7 @@ class ObservationPoint(Base, TimestampMixin):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="观察点名称"
-    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="观察点名称")
     data_source_id: Mapped[int] = mapped_column(
         ForeignKey("bgp_data_sources.id", ondelete="CASCADE"),
         nullable=False,
@@ -134,9 +130,7 @@ class ObservationPoint(Base, TimestampMixin):
     )
 
     # 关联数据源
-    data_source: Mapped["BGPDataSource"] = relationship(
-        back_populates="observation_points"
-    )
+    data_source: Mapped[BGPDataSource] = relationship(back_populates="observation_points")
 
     def __repr__(self) -> str:
         return f"<ObservationPoint(id={self.id}, name={self.name})>"
@@ -164,30 +158,18 @@ class BGPAnnouncement(Base, TenantMixin):
     prefix_family: Mapped[int] = mapped_column(
         Integer, nullable=False, comment="前缀地址族：4 或 6"
     )
-    prefix_length: Mapped[int] = mapped_column(
-        Integer, nullable=False, comment="前缀长度"
-    )
-    origin_as: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="起源 AS 号"
-    )
-    as_path: Mapped[list[int] | None] = mapped_column(
-        JSON, nullable=True, comment="AS 路径列表"
-    )
-    next_hop: Mapped[str | None] = mapped_column(
-        String(64), nullable=True, comment="下一跳地址"
-    )
+    prefix_length: Mapped[int] = mapped_column(Integer, nullable=False, comment="前缀长度")
+    origin_as: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="起源 AS 号")
+    as_path: Mapped[list[int] | None] = mapped_column(JSON, nullable=True, comment="AS 路径列表")
+    next_hop: Mapped[str | None] = mapped_column(String(64), nullable=True, comment="下一跳地址")
     communities: Mapped[list[str] | None] = mapped_column(
         JSON, nullable=True, comment="BGP Community 列表"
     )
     large_communities: Mapped[list[str] | None] = mapped_column(
         JSON, nullable=True, comment="BGP Large Community 列表"
     )
-    med: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="MULTI_EXIT_DISC 值"
-    )
-    local_pref: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="LOCAL_PREF 值"
-    )
+    med: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="MULTI_EXIT_DISC 值")
+    local_pref: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="LOCAL_PREF 值")
     observation_point_id: Mapped[int | None] = mapped_column(
         ForeignKey("observation_points.id", ondelete="SET NULL"),
         nullable=True,
@@ -242,15 +224,11 @@ class BGPWithdraw(Base, TenantMixin):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    prefix: Mapped[str] = mapped_column(
-        String(64), nullable=False, comment="被撤销的网络前缀"
-    )
+    prefix: Mapped[str] = mapped_column(String(64), nullable=False, comment="被撤销的网络前缀")
     prefix_family: Mapped[int] = mapped_column(
         Integer, nullable=False, comment="前缀地址族：4 或 6"
     )
-    prefix_length: Mapped[int] = mapped_column(
-        Integer, nullable=False, comment="前缀长度"
-    )
+    prefix_length: Mapped[int] = mapped_column(Integer, nullable=False, comment="前缀长度")
     observation_point_id: Mapped[int | None] = mapped_column(
         ForeignKey("observation_points.id", ondelete="SET NULL"),
         nullable=True,
@@ -331,17 +309,13 @@ class DeviceAdapter(Base, TimestampMixin, TenantMixin):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="适配器名称"
-    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="适配器名称")
     vendor: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
         comment="设备厂商：cisco/juniper/huawei/h3c/arista/nokia/frr/bird/openbgpd",
     )
-    model: Mapped[str | None] = mapped_column(
-        String(255), nullable=True, comment="设备型号"
-    )
+    model: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="设备型号")
     connection_type: Mapped[str] = mapped_column(
         String(50),
         nullable=False,

@@ -12,23 +12,21 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import get_logger
 from app.models.detection import Alert
-from app.models.rpki import RPKIRepository, TAL, VRP
+from app.models.rpki import TAL, VRP, RPKIRepository
 from app.schemas.benign_conflict import BenignConflictAnalysisResult
 
 logger = get_logger("app.benign_conflict.data_source_delay")
 
 
-async def detect_data_source_delay(
-    db: AsyncSession, alert: Alert
-) -> BenignConflictAnalysisResult:
+async def detect_data_source_delay(db: AsyncSession, alert: Alert) -> BenignConflictAnalysisResult:
     """识别 RPKI 数据源延迟。
 
     Args:
@@ -125,7 +123,7 @@ async def _check_sync_status(db: AsyncSession) -> dict[str, Any]:
     repo_result = await db.execute(repo_stmt)
     repositories = list(repo_result.scalars().all())
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     stale_threshold = timedelta(hours=1)
 
     failed_repos = [
@@ -138,12 +136,14 @@ async def _check_sync_status(db: AsyncSession) -> dict[str, Any]:
     for r in repositories:
         if r.last_synced_at is not None:
             if now - r.last_synced_at > stale_threshold:
-                stale_repos.append({
-                    "id": r.id,
-                    "uri": r.uri,
-                    "last_synced_at": r.last_synced_at.isoformat(),
-                    "stale_seconds": (now - r.last_synced_at).total_seconds(),
-                })
+                stale_repos.append(
+                    {
+                        "id": r.id,
+                        "uri": r.uri,
+                        "last_synced_at": r.last_synced_at.isoformat(),
+                        "stale_seconds": (now - r.last_synced_at).total_seconds(),
+                    }
+                )
 
     return {
         "total_tals": len(tals),
@@ -168,7 +168,7 @@ async def _check_vrp_freshness(
     Returns:
         包含新鲜度信息的字典
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     stale_threshold = timedelta(hours=1)
 
     stmt = select(VRP).where(VRP.prefix == prefix)
@@ -208,12 +208,10 @@ async def _check_repository_timestamps(db: AsyncSession) -> dict[str, Any]:
     Returns:
         包含时间戳检查结果的字典
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     old_threshold = timedelta(hours=24)
 
-    stmt = select(RPKIRepository.last_synced_at).where(
-        RPKIRepository.last_synced_at.is_not(None)
-    )
+    stmt = select(RPKIRepository.last_synced_at).where(RPKIRepository.last_synced_at.is_not(None))
     result = await db.execute(stmt)
     timestamps = [row[0] for row in result.all() if row[0] is not None]
 

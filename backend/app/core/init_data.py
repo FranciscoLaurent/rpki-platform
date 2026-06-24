@@ -9,10 +9,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.database import async_session_factory
 from app.core.logging import get_logger
 from app.core.rbac import ALL_PERMISSIONS, SYSTEM_ROLES
 from app.core.security import get_password_hash
-from app.core.database import async_session_factory
 from app.models.user import Permission, Role, User
 
 logger = get_logger("init_data")
@@ -52,9 +52,7 @@ async def _init_permissions(db: AsyncSession) -> dict[str, int]:
     return perm_map
 
 
-async def _init_roles(
-    db: AsyncSession, perm_map: dict[str, int]
-) -> dict[str, int]:
+async def _init_roles(db: AsyncSession, perm_map: dict[str, int]) -> dict[str, int]:
     """初始化系统角色并建立角色-权限关联，返回角色编码到 ID 的映射。
 
     如果角色已存在（如迁移脚本已插入），则仅补全权限关联。
@@ -83,9 +81,7 @@ async def _init_roles(
         # 重新加载以获取 ID
         for role_code, role in existing_roles.items():
             if role.id is None:
-                result = await db.execute(
-                    select(Role).where(Role.code == role_code)
-                )
+                result = await db.execute(select(Role).where(Role.code == role_code))
                 db_role = result.scalar_one()
                 existing_roles[role_code] = db_role
                 role_map[role_code] = db_role.id
@@ -118,17 +114,13 @@ async def _init_roles(
 async def _init_super_admin(db: AsyncSession) -> None:
     """初始化默认超级管理员账号。"""
     # 检查是否已有超级管理员
-    result = await db.execute(
-        select(User).where(User.username == settings.DEFAULT_ADMIN_USERNAME)
-    )
+    result = await db.execute(select(User).where(User.username == settings.DEFAULT_ADMIN_USERNAME))
     if result.scalar_one_or_none() is not None:
         logger.info("超级管理员账号已存在，跳过创建")
         return
 
     # 获取 super_admin 角色
-    result = await db.execute(
-        select(Role).where(Role.code == "super_admin")
-    )
+    result = await db.execute(select(Role).where(Role.code == "super_admin"))
     super_admin_role = result.scalar_one_or_none()
 
     admin = User(

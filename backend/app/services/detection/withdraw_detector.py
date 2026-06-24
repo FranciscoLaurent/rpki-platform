@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func, select
@@ -39,17 +39,13 @@ async def detect_withdraw_flap(
     Returns:
         撤路与震荡检测结果
     """
-    since = datetime.now(timezone.utc) - timedelta(minutes=time_window)
+    since = datetime.now(UTC) - timedelta(minutes=time_window)
 
     # 1. 统计撤路次数与受影响观察点
-    withdraw_count, withdraw_points = await _count_withdraws(
-        db, prefix, since
-    )
+    withdraw_count, withdraw_points = await _count_withdraws(db, prefix, since)
 
     # 2. 统计公告次数
-    announce_count, announce_points = await _count_announcements(
-        db, prefix, since
-    )
+    announce_count, announce_points = await _count_announcements(db, prefix, since)
 
     # 3. 计算震荡频率
     total_events = withdraw_count + announce_count
@@ -70,8 +66,7 @@ async def detect_withdraw_flap(
         is_anomaly = True
         severity = "P1"
         description = (
-            f"大范围撤路：前缀 {prefix} 在 {time_window} 分钟内"
-            f"被 {withdraw_points} 个观察点撤路"
+            f"大范围撤路：前缀 {prefix} 在 {time_window} 分钟内被 {withdraw_points} 个观察点撤路"
         )
 
     if frequent_flap:
@@ -88,10 +83,7 @@ async def detect_withdraw_flap(
         is_anomaly = True
         if severity == "P3":
             severity = "P2"
-        description = (
-            f"收敛异常：前缀 {prefix} 公告数 {announce_count} "
-            f"远超撤路数 {withdraw_count}"
-        )
+        description = f"收敛异常：前缀 {prefix} 公告数 {announce_count} 远超撤路数 {withdraw_count}"
 
     evidence: dict[str, Any] = {
         "prefix": prefix,
@@ -119,9 +111,7 @@ async def detect_withdraw_flap(
     )
 
 
-async def _count_withdraws(
-    db: AsyncSession, prefix: str, since: datetime
-) -> tuple[int, int]:
+async def _count_withdraws(db: AsyncSession, prefix: str, since: datetime) -> tuple[int, int]:
     """统计指定前缀的撤路次数与受影响观察点数。
 
     Returns:
@@ -130,9 +120,7 @@ async def _count_withdraws(
     stmt = (
         select(
             func.count(BGPWithdraw.id).label("cnt"),
-            func.count(func.distinct(BGPWithdraw.observation_point_id)).label(
-                "points"
-            ),
+            func.count(func.distinct(BGPWithdraw.observation_point_id)).label("points"),
         )
         .where(BGPWithdraw.prefix == prefix)
         .where(BGPWithdraw.timestamp >= since)
@@ -142,9 +130,7 @@ async def _count_withdraws(
     return int(row.cnt or 0), int(row.points or 0)
 
 
-async def _count_announcements(
-    db: AsyncSession, prefix: str, since: datetime
-) -> tuple[int, int]:
+async def _count_announcements(db: AsyncSession, prefix: str, since: datetime) -> tuple[int, int]:
     """统计指定前缀的公告次数与观察点数。
 
     Returns:
@@ -153,9 +139,7 @@ async def _count_announcements(
     stmt = (
         select(
             func.count(BGPAnnouncement.id).label("cnt"),
-            func.count(
-                func.distinct(BGPAnnouncement.observation_point_id)
-            ).label("points"),
+            func.count(func.distinct(BGPAnnouncement.observation_point_id)).label("points"),
         )
         .where(BGPAnnouncement.prefix == prefix)
         .where(BGPAnnouncement.timestamp >= since)

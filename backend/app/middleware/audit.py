@@ -46,9 +46,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: Any) -> None:
         super().__init__(app)
 
-    async def dispatch(
-        self, request: Request, call_next: Any
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: Any) -> Response:
         """记录请求审计日志。"""
         path = request.url.path
 
@@ -99,9 +97,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
             status_code=response.status_code,
             latency_ms=latency_ms,
             principal_id=principal_id,
-            principal_type=getattr(
-                request.state, "principal_type", None
-            ),
+            principal_type=getattr(request.state, "principal_type", None),
             client_ip=self._get_client_ip(request),
             user_agent=request.headers.get("User-Agent", "")[:200],
         )

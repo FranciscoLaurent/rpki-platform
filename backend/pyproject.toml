@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "rpki-platform-backend"
 version = "0.1.0"
 description = "RPKI 网络安全管理平台后端"
-readme = "../README.md"
+readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Proprietary" }
 authors = [
@@ -43,7 +43,7 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-org/rpki-software"
+Homepage = "https://github.com/FranciscoLaurent/rpki-platform"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -77,11 +77,21 @@ select = [
 ignore = [
     "E501",  # 行长度由 black 处理
     "B008",  # FastAPI 依赖注入常用函数调用作为默认值
+    # SIM 系列为代码简化建议，部分会改变代码结构，暂不强制
+    "SIM102",  # collapsible-if
+    "SIM103",  # needless-bool
+    "SIM105",  # suppressible-exception
+    "SIM108",  # if-else-block-instead-of-if-exp
+    "SIM114",  # if-with-same-arms
+    "SIM116",  # if-else-block-instead-of-dict-lookup
+    "SIM117",  # multiple-with-statements
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "alembic/env.py" = ["E402"]
+# Grafana Dashboard schema 字段需保留 camelCase 以兼容外部 API
+"app/schemas/integration.py" = ["N815"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]

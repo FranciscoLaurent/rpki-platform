@@ -16,23 +16,14 @@
 
 from __future__ import annotations
 
-import ipaddress
-from datetime import datetime, timedelta, timezone
-from typing import Any
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import get_password_hash
-from app.models.asn import ASN
-from app.models.bgp import BGPAnnouncement, BGPDataSource, BGPWithdraw, ObservationPoint
 from app.models.business import BusinessService, Customer, Router
 from app.models.detection import DetectionRule
-from app.models.prefix import Prefix
-from app.models.rpki import ROA, RPKIObject, RPKIRepository, TAL, VRP
 from app.models.rtr import RTRServer
-from app.models.tenant import Tenant, TenantMember
+from app.models.tenant import Tenant
 from app.models.user import Permission, Role, User
-
 
 # ──────────────────────────────────────────────
 # 租户与用户
@@ -102,9 +93,18 @@ def make_roles() -> list[Role]:
     """创建示例角色。"""
     return [
         Role(name="超级管理员", code="super_admin", description="拥有系统全部权限", is_system=True),
-        Role(name="网络管理员", code="network_admin", description="管理网络前缀与 ROA", is_system=True),
-        Role(name="NOC 操作员", code="noc_operator", description="网络运营中心操作员", is_system=True),
-        Role(name="安全分析师", code="security_analyst", description="安全审计与分析", is_system=True),
+        Role(
+            name="网络管理员",
+            code="network_admin",
+            description="管理网络前缀与 ROA",
+            is_system=True,
+        ),
+        Role(
+            name="NOC 操作员", code="noc_operator", description="网络运营中心操作员", is_system=True
+        ),
+        Role(
+            name="安全分析师", code="security_analyst", description="安全审计与分析", is_system=True
+        ),
         Role(name="ROA 审批人", code="roa_approver", description="审批 ROA 请求", is_system=True),
     ]
 

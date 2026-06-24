@@ -66,22 +66,18 @@ class KafkaChannel(BaseChannel):
             producer = get_kafka_producer()
 
             # 序列化消息
-            value = json.dumps(
-                payload, ensure_ascii=False, default=str
-            ).encode("utf-8")
+            value = json.dumps(payload, ensure_ascii=False, default=str).encode("utf-8")
             key_bytes = key.encode("utf-8") if key else None
 
             # 消息头
             headers = extra_config.get("headers") or {}
-            kafka_headers = [
-                (k, str(v).encode("utf-8")) for k, v in headers.items()
-            ] if headers else None
+            kafka_headers = (
+                [(k, str(v).encode("utf-8")) for k, v in headers.items()] if headers else None
+            )
 
             # 同步发送并等待确认
             # TODO: 实际生产环境应使用异步 future 与回调
-            future = producer.send(
-                topic, key=key_bytes, value=value, headers=kafka_headers
-            )
+            future = producer.send(topic, key=key_bytes, value=value, headers=kafka_headers)
             metadata = future.get(timeout=30)
 
             latency_ms = int((time.monotonic() - start) * 1000)
@@ -96,8 +92,7 @@ class KafkaChannel(BaseChannel):
                 success=True,
                 latency_ms=latency_ms,
                 response_body=(
-                    f"topic={topic}, partition={metadata.partition}, "
-                    f"offset={metadata.offset}"
+                    f"topic={topic}, partition={metadata.partition}, offset={metadata.offset}"
                 ),
             )
         except Exception as e:

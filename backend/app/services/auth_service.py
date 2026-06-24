@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from jose import JWTError, jwt
@@ -74,13 +74,13 @@ def create_user_access_token(user: User) -> tuple[str, int]:
 def create_user_refresh_token(user: User) -> str:
     """为用户创建刷新令牌。"""
     expires_delta = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    expire = datetime.now(timezone.utc) + expires_delta
+    expire = datetime.now(UTC) + expires_delta
     payload: dict[str, Any] = {
         "sub": str(user.id),
         "username": user.username,
         "type": "refresh",
         "exp": expire,
-        "iat": datetime.now(timezone.utc),
+        "iat": datetime.now(UTC),
     }
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
@@ -113,9 +113,7 @@ def verify_token(token: str) -> dict[str, Any]:
 # ──────────────────────────────────────────────
 
 
-async def authenticate_user(
-    db: AsyncSession, username: str, password: str
-) -> User:
+async def authenticate_user(db: AsyncSession, username: str, password: str) -> User:
     """验证用户名密码，处理账户锁定逻辑。
 
     Args:
@@ -143,7 +141,7 @@ async def authenticate_user(
 
     # 检查账户锁定
     if user.locked_until is not None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if user.locked_until > now:
             remaining = int((user.locked_until - now).total_seconds() / 60)
             raise ValueError(f"账户已锁定，请 {remaining} 分钟后重试")
@@ -155,7 +153,7 @@ async def authenticate_user(
     if not verify_password(password, user.hashed_password):
         user.failed_login_count += 1
         if user.failed_login_count >= settings.MAX_FAILED_LOGIN_ATTEMPTS:
-            user.locked_until = datetime.now(timezone.utc) + timedelta(
+            user.locked_until = datetime.now(UTC) + timedelta(
                 minutes=settings.ACCOUNT_LOCK_DURATION_MINUTES
             )
         await db.flush()
@@ -164,7 +162,7 @@ async def authenticate_user(
 
     # 认证成功，重置计数并更新登录时间
     user.failed_login_count = 0
-    user.last_login_at = datetime.now(timezone.utc)
+    user.last_login_at = datetime.now(UTC)
     await db.flush()
     await db.commit()
 
@@ -251,9 +249,7 @@ async def change_password(
 # ──────────────────────────────────────────────
 
 
-async def check_user_permissions(
-    user: User, required_permissions: list[str]
-) -> bool:
+async def check_user_permissions(user: User, required_permissions: list[str]) -> bool:
     """检查用户是否拥有所需权限。
 
     超级管理员自动通过。需确保 ``user.roles`` 及 ``role.permissions`` 已加载。
@@ -315,13 +311,11 @@ def _get_client_ip(request: Request) -> str:
 
 def _record_login_ip(user_id: int, ip: str) -> None:
     """记录用户登录 IP（用于后续异地登录检测）。"""
-    now = datetime.now(timezone.utc).timestamp()
+    now = datetime.now(UTC).timestamp()
     records = _recent_login_ips.setdefault(user_id, [])
     # 清理过期记录
     cutoff = now - _RECENT_IP_WINDOW_SECONDS
-    _recent_login_ips[user_id] = [
-        (existing_ip, ts) for existing_ip, ts in records if ts > cutoff
-    ]
+    _recent_login_ips[user_id] = [(existing_ip, ts) for existing_ip, ts in records if ts > cutoff]
     # 追加本次记录
     _recent_login_ips[user_id].append((ip, now))
 
@@ -360,7 +354,7 @@ def detect_anomalous_login(user: User, request: Request) -> dict[str, Any]:
     user_agent = request.headers.get("User-Agent", "")[:200]
 
     # 当前小时（UTC，简化处理，未做时区转换）
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     login_hour = now.hour
 
     # 1. 异常时间登录检测

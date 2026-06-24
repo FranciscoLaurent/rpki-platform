@@ -20,27 +20,13 @@ class AuditLogExportRequest(BaseModel):
         description="导出格式：csv 或 json",
         pattern="^(csv|json)$",
     )
-    user_id: int | None = Field(
-        None, description="按用户 ID 过滤"
-    )
-    tenant_id: int | None = Field(
-        None, description="按租户 ID 过滤"
-    )
-    action: str | None = Field(
-        None, description="按操作动作过滤"
-    )
-    resource_type: str | None = Field(
-        None, description="按资源类型过滤"
-    )
-    resource_id: str | None = Field(
-        None, description="按资源 ID 过滤"
-    )
-    start_date: datetime | None = Field(
-        None, description="起始时间"
-    )
-    end_date: datetime | None = Field(
-        None, description="截止时间"
-    )
+    user_id: int | None = Field(None, description="按用户 ID 过滤")
+    tenant_id: int | None = Field(None, description="按租户 ID 过滤")
+    action: str | None = Field(None, description="按操作动作过滤")
+    resource_type: str | None = Field(None, description="按资源类型过滤")
+    resource_id: str | None = Field(None, description="按资源 ID 过滤")
+    start_date: datetime | None = Field(None, description="起始时间")
+    end_date: datetime | None = Field(None, description="截止时间")
     limit: int = Field(
         default=10000,
         ge=1,
@@ -54,12 +40,8 @@ class AuditLogExportResponse(BaseModel):
 
     format: str = Field(..., description="导出格式")
     count: int = Field(..., description="导出记录数")
-    exported_at: datetime = Field(
-        ..., description="导出时间"
-    )
-    filename: str = Field(
-        ..., description="建议的文件名"
-    )
+    exported_at: datetime = Field(..., description="导出时间")
+    filename: str = Field(..., description="建议的文件名")
 
     model_config = ConfigDict(from_attributes=True)
 

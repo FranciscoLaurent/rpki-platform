@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func, select
@@ -17,7 +17,7 @@ from app.models.asn import ASN
 from app.models.bgp import BGPAnnouncement, BGPDataSource
 from app.models.detection import Alert, Incident
 from app.models.prefix import Prefix
-from app.models.rpki import ROA, RPKICache, VRP
+from app.models.rpki import ROA, VRP, RPKICache
 from app.schemas.dashboard import (
     ASNAlertItem,
     ASNAssetInfo,
@@ -37,9 +37,9 @@ from app.schemas.dashboard import (
     PrefixAssetInfo,
     PrefixDetail,
     PrefixStats,
+    RiskTrendPoint,
     ROACoverage,
     RPKICacheStatus,
-    RiskTrendPoint,
     ValidationDistribution,
 )
 from app.services.vrp_service import _get_covering_prefixes
@@ -96,9 +96,7 @@ async def _get_prefix_stats(db: AsyncSession) -> PrefixStats:
     total_result = await db.execute(select(func.count(Prefix.id)))
     total = int(total_result.scalar_one() or 0)
 
-    active_result = await db.execute(
-        select(func.count(Prefix.id)).where(Prefix.status == "active")
-    )
+    active_result = await db.execute(select(func.count(Prefix.id)).where(Prefix.status == "active"))
     active = int(active_result.scalar_one() or 0)
 
     # 按重要度分组
@@ -109,13 +107,9 @@ async def _get_prefix_stats(db: AsyncSession) -> PrefixStats:
 
     # 按协议族分组
     family_result = await db.execute(
-        select(Prefix.prefix_family, func.count(Prefix.id)).group_by(
-            Prefix.prefix_family
-        )
+        select(Prefix.prefix_family, func.count(Prefix.id)).group_by(Prefix.prefix_family)
     )
-    by_family = {
-        ("ipv4" if row[0] == 4 else "ipv6"): int(row[1]) for row in family_result
-    }
+    by_family = {("ipv4" if row[0] == 4 else "ipv6"): int(row[1]) for row in family_result}
 
     return PrefixStats(
         total=total,
@@ -130,9 +124,7 @@ async def _get_asn_stats(db: AsyncSession) -> ASNStats:
     total_result = await db.execute(select(func.count(ASN.id)))
     total = int(total_result.scalar_one() or 0)
 
-    type_result = await db.execute(
-        select(ASN.asn_type, func.count(ASN.id)).group_by(ASN.asn_type)
-    )
+    type_result = await db.execute(select(ASN.asn_type, func.count(ASN.id)).group_by(ASN.asn_type))
     by_type = {row[0]: int(row[1]) for row in type_result}
 
     return ASNStats(total=total, by_type=by_type)
@@ -207,9 +199,7 @@ async def _get_incident_stats(db: AsyncSession) -> IncidentStats:
 
 async def _get_rpki_cache_status(db: AsyncSession) -> RPKICacheStatus:
     """获取 RPKI 缓存状态。"""
-    result = await db.execute(
-        select(RPKICache).order_by(RPKICache.last_updated.desc())
-    )
+    result = await db.execute(select(RPKICache).order_by(RPKICache.last_updated.desc()))
     caches = list(result.scalars().all())
 
     if not caches:
@@ -222,9 +212,7 @@ async def _get_rpki_cache_status(db: AsyncSession) -> RPKICacheStatus:
 
     cache_count = len(caches)
     vrp_count = sum(c.vrp_count for c in caches)
-    last_update = max(
-        (c.last_updated for c in caches if c.last_updated), default=None
-    )
+    last_update = max((c.last_updated for c in caches if c.last_updated), default=None)
 
     # 整体状态：所有缓存健康则为 healthy，存在 stale 则为 stale
     if all(c.status == "healthy" for c in caches):
@@ -248,16 +236,12 @@ async def _get_bgp_source_status(db: AsyncSession) -> BGPSourceStatus:
     total = int(total_result.scalar_one() or 0)
 
     active_result = await db.execute(
-        select(func.count(BGPDataSource.id)).where(
-            BGPDataSource.status == "active"
-        )
+        select(func.count(BGPDataSource.id)).where(BGPDataSource.status == "active")
     )
     active = int(active_result.scalar_one() or 0)
 
     error_result = await db.execute(
-        select(func.count(BGPDataSource.id)).where(
-            BGPDataSource.status == "error"
-        )
+        select(func.count(BGPDataSource.id)).where(BGPDataSource.status == "error")
     )
     error = int(error_result.scalar_one() or 0)
 
@@ -278,9 +262,8 @@ async def _get_bgp_source_status(db: AsyncSession) -> BGPSourceStatus:
 
 async def _get_risk_trend(db: AsyncSession) -> list[RiskTrendPoint]:
     """获取最近 7 天的风险趋势。"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     start_date = (now - timedelta(days=6)).date()
-    end_date = now.date()
 
     # 按日期分组统计告警（使用 SQLite 兼容的 DATE() 函数）
     alert_result = await db.execute(
@@ -303,9 +286,7 @@ async def _get_risk_trend(db: AsyncSession) -> list[RiskTrendPoint]:
             func.date(Incident.created_at).label("day"),
             func.count(Incident.id),
         )
-        .where(
-            Incident.created_at >= datetime.combine(start_date, datetime.min.time())
-        )
+        .where(Incident.created_at >= datetime.combine(start_date, datetime.min.time()))
         .group_by("day")
         .order_by("day")
     )
@@ -358,9 +339,7 @@ async def get_prefix_detail(db: AsyncSession, prefix_id: int) -> PrefixDetail | 
         前缀详情，前缀不存在返回 None
     """
     # 查询前缀基本信息
-    prefix_result = await db.execute(
-        select(Prefix).where(Prefix.id == prefix_id)
-    )
+    prefix_result = await db.execute(select(Prefix).where(Prefix.id == prefix_id))
     prefix = prefix_result.scalar_one_or_none()
     if prefix is None:
         return None
@@ -405,9 +384,7 @@ async def get_prefix_detail(db: AsyncSession, prefix_id: int) -> PrefixDetail | 
         .limit(100)
     )
     announcements = list(announcement_result.scalars().all())
-    current_announcements = [
-        CurrentAnnouncement.model_validate(a) for a in announcements
-    ]
+    current_announcements = [CurrentAnnouncement.model_validate(a) for a in announcements]
 
     # 提取去重后的 AS_PATH
     as_paths: list[list[int]] = []
@@ -426,9 +403,7 @@ async def get_prefix_detail(db: AsyncSession, prefix_id: int) -> PrefixDetail | 
         .order_by(Alert.created_at.desc())
         .limit(50)
     )
-    alerts = [
-        PrefixAlertItem.model_validate(a) for a in alert_result.scalars().all()
-    ]
+    alerts = [PrefixAlertItem.model_validate(a) for a in alert_result.scalars().all()]
 
     # 生成操作建议
     recommendations = _generate_prefix_recommendations(
@@ -471,20 +446,14 @@ def _generate_prefix_recommendations(
         )
 
     # RPKI 验证状态检查
-    invalid_announcements = [
-        a for a in announcements
-        if a.rpki_validation_status == "invalid"
-    ]
+    invalid_announcements = [a for a in announcements if a.rpki_validation_status == "invalid"]
     if invalid_announcements:
         recommendations.append(
             f"检测到 {len(invalid_announcements)} 条 RPKI Invalid 公告，"
             "请检查 origin AS 是否被授权或前缀长度是否超过 maxLength。"
         )
 
-    not_found_announcements = [
-        a for a in announcements
-        if a.rpki_validation_status == "not_found"
-    ]
+    not_found_announcements = [a for a in announcements if a.rpki_validation_status == "not_found"]
     if not_found_announcements and matched_roas:
         recommendations.append(
             f"检测到 {len(not_found_announcements)} 条 NotFound 公告，"
@@ -496,19 +465,13 @@ def _generate_prefix_recommendations(
     if open_alerts:
         p0_p1 = [a for a in open_alerts if a.severity in ("P0", "P1")]
         if p0_p1:
-            recommendations.append(
-                f"存在 {len(p0_p1)} 条 P0/P1 高危告警，建议立即处置。"
-            )
+            recommendations.append(f"存在 {len(p0_p1)} 条 P0/P1 高危告警，建议立即处置。")
         else:
-            recommendations.append(
-                f"存在 {len(open_alerts)} 条未关闭告警，建议尽快确认与处置。"
-            )
+            recommendations.append(f"存在 {len(open_alerts)} 条未关闭告警，建议尽快确认与处置。")
 
     # 重要度建议
     if prefix.importance == "critical" and not matched_roas:
-        recommendations.append(
-            "该前缀为关键资产，强烈建议立即配置 ROA 并启用 BGP 公告验证。"
-        )
+        recommendations.append("该前缀为关键资产，强烈建议立即配置 ROA 并启用 BGP 公告验证。")
 
     # 业务影响建议
     if prefix.business_service and invalid_announcements:
@@ -557,9 +520,7 @@ async def get_asn_detail(db: AsyncSession, asn_id: int) -> ASNDetail | None:
     # 查询该 ASN 作为 origin 的前缀
     # 通过 BGP 公告表反查前缀，再关联 Prefix 表
     announcement_result = await db.execute(
-        select(BGPAnnouncement.prefix)
-        .where(BGPAnnouncement.origin_as == asn.asn)
-        .distinct()
+        select(BGPAnnouncement.prefix).where(BGPAnnouncement.origin_as == asn.asn).distinct()
     )
     origin_prefixes = {row[0] for row in announcement_result}
 
@@ -568,20 +529,13 @@ async def get_asn_detail(db: AsyncSession, asn_id: int) -> ASNDetail | None:
         prefix_result = await db.execute(
             select(Prefix).where(Prefix.prefix.in_(origin_prefixes)).limit(200)
         )
-        related_prefixes = [
-            ASNPrefixItem.model_validate(p) for p in prefix_result.scalars().all()
-        ]
+        related_prefixes = [ASNPrefixItem.model_validate(p) for p in prefix_result.scalars().all()]
 
     # 查询告警
     alert_result = await db.execute(
-        select(Alert)
-        .where(Alert.origin_as == asn.asn)
-        .order_by(Alert.created_at.desc())
-        .limit(50)
+        select(Alert).where(Alert.origin_as == asn.asn).order_by(Alert.created_at.desc()).limit(50)
     )
-    alerts = [
-        ASNAlertItem.model_validate(a) for a in alert_result.scalars().all()
-    ]
+    alerts = [ASNAlertItem.model_validate(a) for a in alert_result.scalars().all()]
 
     # 占位：从 BGP AS_PATH 分析上下游关系
     # TODO: 实现完整的 AS 关系分析
@@ -606,9 +560,7 @@ async def get_asn_detail(db: AsyncSession, asn_id: int) -> ASNDetail | None:
 # ──────────────────────────────────────────────
 
 
-async def get_incident_timeline(
-    db: AsyncSession, incident_id: int
-) -> IncidentTimeline | None:
+async def get_incident_timeline(db: AsyncSession, incident_id: int) -> IncidentTimeline | None:
     """获取事件时间线。
 
     构建以下时间线事件：
@@ -629,9 +581,7 @@ async def get_incident_timeline(
     Returns:
         事件时间线，事件不存在返回 None
     """
-    incident_result = await db.execute(
-        select(Incident).where(Incident.id == incident_id)
-    )
+    incident_result = await db.execute(select(Incident).where(Incident.id == incident_id))
     incident = incident_result.scalar_one_or_none()
     if incident is None:
         return None
@@ -676,9 +626,7 @@ async def get_incident_timeline(
     # 3. 查询关联告警，按时间戳生成告警事件
     if incident.alert_ids:
         alert_result = await db.execute(
-            select(Alert)
-            .where(Alert.id.in_(incident.alert_ids))
-            .order_by(Alert.created_at.asc())
+            select(Alert).where(Alert.id.in_(incident.alert_ids)).order_by(Alert.created_at.asc())
         )
         related_alerts: list[dict[str, Any]] = []
         for alert in alert_result.scalars().all():
@@ -693,14 +641,10 @@ async def get_incident_timeline(
                     "status": alert.status,
                     "risk_score": alert.risk_score,
                     "first_seen_at": (
-                        alert.first_seen_at.isoformat()
-                        if alert.first_seen_at
-                        else None
+                        alert.first_seen_at.isoformat() if alert.first_seen_at else None
                     ),
                     "last_seen_at": (
-                        alert.last_seen_at.isoformat()
-                        if alert.last_seen_at
-                        else None
+                        alert.last_seen_at.isoformat() if alert.last_seen_at else None
                     ),
                     "created_at": alert.created_at.isoformat(),
                 }
@@ -784,9 +728,7 @@ def _generate_incident_recommendations(
             "通知 NOC、安全团队与业务方。"
         )
     elif incident.severity == "P2":
-        recommendations.append(
-            "事件等级为 P2，建议在 1 小时内确认并分派处置人员。"
-        )
+        recommendations.append("事件等级为 P2，建议在 1 小时内确认并分派处置人员。")
 
     # 状态建议
     if incident.status == "open":
@@ -798,9 +740,7 @@ def _generate_incident_recommendations(
 
     # 告警建议
     if related_alerts:
-        invalid_alerts = [
-            a for a in related_alerts if a.get("alert_type") == "rpki_invalid"
-        ]
+        invalid_alerts = [a for a in related_alerts if a.get("alert_type") == "rpki_invalid"]
         if invalid_alerts:
             recommendations.append(
                 f"检测到 {len(invalid_alerts)} 条 RPKI Invalid 告警，"
@@ -808,8 +748,7 @@ def _generate_incident_recommendations(
             )
 
         hijack_alerts = [
-            a for a in related_alerts
-            if a.get("alert_type") in ("hijack", "subprefix_hijack")
+            a for a in related_alerts if a.get("alert_type") in ("hijack", "subprefix_hijack")
         ]
         if hijack_alerts:
             recommendations.append(
@@ -821,8 +760,7 @@ def _generate_incident_recommendations(
     affected_prefixes = incident.affected_prefixes or []
     if affected_prefixes:
         recommendations.append(
-            f"受影响前缀 {len(affected_prefixes)} 个，"
-            "建议评估业务影响范围并通知相关业务方。"
+            f"受影响前缀 {len(affected_prefixes)} 个，建议评估业务影响范围并通知相关业务方。"
         )
 
     if not recommendations:

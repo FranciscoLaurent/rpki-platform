@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import ipaddress
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,7 +30,7 @@ from app.models.bgp import (
     ObservationPoint,
 )
 from app.models.prefix import Prefix
-from app.models.rpki import ROA, RPKIObject, RPKIRepository, TAL, VRP
+from app.models.rpki import ROA, TAL, VRP, RPKIObject, RPKIRepository
 from app.services.ripestat_client import RIPEstatClient
 from app.services.tal_downloader import TALDownloader
 
@@ -42,13 +42,13 @@ TARGET_ASNS: list[int] = [
     13335,  # Cloudflare
     15169,  # Google
     16509,  # Amazon AWS
-    8075,   # Microsoft
+    8075,  # Microsoft
     32934,  # Facebook/Meta
-    2906,   # Netflix
+    2906,  # Netflix
     20940,  # Akamai
     14618,  # Amazon AES
-    4837,   # China Unicom
-    4134,   # China Telecom
+    4837,  # China Unicom
+    4134,  # China Telecom
 ]
 
 
@@ -106,7 +106,7 @@ class RealDataCollector:
         Returns:
             采集报告，包含各类数据数量与错误信息
         """
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(UTC)
         report = CollectionReport()
 
         try:
@@ -163,7 +163,7 @@ class RealDataCollector:
             report.errors.append(error_msg)
             logger.error("采集过程失败，已回滚", error=str(e), exc_info=True)
 
-        end_time = datetime.now(timezone.utc)
+        end_time = datetime.now(UTC)
         report.duration_seconds = (end_time - start_time).total_seconds()
 
         logger.info(
@@ -233,9 +233,7 @@ class RealDataCollector:
                 )
 
             # 创建关联的 RPKI 仓库（如果不存在）
-            repo_stmt = select(RPKIRepository).where(
-                RPKIRepository.tal_id == tal.id
-            )
+            repo_stmt = select(RPKIRepository).where(RPKIRepository.tal_id == tal.id)
             repo_result = await self.db.execute(repo_stmt)
             repo = repo_result.scalar_one_or_none()
             if repo is None:
@@ -367,9 +365,7 @@ class RealDataCollector:
         # 创建或获取 BGP 数据源
         data_source = await self._get_or_create_data_source()
         # 创建或获取观察点
-        observation_point = await self._get_or_create_observation_point(
-            data_source.id
-        )
+        observation_point = await self._get_or_create_observation_point(data_source.id)
 
         for asn in TARGET_ASNS:
             try:
@@ -464,9 +460,7 @@ class RealDataCollector:
                         continue
 
                     # 根据 trust_anchor 匹配 TAL
-                    tal_id, object_id = self._match_tal_for_roa(
-                        record.trust_anchor
-                    )
+                    tal_id, object_id = self._match_tal_for_roa(record.trust_anchor)
 
                     # object_id 是必填字段，未匹配 TAL 时跳过该 ROA
                     if object_id is None:
@@ -593,9 +587,7 @@ class RealDataCollector:
         logger.info("前缀资产生成完成", count=len(prefixes))
         return prefixes
 
-    def compute_rpki_validation_status(
-        self, prefix: str, origin_as: int, roas: list[ROA]
-    ) -> str:
+    def compute_rpki_validation_status(self, prefix: str, origin_as: int, roas: list[ROA]) -> str:
         """计算 BGP 公告的 RPKI 验证状态。
 
         验证规则：
@@ -612,9 +604,7 @@ class RealDataCollector:
             验证状态：valid/invalid/not_found
         """
         # 查找覆盖该前缀的 ROA
-        covering_roas = [
-            r for r in roas if self._prefix_covered_by_roa(prefix, r)
-        ]
+        covering_roas = [r for r in roas if self._prefix_covered_by_roa(prefix, r)]
         if not covering_roas:
             return "not_found"
 
@@ -652,9 +642,7 @@ class RealDataCollector:
         not_found_count = 0
 
         for ann in self._announcements:
-            covering = self._find_covering_roas(
-                ann.prefix, roa_by_prefix
-            )
+            covering = self._find_covering_roas(ann.prefix, roa_by_prefix)
             if not covering:
                 ann.rpki_validation_status = "not_found"
                 not_found_count += 1
@@ -664,9 +652,7 @@ class RealDataCollector:
             origin_as = ann.origin_as or 0
             matched = False
             for roa in covering:
-                max_len = (
-                    roa.max_length if roa.max_length else roa.prefix_length
-                )
+                max_len = roa.max_length if roa.max_length else roa.prefix_length
                 if roa.origin_as == origin_as and prefix_len <= max_len:
                     matched = True
                     break
@@ -676,10 +662,8 @@ class RealDataCollector:
                 valid_count += 1
             else:
                 ann.rpki_validation_status = "invalid"
-                ann.rpki_invalid_reason = (
-                    self._compute_invalid_reason_from_list(
-                        ann.prefix, origin_as, covering
-                    )
+                ann.rpki_invalid_reason = self._compute_invalid_reason_from_list(
+                    ann.prefix, origin_as, covering
                 )
                 invalid_count += 1
 
@@ -691,9 +675,7 @@ class RealDataCollector:
             not_found=not_found_count,
         )
 
-    def _find_covering_roas(
-        self, prefix: str, roa_by_prefix: dict[str, list[ROA]]
-    ) -> list[ROA]:
+    def _find_covering_roas(self, prefix: str, roa_by_prefix: dict[str, list[ROA]]) -> list[ROA]:
         """通过前缀字典索引查找覆盖给定前缀的 ROA。
 
         遍历该前缀及其所有父前缀，在字典中查找匹配的 ROA。
@@ -716,9 +698,7 @@ class RealDataCollector:
         # 遍历该前缀及其所有父前缀（从当前前缀长度到 0）
         for plen in range(net.prefixlen, -1, -1):
             try:
-                parent = ipaddress.ip_network(
-                    f"{addr}/{plen}", strict=False
-                )
+                parent = ipaddress.ip_network(f"{addr}/{plen}", strict=False)
             except ValueError:
                 continue
             key = str(parent)
@@ -751,9 +731,7 @@ class RealDataCollector:
                 return "length_exceeded"
         return "origin_as_mismatch"
 
-    def _match_tal_for_roa(
-        self, trust_anchor: str
-    ) -> tuple[int | None, int | None]:
+    def _match_tal_for_roa(self, trust_anchor: str) -> tuple[int | None, int | None]:
         """根据 trust_anchor 匹配 TAL。
 
         Args:
@@ -815,9 +793,7 @@ class RealDataCollector:
         logger.info("创建 BGP 数据源", data_source_id=ds.id)
         return ds
 
-    async def _get_or_create_observation_point(
-        self, data_source_id: int
-    ) -> ObservationPoint:
+    async def _get_or_create_observation_point(self, data_source_id: int) -> ObservationPoint:
         """获取或创建观察点。
 
         创建名为 "RIPE RIS Global" 的观察点（如果不存在）。
@@ -917,17 +893,17 @@ class RealDataCollector:
             解析后的 datetime 对象，解析失败时返回当前时间
         """
         if not dt_str:
-            return datetime.now(timezone.utc)
+            return datetime.now(UTC)
         try:
             # RIPEstat 返回 ISO 8601 格式，如 "2024-01-01T00:00:00Z"
             # Python 3.11+ 的 fromisoformat 支持 "Z" 后缀
             cleaned = dt_str.replace("Z", "+00:00")
             dt = datetime.fromisoformat(cleaned)
             if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
+                dt = dt.replace(tzinfo=UTC)
             return dt
         except (ValueError, TypeError):
-            return datetime.now(timezone.utc)
+            return datetime.now(UTC)
 
 
 __all__ = [

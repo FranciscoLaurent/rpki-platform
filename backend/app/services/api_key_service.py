@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import secrets
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -130,7 +130,7 @@ async def verify_api_key(db: AsyncSession, key: str) -> ApiKey | None:
 
     # 检查过期时间
     if api_key.expires_at is not None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if api_key.expires_at <= now:
             logger.warning(
                 "API Key 已过期",
@@ -149,7 +149,7 @@ async def verify_api_key(db: AsyncSession, key: str) -> ApiKey | None:
         return None
 
     # 更新最后使用时间
-    api_key.last_used_at = datetime.now(timezone.utc)
+    api_key.last_used_at = datetime.now(UTC)
     await db.flush()
     await db.commit()
 

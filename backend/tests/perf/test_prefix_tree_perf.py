@@ -13,10 +13,7 @@ import ipaddress
 import random
 import time
 
-import pytest
-
 from app.core.prefix_tree import PrefixTree, build_vrp_prefix_tree
-
 
 # ──────────────────────────────────────────────
 # 性能测试常量

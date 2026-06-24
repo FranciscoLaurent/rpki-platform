@@ -33,9 +33,7 @@ async def get_user_by_username(db: AsyncSession, username: str) -> User | None:
     return result.scalar_one_or_none()
 
 
-async def get_users(
-    db: AsyncSession, skip: int = 0, limit: int = 20
-) -> list[User]:
+async def get_users(db: AsyncSession, skip: int = 0, limit: int = 20) -> list[User]:
     """获取用户列表（预加载角色）。"""
     stmt = (
         select(User)
@@ -57,9 +55,7 @@ async def count_users(db: AsyncSession) -> int:
     return result.scalar_one()
 
 
-async def update_user(
-    db: AsyncSession, user: User, user_update: UserUpdate
-) -> User:
+async def update_user(db: AsyncSession, user: User, user_update: UserUpdate) -> User:
     """更新用户信息。
 
     Args:
@@ -83,9 +79,7 @@ async def update_user(
     return user
 
 
-async def assign_roles(
-    db: AsyncSession, user_id: int, role_ids: list[int]
-) -> User | None:
+async def assign_roles(db: AsyncSession, user_id: int, role_ids: list[int]) -> User | None:
     """为用户分配角色（替换原有角色）。
 
     Args:

@@ -67,9 +67,7 @@ async def create_approval_rule(
     return rule
 
 
-async def get_approval_rule_by_id(
-    db: AsyncSession, rule_id: int
-) -> ROAApprovalRule | None:
+async def get_approval_rule_by_id(db: AsyncSession, rule_id: int) -> ROAApprovalRule | None:
     """根据 ID 获取审批规则。"""
     stmt = select(ROAApprovalRule).where(ROAApprovalRule.id == rule_id)
     result = await db.execute(stmt)
@@ -78,10 +76,7 @@ async def get_approval_rule_by_id(
 
 async def get_approval_rules(db: AsyncSession) -> list[ROAApprovalRule]:
     """获取所有启用的审批规则（按优先级排序）。"""
-    stmt = (
-        select(ROAApprovalRule)
-        .order_by(ROAApprovalRule.priority.asc())
-    )
+    stmt = select(ROAApprovalRule).order_by(ROAApprovalRule.priority.asc())
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -113,9 +108,7 @@ async def update_approval_rule(
     return rule
 
 
-async def delete_approval_rule(
-    db: AsyncSession, rule: ROAApprovalRule
-) -> None:
+async def delete_approval_rule(db: AsyncSession, rule: ROAApprovalRule) -> None:
     """删除审批规则。"""
     rule_id = rule.id
     await db.delete(rule)
@@ -183,9 +176,7 @@ async def match_approval_rule(
     # 从影响评估摘要中提取前缀重要性
     prefix_importance: str | None = None
     if change_request.impact_summary:
-        prefix_importance = change_request.impact_summary.get(
-            "prefix_importance"
-        )
+        prefix_importance = change_request.impact_summary.get("prefix_importance")
 
     is_high_risk = change_request.risk_level in ("high", "critical")
 
@@ -196,21 +187,15 @@ async def match_approval_rule(
         conditions = rule.conditions or {}
 
         # 检查变更类型
-        if not _match_condition(
-            conditions, "change_type", change_request.change_type
-        ):
+        if not _match_condition(conditions, "change_type", change_request.change_type):
             continue
 
         # 检查风险等级
-        if not _match_condition(
-            conditions, "risk_level", change_request.risk_level
-        ):
+        if not _match_condition(conditions, "risk_level", change_request.risk_level):
             continue
 
         # 检查前缀重要性
-        if not _match_condition(
-            conditions, "prefix_importance", prefix_importance
-        ):
+        if not _match_condition(conditions, "prefix_importance", prefix_importance):
             continue
 
         # 高风险变更不允许自动批准

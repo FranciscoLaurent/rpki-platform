@@ -92,22 +92,16 @@ async def _build_affected_announcements(
                 origin_as=ann.origin_as,
                 prefix_length=ann.prefix_length,
                 address_family=ann.address_family,
-                current_validation_status=(
-                    ann.rpki_validation_status or "not_found"
-                ),
+                current_validation_status=(ann.rpki_validation_status or "not_found"),
                 rpki_invalid_reason=ann.rpki_invalid_reason,
                 importance=prefix_meta.importance if prefix_meta else None,
-                business_service=(
-                    prefix_meta.business_service if prefix_meta else None
-                ),
+                business_service=(prefix_meta.business_service if prefix_meta else None),
             )
         )
     return affected
 
 
-async def _get_original_roa(
-    db: AsyncSession, roa_id: int
-) -> ROA:
+async def _get_original_roa(db: AsyncSession, roa_id: int) -> ROA:
     """根据 ROA ID 获取原始 ROA，不存在则抛出 ValueError。"""
     stmt = select(ROA).where(ROA.id == roa_id)
     result = await db.execute(stmt)
@@ -133,19 +127,13 @@ def _build_change_reason(
     if old_status == "not_found" and new_status == "valid":
         return f"{type_desc}，前缀获得 ROA 覆盖，验证状态从 NotFound 变为 Valid"
     if old_status == "valid" and new_status == "invalid":
-        return (
-            f"{type_desc}，前缀验证状态从 Valid 变为 Invalid"
-            f"（原因：{new_reason}）"
-        )
+        return f"{type_desc}，前缀验证状态从 Valid 变为 Invalid（原因：{new_reason}）"
     if old_status == "valid" and new_status == "not_found":
         return f"{type_desc}，ROA 撤销后前缀失去覆盖，验证状态从 Valid 变为 NotFound"
     if old_status == "invalid" and new_status == "valid":
         return f"{type_desc}，前缀验证状态从 Invalid 变为 Valid"
     if old_status == "not_found" and new_status == "invalid":
-        return (
-            f"{type_desc}，新建 ROA 后前缀验证状态从 NotFound 变为 Invalid"
-            f"（原因：{new_reason}）"
-        )
+        return f"{type_desc}，新建 ROA 后前缀验证状态从 NotFound 变为 Invalid（原因：{new_reason}）"
     if old_status == "invalid" and new_status == "not_found":
         return f"{type_desc}，ROA 撤销后前缀验证状态从 Invalid 变为 NotFound"
     return f"{type_desc}，验证状态从 {old_status} 变为 {new_status}"
@@ -181,9 +169,7 @@ async def _run_simulation(
     affected_prefix_ranges = _get_affected_prefix_ranges(original_roa, request)
 
     # 过滤出可能受影响的公告
-    affected_announcements = _filter_affected_announcements(
-        announcements, affected_prefix_ranges
-    )
+    affected_announcements = _filter_affected_announcements(announcements, affected_prefix_ranges)
 
     # 重新验证并计算状态变化
     validation_changes: list[ValidationChange] = []
@@ -192,13 +178,9 @@ async def _run_simulation(
             continue
 
         # 变更前状态
-        old_status, _ = _validate_against_vrps(
-            ann.prefix, ann.origin_as, vrps
-        )
+        old_status, _ = _validate_against_vrps(ann.prefix, ann.origin_as, vrps)
         # 变更后状态
-        new_status, new_reason = _validate_against_vrps(
-            ann.prefix, ann.origin_as, simulated_vrps
-        )
+        new_status, new_reason = _validate_against_vrps(ann.prefix, ann.origin_as, simulated_vrps)
 
         if old_status != new_status:
             change_reason = _build_change_reason(
@@ -215,14 +197,10 @@ async def _run_simulation(
             )
 
     # 构建受影响 BGP 公告清单
-    affected_announcement_list = await _build_affected_announcements(
-        db, affected_announcements
-    )
+    affected_announcement_list = await _build_affected_announcements(db, affected_announcements)
 
     # 分析新增攻击面（增强版）
-    new_attack_surface = analyze_attack_surface(
-        original_roa, request, affected_announcements
-    )
+    new_attack_surface = analyze_attack_surface(original_roa, request, affected_announcements)
 
     # 评估风险（复用 ROV 模拟的风险评估逻辑）
     from app.schemas.rov import AffectedPrefix
@@ -289,9 +267,7 @@ async def simulate_roa_creation(
         raise ValueError(f"无效的前缀格式：{prefix}")
 
     # 默认 minimal ROA：maxLength = 前缀长度
-    effective_max_length = (
-        max_length if max_length is not None else network.prefixlen
-    )
+    effective_max_length = max_length if max_length is not None else network.prefixlen
 
     request = ROAChangeSimulationRequest(
         change_type="create",
@@ -343,9 +319,7 @@ async def simulate_roa_modification(
     return await _run_simulation(db, request, original_roa=original_roa)
 
 
-async def simulate_roa_revocation(
-    db: AsyncSession, roa_id: int
-) -> ROAChangeSimulationResult:
+async def simulate_roa_revocation(db: AsyncSession, roa_id: int) -> ROAChangeSimulationResult:
     """模拟撤销 ROA 后的验证状态变化。
 
     撤销后所有原本由该 ROA 覆盖的公告将失去 RPKI 保护，
@@ -411,11 +385,7 @@ def analyze_attack_surface(
 
     # 确定新 ROA 的参数
     if original_roa is not None:
-        new_prefix = (
-            request.new_prefix
-            if request.new_prefix is not None
-            else original_roa.prefix
-        )
+        new_prefix = request.new_prefix if request.new_prefix is not None else original_roa.prefix
         if request.new_max_length is not None:
             new_max_length = request.new_max_length
         elif original_roa.max_length is not None:
@@ -428,9 +398,7 @@ def analyze_attack_surface(
             else original_roa.prefix_length
         )
         origin_as = (
-            request.new_origin_as
-            if request.new_origin_as is not None
-            else original_roa.origin_as
+            request.new_origin_as if request.new_origin_as is not None else original_roa.origin_as
         )
         old_prefix = original_roa.prefix
     else:
@@ -441,9 +409,7 @@ def analyze_attack_surface(
         if network is None:
             return []
         new_max_length = (
-            request.new_max_length
-            if request.new_max_length is not None
-            else network.prefixlen
+            request.new_max_length if request.new_max_length is not None else network.prefixlen
         )
         old_max_length = 0
         origin_as = request.new_origin_as
@@ -460,15 +426,11 @@ def analyze_attack_surface(
 
     # ── 1. 子前缀劫持风险（maxLength 扩大） ──
     if new_max_length > old_max_length:
-        surface_prefixes = _get_more_specific_prefixes(
-            new_prefix, new_max_length
-        )
+        surface_prefixes = _get_more_specific_prefixes(new_prefix, new_max_length)
         # 排除旧攻击面已覆盖的范围
         old_surface: set[str] = set()
         if original_roa is not None and old_max_length > 0:
-            old_surface = set(
-                _get_more_specific_prefixes(old_prefix or new_prefix, old_max_length)
-            )
+            old_surface = set(_get_more_specific_prefixes(old_prefix or new_prefix, old_max_length))
         new_surface = [p for p in surface_prefixes if p not in old_surface]
 
         if new_surface:
@@ -541,9 +503,7 @@ def analyze_attack_surface(
     if affected_announcements:
         # 计算实际公告的最大前缀长度
         actual_lengths = [
-            a.prefix_length
-            for a in affected_announcements
-            if a.origin_as == origin_as
+            a.prefix_length for a in affected_announcements if a.origin_as == origin_as
         ]
         if actual_lengths:
             max_actual_length = max(actual_lengths)
@@ -573,11 +533,7 @@ def analyze_attack_surface(
 
     # ── 4. 覆盖范围扩大风险 ──
     # ROA 前缀从较小范围扩大到更大范围
-    if (
-        original_roa is not None
-        and request.new_prefix is not None
-        and old_prefix is not None
-    ):
+    if original_roa is not None and request.new_prefix is not None and old_prefix is not None:
         old_network = _parse_network(old_prefix)
         if (
             old_network is not None

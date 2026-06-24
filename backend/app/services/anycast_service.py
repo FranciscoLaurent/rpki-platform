@@ -20,9 +20,7 @@ from app.schemas.benign_conflict import (
 logger = get_logger("app.anycast_service")
 
 
-async def create_anycast_node(
-    db: AsyncSession, node_data: AnycastNodeCreate
-) -> AnycastNode:
+async def create_anycast_node(db: AsyncSession, node_data: AnycastNodeCreate) -> AnycastNode:
     """创建 Anycast 节点。
 
     Args:
@@ -56,9 +54,7 @@ async def create_anycast_node(
     return node
 
 
-async def get_anycast_node(
-    db: AsyncSession, node_id: int
-) -> AnycastNode | None:
+async def get_anycast_node(db: AsyncSession, node_id: int) -> AnycastNode | None:
     """根据 ID 获取 Anycast 节点。"""
     stmt = select(AnycastNode).where(AnycastNode.id == node_id)
     result = await db.execute(stmt)
@@ -93,16 +89,12 @@ async def get_anycast_nodes(
         if filters.get("region"):
             stmt = stmt.where(AnycastNode.region == filters["region"])
 
-    stmt = stmt.order_by(
-        AnycastNode.registered_at.desc()
-    ).offset(skip).limit(limit)
+    stmt = stmt.order_by(AnycastNode.registered_at.desc()).offset(skip).limit(limit)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
 
-async def count_anycast_nodes(
-    db: AsyncSession, filters: dict[str, Any] | None = None
-) -> int:
+async def count_anycast_nodes(db: AsyncSession, filters: dict[str, Any] | None = None) -> int:
     """统计 Anycast 节点数量。"""
     stmt = select(func.count(AnycastNode.id))
     if filters:
@@ -149,9 +141,7 @@ async def update_anycast_node(
     return node
 
 
-async def delete_anycast_node(
-    db: AsyncSession, node: AnycastNode
-) -> None:
+async def delete_anycast_node(db: AsyncSession, node: AnycastNode) -> None:
     """删除 Anycast 节点。"""
     await db.delete(node)
     await db.commit()

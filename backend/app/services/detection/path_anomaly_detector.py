@@ -7,10 +7,10 @@
 from __future__ import annotations
 
 from collections import Counter
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import get_logger
@@ -21,9 +21,7 @@ from app.schemas.detection import PathAnomalyResult
 logger = get_logger("app.detection.path_anomaly")
 
 
-async def detect_path_anomaly(
-    db: AsyncSession, announcement: BGPAnnouncement
-) -> PathAnomalyResult:
+async def detect_path_anomaly(db: AsyncSession, announcement: BGPAnnouncement) -> PathAnomalyResult:
     """路径异常检测。
 
     检测流程：
@@ -136,7 +134,7 @@ async def _get_baseline_path(
     lookback_days: int = 7,
 ) -> list[int] | None:
     """获取前缀的历史基线 AS_PATH（最常见路径）。"""
-    since = datetime.now(timezone.utc) - timedelta(days=lookback_days)
+    since = datetime.now(UTC) - timedelta(days=lookback_days)
     # 查询近期该前缀的所有 AS_PATH
     stmt = (
         select(BGPAnnouncement.as_path)
@@ -156,9 +154,7 @@ async def _get_baseline_path(
     return list(most_common)
 
 
-async def _get_asn_metadata(
-    db: AsyncSession, asn_list: list[int]
-) -> dict[int, dict[str, Any]]:
+async def _get_asn_metadata(db: AsyncSession, asn_list: list[int]) -> dict[int, dict[str, Any]]:
     """查询 ASN 元信息。"""
     if not asn_list:
         return {}
@@ -201,10 +197,7 @@ def _detect_path_mutation(
     if len(added) >= 2 and len(current_set) >= 3:
         return {
             "is_anomaly": True,
-            "description": (
-                f"AS_PATH 突变：新增 AS {sorted(added)}，"
-                f"移除 AS {sorted(removed)}"
-            ),
+            "description": (f"AS_PATH 突变：新增 AS {sorted(added)}，移除 AS {sorted(removed)}"),
             "added_asns": sorted(added),
             "removed_asns": sorted(removed),
         }
@@ -237,18 +230,17 @@ def _detect_abnormal_transit(
         asn_type = meta.get("asn_type", "unknown")
         risk_profile = meta.get("risk_profile")
         # IXP/route_server 不应作为中转
-        if asn_type in ("ixp", "route_server"):
-            abnormal_asns.append(asn)
-        # 风险画像标注
-        elif risk_profile and "high_risk" in risk_profile.lower():
+        if (
+            asn_type in ("ixp", "route_server")
+            or risk_profile
+            and "high_risk" in risk_profile.lower()
+        ):
             abnormal_asns.append(asn)
 
     if abnormal_asns:
         return {
             "is_anomaly": True,
-            "description": (
-                f"AS_PATH 中出现异常中转 AS：{abnormal_asns}"
-            ),
+            "description": (f"AS_PATH 中出现异常中转 AS：{abnormal_asns}"),
             "abnormal_asns": abnormal_asns,
         }
 
@@ -276,17 +268,10 @@ def _detect_path_elongation(
     baseline_len = len(baseline_path)
 
     # 路径长度超过基线 2 倍且绝对长度 >= 5
-    if (
-        baseline_len > 0
-        and current_len >= baseline_len * 2
-        and current_len >= 5
-    ):
+    if baseline_len > 0 and current_len >= baseline_len * 2 and current_len >= 5:
         return {
             "is_anomaly": True,
-            "description": (
-                f"AS_PATH 异常拉长：当前 {current_len} 跳，"
-                f"基线 {baseline_len} 跳"
-            ),
+            "description": (f"AS_PATH 异常拉长：当前 {current_len} 跳，基线 {baseline_len} 跳"),
             "current_length": current_len,
             "baseline_length": baseline_len,
         }
@@ -317,10 +302,7 @@ def _detect_blackhole_risk(
             if "blackhole" in risk or "high_risk" in risk:
                 return {
                     "is_anomaly": True,
-                    "description": (
-                        f"黑洞风险：路径仅 1 跳且 origin AS{origin_asn} "
-                        f"风险画像异常"
-                    ),
+                    "description": (f"黑洞风险：路径仅 1 跳且 origin AS{origin_asn} 风险画像异常"),
                     "risk_asns": [origin_asn],
                 }
 

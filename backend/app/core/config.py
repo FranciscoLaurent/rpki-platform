@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import List
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -67,13 +66,13 @@ class Settings(BaseSettings):
     MTLS_CLIENT_CERT_REQUIRED: bool = False  # 是否强制要求客户端证书
 
     # IP 白名单（空列表表示不限制）
-    IP_WHITELIST: List[str] = []
+    IP_WHITELIST: list[str] = []
     IP_WHITELIST_ENABLED: bool = False  # 是否启用 IP 白名单（显式开关）
-    IP_WHITELIST_PATHS: List[str] = []  # 仅对指定路径前缀启用白名单（为空则全部生效）
+    IP_WHITELIST_PATHS: list[str] = []  # 仅对指定路径前缀启用白名单（为空则全部生效）
 
     # 密钥轮换配置
     SECRET_KEY_ROTATION_INTERVAL_DAYS: int = 90  # JWT 密钥轮换间隔（天）
-    PREVIOUS_SECRET_KEYS: List[str] = []  # 旧密钥列表，用于平滑过渡
+    PREVIOUS_SECRET_KEYS: list[str] = []  # 旧密钥列表，用于平滑过渡
     KEY_ROTATION_INTERVAL_DAYS: int = 90  # 数据加密密钥轮换间隔（天）
 
     # 敏感数据加密密钥（Fernet 密钥，留空则按 SECRET_KEY 派生）
@@ -96,11 +95,11 @@ class Settings(BaseSettings):
     DEFAULT_ADMIN_EMAIL: str = "admin@example.com"
 
     # CORS 配置
-    CORS_ORIGINS: List[str] = ["*"]
+    CORS_ORIGINS: list[str] = ["*"]
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
-    def parse_cors_origins(cls, v: object) -> List[str]:
+    def parse_cors_origins(cls, v: object) -> list[str]:
         """支持以逗号分隔的字符串形式配置 CORS 来源。"""
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",") if origin.strip()]
@@ -110,7 +109,7 @@ class Settings(BaseSettings):
 
     @field_validator("IP_WHITELIST", mode="before")
     @classmethod
-    def parse_ip_whitelist(cls, v: object) -> List[str]:
+    def parse_ip_whitelist(cls, v: object) -> list[str]:
         """支持以逗号分隔的字符串形式配置 IP 白名单。"""
         if isinstance(v, str):
             return [ip.strip() for ip in v.split(",") if ip.strip()]
@@ -120,7 +119,7 @@ class Settings(BaseSettings):
 
     @field_validator("IP_WHITELIST_PATHS", mode="before")
     @classmethod
-    def parse_ip_whitelist_paths(cls, v: object) -> List[str]:
+    def parse_ip_whitelist_paths(cls, v: object) -> list[str]:
         """支持以逗号分隔的字符串形式配置 IP 白名单生效路径。"""
         if isinstance(v, str):
             return [p.strip() for p in v.split(",") if p.strip()]
@@ -130,7 +129,7 @@ class Settings(BaseSettings):
 
     @field_validator("PREVIOUS_SECRET_KEYS", mode="before")
     @classmethod
-    def parse_previous_secret_keys(cls, v: object) -> List[str]:
+    def parse_previous_secret_keys(cls, v: object) -> list[str]:
         """支持以逗号分隔的字符串形式配置旧密钥列表。"""
         if isinstance(v, str):
             return [k.strip() for k in v.split(",") if k.strip()]

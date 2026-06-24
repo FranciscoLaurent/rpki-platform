@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import secrets
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from jose import JWTError, jwt
@@ -113,7 +113,7 @@ def _init_state_from_settings() -> None:
     if _state.versions:
         return  # 已初始化
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     active = KeyVersion(
         key=settings.SECRET_KEY,
         created_at=now,
@@ -189,7 +189,7 @@ def rotate_jwt_key() -> KeyVersion:
     _init_state_from_settings()
 
     new_key = secrets.token_hex(32)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     new_version = _state.current_version + 1
 
     # 当前活跃密钥降级为过渡期旧密钥
@@ -237,9 +237,7 @@ def retire_previous_keys() -> int:
     return retired_count
 
 
-def encode_token(
-    payload: dict[str, Any], algorithm: str | None = None
-) -> str:
+def encode_token(payload: dict[str, Any], algorithm: str | None = None) -> str:
     """使用当前活跃密钥签发 JWT 令牌。
 
     Args:
@@ -253,9 +251,7 @@ def encode_token(
     return jwt.encode(payload, get_active_key(), algorithm=alg)
 
 
-def decode_token(
-    token: str, algorithm: str | None = None
-) -> dict[str, Any] | None:
+def decode_token(token: str, algorithm: str | None = None) -> dict[str, Any] | None:
     """使用活跃密钥或过渡期旧密钥验证 JWT 令牌。
 
     依次尝试所有可用密钥（活跃密钥优先）进行验证，全部失败返回 None。

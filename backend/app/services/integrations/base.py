@@ -68,14 +68,10 @@ class BaseAdapter(abc.ABC):
         elif auth_type == "basic":
             username = self.auth_config.get("username", "")
             password = self.auth_config.get("password", "")
-            credentials = base64.b64encode(
-                f"{username}:{password}".encode("utf-8")
-            ).decode("ascii")
+            credentials = base64.b64encode(f"{username}:{password}".encode()).decode("ascii")
             headers["Authorization"] = f"Basic {credentials}"
         elif auth_type == "api_key":
-            header_name = self.auth_config.get(
-                "header_name", "X-API-Key"
-            )
+            header_name = self.auth_config.get("header_name", "X-API-Key")
             header_value = self.auth_config.get("header_value", "")
             headers[header_name] = header_value
 

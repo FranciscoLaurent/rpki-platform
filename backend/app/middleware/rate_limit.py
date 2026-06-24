@@ -50,9 +50,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # 内存计数器（Redis 不可用时降级使用）
         self._memory_store: dict[str, list[float]] = defaultdict(list)
 
-    async def dispatch(
-        self, request: Request, call_next: Any
-    ) -> Any:
+    async def dispatch(self, request: Request, call_next: Any) -> Any:
         """限流检查。"""
         path = request.url.path
 
@@ -110,9 +108,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         # 清理过期记录
         timestamps = self._memory_store[client_id]
-        self._memory_store[client_id] = [
-            ts for ts in timestamps if ts > window_start
-        ]
+        self._memory_store[client_id] = [ts for ts in timestamps if ts > window_start]
 
         # 检查是否超出限制
         if len(self._memory_store[client_id]) >= self.rate_limit:

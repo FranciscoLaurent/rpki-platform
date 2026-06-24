@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import difflib
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import func, select
@@ -97,24 +97,16 @@ async def create_template(
     return template
 
 
-async def get_template(
-    db: AsyncSession, template_id: int
-) -> DeviceConfigTemplate | None:
+async def get_template(db: AsyncSession, template_id: int) -> DeviceConfigTemplate | None:
     """根据 ID 获取模板。"""
-    stmt = select(DeviceConfigTemplate).where(
-        DeviceConfigTemplate.id == template_id
-    )
+    stmt = select(DeviceConfigTemplate).where(DeviceConfigTemplate.id == template_id)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
 
-async def get_template_by_name(
-    db: AsyncSession, name: str
-) -> DeviceConfigTemplate | None:
+async def get_template_by_name(db: AsyncSession, name: str) -> DeviceConfigTemplate | None:
     """根据名称获取模板。"""
-    stmt = select(DeviceConfigTemplate).where(
-        DeviceConfigTemplate.name == name
-    )
+    stmt = select(DeviceConfigTemplate).where(DeviceConfigTemplate.name == name)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
@@ -201,9 +193,7 @@ async def update_template(
     return template
 
 
-async def delete_template(
-    db: AsyncSession, template_id: int
-) -> bool:
+async def delete_template(db: AsyncSession, template_id: int) -> bool:
     """删除模板。
 
     Args:
@@ -253,7 +243,7 @@ async def generate_config(
     if "generated_at" not in variables:
         variables = {
             **variables,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
         }
 
     # 查找数据库模板
@@ -276,27 +266,17 @@ async def generate_config(
         # 合并模板定义的变量默认值
         if template.variables:
             for var_name, var_def in template.variables.items():
-                if (
-                    var_name not in variables
-                    and isinstance(var_def, dict)
-                    and "default" in var_def
-                ):
+                if var_name not in variables and isinstance(var_def, dict) and "default" in var_def:
                     variables[var_name] = var_def["default"]
     else:
         # 使用默认模板
         content = get_default_template(vendor, template_type)
         template_id = None
         if content is None:
-            raise ValueError(
-                f"未找到厂商 {vendor} 类型 {template_type} 的模板"
-            )
+            raise ValueError(f"未找到厂商 {vendor} 类型 {template_type} 的模板")
         # 合并通用变量默认值
         for var_name, var_def in COMMON_VARIABLES.items():
-            if (
-                var_name not in variables
-                and isinstance(var_def, dict)
-                and "default" in var_def
-            ):
+            if var_name not in variables and isinstance(var_def, dict) and "default" in var_def:
                 variables[var_name] = var_def["default"]
 
     # 检查必填变量
@@ -377,26 +357,20 @@ async def generate_config_by_policy(
     if "generated_at" not in variables:
         variables = {
             **variables,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
         }
     if "policy" not in variables:
         variables = {**variables, "policy": policy}
 
     # 合并通用变量默认值
     for var_name, var_def in COMMON_VARIABLES.items():
-        if (
-            var_name not in variables
-            and isinstance(var_def, dict)
-            and "default" in var_def
-        ):
+        if var_name not in variables and isinstance(var_def, dict) and "default" in var_def:
             variables[var_name] = var_def["default"]
 
     # 获取策略模板
     content = get_policy_template(vendor, policy)
     if content is None:
-        raise ValueError(
-            f"未找到厂商 {vendor} 策略 {policy} 的模板"
-        )
+        raise ValueError(f"未找到厂商 {vendor} 策略 {policy} 的模板")
 
     # 检查必填变量
     for var_name, var_def in COMMON_VARIABLES.items():
@@ -559,9 +533,7 @@ def diff_configs(
     modified_count = 0
 
     # 使用 SequenceMatcher 进行行级对比
-    matcher = difflib.SequenceMatcher(
-        None, lines_a, lines_b, autojunk=False
-    )
+    matcher = difflib.SequenceMatcher(None, lines_a, lines_b, autojunk=False)
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == "equal":
             continue
@@ -569,20 +541,12 @@ def diff_configs(
             # 修改：A 中 [i1, i2) 被替换为 B 中 [j1, j2)
             max_len = max(i2 - i1, j2 - j1)
             for k in range(max_len):
-                line_a = (
-                    lines_a[i1 + k] if i1 + k < i2 else None
-                )
-                line_b = (
-                    lines_b[j1 + k] if j1 + k < j2 else None
-                )
+                line_a = lines_a[i1 + k] if i1 + k < i2 else None
+                line_b = lines_b[j1 + k] if j1 + k < j2 else None
                 entries.append(
                     DeviceConfigDiffEntry(
-                        line_number_a=(
-                            i1 + k + 1 if line_a is not None else None
-                        ),
-                        line_number_b=(
-                            j1 + k + 1 if line_b is not None else None
-                        ),
+                        line_number_a=(i1 + k + 1 if line_a is not None else None),
+                        line_number_b=(j1 + k + 1 if line_b is not None else None),
                         change_type="modified",
                         content_a=line_a,
                         content_b=line_b,
@@ -670,7 +634,7 @@ def validate_config(
             valid=False,
             vendor=vendor,
             issues=issues,
-            checked_at=datetime.now(timezone.utc),
+            checked_at=datetime.now(UTC),
         )
 
     lines = config.splitlines()
@@ -727,22 +691,18 @@ def validate_config(
                 line_number=open_line,
                 severity="error",
                 message=f"未闭合的括号 '{opening}'",
-                line_content=lines[open_line - 1]
-                if open_line <= len(lines)
-                else None,
+                line_content=lines[open_line - 1] if open_line <= len(lines) else None,
             )
         )
 
     # 判断是否通过验证（存在 error 级别问题则不通过）
-    has_error = any(
-        issue.severity == "error" for issue in issues
-    )
+    has_error = any(issue.severity == "error" for issue in issues)
 
     return DeviceConfigValidationResult(
         valid=not has_error,
         vendor=vendor,
         issues=issues,
-        checked_at=datetime.now(timezone.utc),
+        checked_at=datetime.now(UTC),
     )
 
 
@@ -852,9 +812,7 @@ def _render_template(content: str, variables: dict[str, Any]) -> str:
     result = content
 
     # 先处理带 default 的占位符
-    default_pattern = re.compile(
-        r"\{\{\s*(\w+)\s*\|\s*default\s+([^}\s]+)\s*\}\}"
-    )
+    default_pattern = re.compile(r"\{\{\s*(\w+)\s*\|\s*default\s+([^}\s]+)\s*\}\}")
 
     def _default_replacer(match: re.Match[str]) -> str:
         var_name = match.group(1)

@@ -7,7 +7,6 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-
 # ──────────────────────────────────────────────
 # 业务服务
 # ──────────────────────────────────────────────
@@ -18,9 +17,7 @@ class BusinessServiceBase(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=255, description="业务服务名称")
     description: str | None = Field(None, description="业务描述")
-    importance: str = Field(
-        default="normal", description="重要度：critical/important/normal/low"
-    )
+    importance: str = Field(default="normal", description="重要度：critical/important/normal/low")
     owner_contact: str | None = Field(None, description="业务负责人联系方式")
 
     @field_validator("importance")
@@ -194,9 +191,7 @@ class RouterBase(BaseModel):
     management_ip: str | None = Field(None, description="管理 IP 地址")
     location: str | None = Field(None, description="部署位置")
     snmp_community: str | None = Field(None, description="SNMP community 字符串")
-    status: str = Field(
-        default="active", description="状态：active/inactive/maintenance"
-    )
+    status: str = Field(default="active", description="状态：active/inactive/maintenance")
 
     @field_validator("status")
     @classmethod
@@ -279,9 +274,7 @@ class ConsistencyCheckItem(BaseModel):
 class ConsistencyCheckResult(BaseModel):
     """资产一致性检查结果。"""
 
-    items: list[ConsistencyCheckItem] = Field(
-        default_factory=list, description="不一致项列表"
-    )
+    items: list[ConsistencyCheckItem] = Field(default_factory=list, description="不一致项列表")
     total: int = Field(..., description="不一致项总数")
     critical_count: int = Field(..., description="critical 数量")
     warning_count: int = Field(..., description="warning 数量")
@@ -297,19 +290,11 @@ class RelationshipView(BaseModel):
 
     prefix: dict[str, Any] = Field(..., description="前缀信息")
     parent: dict[str, Any] | None = Field(None, description="父前缀信息")
-    children: list[dict[str, Any]] = Field(
-        default_factory=list, description="子前缀列表"
-    )
+    children: list[dict[str, Any]] = Field(default_factory=list, description="子前缀列表")
     customer: dict[str, Any] | None = Field(None, description="关联客户信息")
-    business_service: dict[str, Any] | None = Field(
-        None, description="关联业务服务信息"
-    )
-    bgp_peers: list[dict[str, Any]] = Field(
-        default_factory=list, description="关联 BGP 邻居列表"
-    )
-    related_asns: list[dict[str, Any]] = Field(
-        default_factory=list, description="关联 ASN 列表"
-    )
+    business_service: dict[str, Any] | None = Field(None, description="关联业务服务信息")
+    bgp_peers: list[dict[str, Any]] = Field(default_factory=list, description="关联 BGP 邻居列表")
+    related_asns: list[dict[str, Any]] = Field(default_factory=list, description="关联 ASN 列表")
 
 
 __all__ = [

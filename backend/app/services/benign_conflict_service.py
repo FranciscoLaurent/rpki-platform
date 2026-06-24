@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func, select
@@ -15,8 +15,8 @@ from app.core.logging import get_logger
 from app.models.benign_conflict import BenignConflictRecord
 from app.models.detection import Alert
 from app.schemas.benign_conflict import (
-    BenignConflictRecordCreate,
     BenignConflictQueryParams,
+    BenignConflictRecordCreate,
     BenignConflictSummary,
     BenignConflictTypeSummary,
 )
@@ -68,9 +68,7 @@ async def get_benign_conflict_record(
     db: AsyncSession, record_id: int
 ) -> BenignConflictRecord | None:
     """根据 ID 获取良性冲突记录。"""
-    stmt = select(BenignConflictRecord).where(
-        BenignConflictRecord.id == record_id
-    )
+    stmt = select(BenignConflictRecord).where(BenignConflictRecord.id == record_id)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
@@ -99,23 +97,15 @@ async def get_benign_conflict_records(
     if query_params.origin_as is not None:
         stmt = stmt.where(BenignConflictRecord.origin_as == query_params.origin_as)
     if query_params.conflict_type:
-        stmt = stmt.where(
-            BenignConflictRecord.conflict_type == query_params.conflict_type
-        )
+        stmt = stmt.where(BenignConflictRecord.conflict_type == query_params.conflict_type)
     if query_params.status:
         stmt = stmt.where(BenignConflictRecord.status == query_params.status)
     if query_params.start_time:
-        stmt = stmt.where(
-            BenignConflictRecord.created_at >= query_params.start_time
-        )
+        stmt = stmt.where(BenignConflictRecord.created_at >= query_params.start_time)
     if query_params.end_time:
-        stmt = stmt.where(
-            BenignConflictRecord.created_at <= query_params.end_time
-        )
+        stmt = stmt.where(BenignConflictRecord.created_at <= query_params.end_time)
 
-    stmt = stmt.order_by(
-        BenignConflictRecord.created_at.desc()
-    ).offset(skip).limit(limit)
+    stmt = stmt.order_by(BenignConflictRecord.created_at.desc()).offset(skip).limit(limit)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -131,19 +121,13 @@ async def count_benign_conflict_records(
     if query_params.origin_as is not None:
         stmt = stmt.where(BenignConflictRecord.origin_as == query_params.origin_as)
     if query_params.conflict_type:
-        stmt = stmt.where(
-            BenignConflictRecord.conflict_type == query_params.conflict_type
-        )
+        stmt = stmt.where(BenignConflictRecord.conflict_type == query_params.conflict_type)
     if query_params.status:
         stmt = stmt.where(BenignConflictRecord.status == query_params.status)
     if query_params.start_time:
-        stmt = stmt.where(
-            BenignConflictRecord.created_at >= query_params.start_time
-        )
+        stmt = stmt.where(BenignConflictRecord.created_at >= query_params.start_time)
     if query_params.end_time:
-        stmt = stmt.where(
-            BenignConflictRecord.created_at <= query_params.end_time
-        )
+        stmt = stmt.where(BenignConflictRecord.created_at <= query_params.end_time)
 
     result = await db.execute(stmt)
     return int(result.scalar_one() or 0)
@@ -203,25 +187,21 @@ async def get_benign_conflict_summary(
     total = int(total_result.scalar_one() or 0)
 
     # 按状态统计
-    status_stmt = (
-        select(BenignConflictRecord.status, func.count(BenignConflictRecord.id))
-        .group_by(BenignConflictRecord.status)
+    status_stmt = select(BenignConflictRecord.status, func.count(BenignConflictRecord.id)).group_by(
+        BenignConflictRecord.status
     )
     status_result = await db.execute(status_stmt)
     status_counts = {row[0]: int(row[1]) for row in status_result.all()}
 
     # 按类型统计
-    type_stmt = (
-        select(
-            BenignConflictRecord.conflict_type,
-            BenignConflictRecord.status,
-            func.count(BenignConflictRecord.id),
-            func.avg(BenignConflictRecord.confidence),
-        )
-        .group_by(
-            BenignConflictRecord.conflict_type,
-            BenignConflictRecord.status,
-        )
+    type_stmt = select(
+        BenignConflictRecord.conflict_type,
+        BenignConflictRecord.status,
+        func.count(BenignConflictRecord.id),
+        func.avg(BenignConflictRecord.confidence),
+    ).group_by(
+        BenignConflictRecord.conflict_type,
+        BenignConflictRecord.status,
     )
     type_result = await db.execute(type_stmt)
 
@@ -270,7 +250,7 @@ async def get_benign_conflict_summary(
         )
 
     # 最近 24 小时新增数
-    since = datetime.now(timezone.utc) - timedelta(hours=24)
+    since = datetime.now(UTC) - timedelta(hours=24)
     recent_stmt = select(func.count(BenignConflictRecord.id)).where(
         BenignConflictRecord.created_at >= since
     )

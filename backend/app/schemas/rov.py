@@ -10,7 +10,6 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-
 # ──────────────────────────────────────────────
 # ROV 策略模拟
 # ──────────────────────────────────────────────
@@ -69,29 +68,21 @@ class AffectedPrefix(BaseModel):
 
     prefix: str = Field(..., description="网络前缀")
     origin_as: int = Field(..., description="起源 AS 号")
-    current_status: str = Field(
-        ..., description="当前 RPKI 验证状态：valid/invalid/not_found"
-    )
+    current_status: str = Field(..., description="当前 RPKI 验证状态：valid/invalid/not_found")
     simulated_status: str = Field(
         ...,
         description="模拟后状态：valid/invalid/not_found/rejected/de-preferenced",
     )
     impact_description: str = Field("", description="影响描述")
-    importance: str | None = Field(
-        None, description="前缀重要度：critical/important/normal/low"
-    )
+    importance: str | None = Field(None, description="前缀重要度：critical/important/normal/low")
 
 
 class AffectedBusiness(BaseModel):
     """受影响的业务。"""
 
     business_service: str = Field(..., description="业务服务名称")
-    affected_prefixes: list[str] = Field(
-        default_factory=list, description="受影响的前缀列表"
-    )
-    impact_level: str = Field(
-        ..., description="影响等级：high/medium/low"
-    )
+    affected_prefixes: list[str] = Field(default_factory=list, description="受影响的前缀列表")
+    impact_level: str = Field(..., description="影响等级：high/medium/low")
     description: str = Field("", description="影响描述")
 
 
@@ -100,12 +91,8 @@ class AffectedCustomer(BaseModel):
 
     customer_id: int = Field(..., description="客户 ID")
     customer_name: str = Field(..., description="客户名称")
-    affected_prefixes: list[str] = Field(
-        default_factory=list, description="受影响的前缀列表"
-    )
-    impact_level: str = Field(
-        ..., description="影响等级：high/medium/low"
-    )
+    affected_prefixes: list[str] = Field(default_factory=list, description="受影响的前缀列表")
+    impact_level: str = Field(..., description="影响等级：high/medium/low")
 
 
 class DeploymentRecommendation(BaseModel):
@@ -115,29 +102,19 @@ class DeploymentRecommendation(BaseModel):
         ..., description="部署阶段：monitor（监控）/de-preference（降权）/drop（拒收）"
     )
     description: str = Field(..., description="阶段描述")
-    prerequisites: list[str] = Field(
-        default_factory=list, description="前置条件列表"
-    )
-    affected_prefixes: list[str] = Field(
-        default_factory=list, description="该阶段受影响的前缀列表"
-    )
+    prerequisites: list[str] = Field(default_factory=list, description="前置条件列表")
+    affected_prefixes: list[str] = Field(default_factory=list, description="该阶段受影响的前缀列表")
 
 
 class RiskAssessment(BaseModel):
     """风险评估。"""
 
-    risk_level: str = Field(
-        ..., description="风险等级：high/medium/low/none"
-    )
-    risk_factors: list[str] = Field(
-        default_factory=list, description="风险因素列表"
-    )
+    risk_level: str = Field(..., description="风险等级：high/medium/low/none")
+    risk_factors: list[str] = Field(default_factory=list, description="风险因素列表")
     blocking_issues: list[str] = Field(
         default_factory=list, description="阻断问题列表（需解决才能继续）"
     )
-    requires_approval: bool = Field(
-        False, description="是否需要审批后方可实施"
-    )
+    requires_approval: bool = Field(False, description="是否需要审批后方可实施")
 
 
 class ROVSimulationResult(BaseModel):
@@ -160,9 +137,7 @@ class ROVSimulationResult(BaseModel):
     deployment_recommendations: list[DeploymentRecommendation] = Field(
         default_factory=list, description="分阶段部署建议"
     )
-    risk_assessment: RiskAssessment = Field(
-        default_factory=RiskAssessment, description="风险评估"
-    )
+    risk_assessment: RiskAssessment = Field(default_factory=RiskAssessment, description="风险评估")
 
 
 # ──────────────────────────────────────────────
@@ -173,19 +148,13 @@ class ROVSimulationResult(BaseModel):
 class ROAChangeSimulationRequest(BaseModel):
     """ROA 变更模拟请求。"""
 
-    roa_id: int | None = Field(
-        None, description="ROA ID（modify/revoke 时必须提供）"
-    )
+    roa_id: int | None = Field(None, description="ROA ID（modify/revoke 时必须提供）")
     change_type: str = Field(
         ..., description="变更类型：create（新建）/modify（修改）/revoke（撤销）"
     )
     new_prefix: str | None = Field(None, description="新前缀（create/modify 时提供）")
-    new_origin_as: int | None = Field(
-        None, description="新起源 AS（create/modify 时提供）"
-    )
-    new_max_length: int | None = Field(
-        None, description="新最大前缀长度（create/modify 时提供）"
-    )
+    new_origin_as: int | None = Field(None, description="新起源 AS（create/modify 时提供）")
+    new_max_length: int | None = Field(None, description="新最大前缀长度（create/modify 时提供）")
 
     @field_validator("change_type")
     @classmethod
@@ -197,13 +166,11 @@ class ROAChangeSimulationRequest(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def validate_request(self) -> "ROAChangeSimulationRequest":
+    def validate_request(self) -> ROAChangeSimulationRequest:
         """跨字段校验：根据变更类型检查必填字段。"""
         if self.change_type in ("modify", "revoke") and self.roa_id is None:
             raise ValueError("modify/revoke 变更类型必须提供 roa_id")
-        if self.change_type == "create" and (
-            self.new_prefix is None or self.new_origin_as is None
-        ):
+        if self.change_type == "create" and (self.new_prefix is None or self.new_origin_as is None):
             raise ValueError("create 变更类型必须提供 new_prefix 和 new_origin_as")
         return self
 
@@ -221,12 +188,8 @@ class AffectedAnnouncement(BaseModel):
     rpki_invalid_reason: str | None = Field(
         None, description="当前 RPKI 验证失败原因（如为 Invalid）"
     )
-    importance: str | None = Field(
-        None, description="前缀重要度：critical/important/normal/low"
-    )
-    business_service: str | None = Field(
-        None, description="所属业务服务名称"
-    )
+    importance: str | None = Field(None, description="前缀重要度：critical/important/normal/low")
+    business_service: str | None = Field(None, description="所属业务服务名称")
 
 
 class ValidationChange(BaseModel):
@@ -272,9 +235,7 @@ class ROAChangeSimulationResult(BaseModel):
     new_attack_surface: list[AttackSurfaceItem] = Field(
         default_factory=list, description="新增攻击面列表"
     )
-    risk_assessment: RiskAssessment = Field(
-        default_factory=RiskAssessment, description="风险评估"
-    )
+    risk_assessment: RiskAssessment = Field(default_factory=RiskAssessment, description="风险评估")
 
 
 # ──────────────────────────────────────────────
@@ -289,10 +250,7 @@ class ROACreationSimulationRequest(BaseModel):
     origin_as: int = Field(..., description="新 ROA 授权的起源 AS 号")
     max_length: int | None = Field(
         None,
-        description=(
-            "新 ROA 的最大前缀长度，为空时采用 minimal ROA 原则"
-            "（等于前缀长度）"
-        ),
+        description=("新 ROA 的最大前缀长度，为空时采用 minimal ROA 原则（等于前缀长度）"),
     )
 
 
@@ -304,12 +262,8 @@ class ROAModificationSimulationRequest(BaseModel):
 
     roa_id: int = Field(..., description="待修改的 ROA ID")
     new_prefix: str | None = Field(None, description="新前缀（如变更前缀）")
-    new_origin_as: int | None = Field(
-        None, description="新起源 AS（如变更 origin）"
-    )
-    new_max_length: int | None = Field(
-        None, description="新最大前缀长度（如调整 maxLength）"
-    )
+    new_origin_as: int | None = Field(None, description="新起源 AS（如变更 origin）")
+    new_max_length: int | None = Field(None, description="新最大前缀长度（如调整 maxLength）")
 
 
 class ROARevocationSimulationRequest(BaseModel):
@@ -326,9 +280,7 @@ class ROARevocationSimulationRequest(BaseModel):
 class ROVExportRequest(BaseModel):
     """ROV 模拟结果导出请求。"""
 
-    simulation_request: ROVSimulationRequest = Field(
-        ..., description="模拟请求参数"
-    )
+    simulation_request: ROVSimulationRequest = Field(..., description="模拟请求参数")
     format: str = Field("json", description="导出格式：json/csv")
 
     @field_validator("format")

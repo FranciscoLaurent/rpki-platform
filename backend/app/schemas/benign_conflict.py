@@ -15,7 +15,6 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-
 # ──────────────────────────────────────────────
 # 枚举集合
 # ──────────────────────────────────────────────
@@ -60,23 +59,13 @@ class BenignConflictRecordBase(BaseModel):
     conflict_type: str = Field(..., description="冲突类型")
     prefix: str = Field(..., description="关联的网络前缀")
     origin_as: int | None = Field(None, description="观测到的起源 AS 号")
-    expected_origin_as: int | None = Field(
-        None, description="期望的起源 AS 号"
-    )
-    confidence: float = Field(
-        default=0.0, ge=0.0, le=1.0, description="置信度（0-1）"
-    )
+    expected_origin_as: int | None = Field(None, description="期望的起源 AS 号")
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0, description="置信度（0-1）")
     evidence: dict[str, Any] | None = Field(None, description="证据数据")
     recommendation: str | None = Field(None, description="处理建议")
-    status: str = Field(
-        default="suspected", description="状态：suspected/confirmed/dismissed"
-    )
-    valid_until: datetime | None = Field(
-        None, description="授权时间窗结束时间"
-    )
-    related_work_order: str | None = Field(
-        None, description="关联工单号"
-    )
+    status: str = Field(default="suspected", description="状态：suspected/confirmed/dismissed")
+    valid_until: datetime | None = Field(None, description="授权时间窗结束时间")
+    related_work_order: str | None = Field(None, description="关联工单号")
 
     @field_validator("conflict_type")
     @classmethod
@@ -105,18 +94,12 @@ class BenignConflictRecordCreate(BenignConflictRecordBase):
 class BenignConflictRecordUpdate(BaseModel):
     """更新良性冲突记录请求。"""
 
-    confidence: float | None = Field(
-        None, ge=0.0, le=1.0, description="置信度（0-1）"
-    )
+    confidence: float | None = Field(None, ge=0.0, le=1.0, description="置信度（0-1）")
     evidence: dict[str, Any] | None = Field(None, description="证据数据")
     recommendation: str | None = Field(None, description="处理建议")
     status: str | None = Field(None, description="状态")
-    valid_until: datetime | None = Field(
-        None, description="授权时间窗结束时间"
-    )
-    related_work_order: str | None = Field(
-        None, description="关联工单号"
-    )
+    valid_until: datetime | None = Field(None, description="授权时间窗结束时间")
+    related_work_order: str | None = Field(None, description="关联工单号")
 
     @field_validator("status")
     @classmethod
@@ -168,9 +151,7 @@ class BenignConflictStatusUpdate(BaseModel):
 
     status: str = Field(..., description="新的状态")
     recommendation: str | None = Field(None, description="处理建议")
-    related_work_order: str | None = Field(
-        None, description="关联工单号"
-    )
+    related_work_order: str | None = Field(None, description="关联工单号")
 
     @field_validator("status")
     @classmethod
@@ -211,7 +192,7 @@ class MaintenanceWindowBase(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def validate_time_range(self) -> "MaintenanceWindowBase":
+    def validate_time_range(self) -> MaintenanceWindowBase:
         """校验时间范围：结束时间必须晚于开始时间。"""
         if self.end_time <= self.start_time:
             raise ValueError("end_time 必须晚于 start_time")
@@ -227,9 +208,7 @@ class MaintenanceWindowCreate(MaintenanceWindowBase):
 class MaintenanceWindowUpdate(BaseModel):
     """更新维护窗口请求。"""
 
-    name: str | None = Field(
-        None, min_length=1, max_length=255, description="维护窗口名称"
-    )
+    name: str | None = Field(None, min_length=1, max_length=255, description="维护窗口名称")
     description: str | None = Field(None, description="维护描述")
     start_time: datetime | None = Field(None, description="开始时间")
     end_time: datetime | None = Field(None, description="结束时间")
@@ -250,7 +229,7 @@ class MaintenanceWindowUpdate(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def validate_time_range(self) -> "MaintenanceWindowUpdate":
+    def validate_time_range(self) -> MaintenanceWindowUpdate:
         """校验时间范围（若同时提供起止时间）。"""
         if (
             self.start_time is not None
@@ -289,22 +268,14 @@ class MaintenanceWindowListResponse(BaseModel):
 class ScrubberAuthorizationBase(BaseModel):
     """清洗商授权基础字段。"""
 
-    scrubber_asn: int = Field(
-        ..., ge=1, le=4294967295, description="清洗商 AS 号"
-    )
+    scrubber_asn: int = Field(..., ge=1, le=4294967295, description="清洗商 AS 号")
     customer_prefix: str = Field(..., description="客户前缀（CIDR）")
-    customer_asn: int = Field(
-        ..., ge=1, le=4294967295, description="客户 AS 号"
-    )
+    customer_asn: int = Field(..., ge=1, le=4294967295, description="客户 AS 号")
     authorized_at: datetime = Field(..., description="授权时间")
     expires_at: datetime = Field(..., description="授权截止时间")
     work_order_id: str | None = Field(None, description="关联工单号")
-    status: str = Field(
-        default="active", description="状态：active/expired/revoked"
-    )
-    contact_info: dict[str, Any] | None = Field(
-        None, description="联系人信息"
-    )
+    status: str = Field(default="active", description="状态：active/expired/revoked")
+    contact_info: dict[str, Any] | None = Field(None, description="联系人信息")
 
     @field_validator("status")
     @classmethod
@@ -315,7 +286,7 @@ class ScrubberAuthorizationBase(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def validate_time_range(self) -> "ScrubberAuthorizationBase":
+    def validate_time_range(self) -> ScrubberAuthorizationBase:
         """校验时间范围：截止时间必须晚于授权时间。"""
         if self.expires_at <= self.authorized_at:
             raise ValueError("expires_at 必须晚于 authorized_at")
@@ -335,9 +306,7 @@ class ScrubberAuthorizationUpdate(BaseModel):
     expires_at: datetime | None = Field(None, description="授权截止时间")
     work_order_id: str | None = Field(None, description="关联工单号")
     status: str | None = Field(None, description="状态")
-    contact_info: dict[str, Any] | None = Field(
-        None, description="联系人信息"
-    )
+    contact_info: dict[str, Any] | None = Field(None, description="联系人信息")
 
     @field_validator("status")
     @classmethod
@@ -350,7 +319,7 @@ class ScrubberAuthorizationUpdate(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def validate_time_range(self) -> "ScrubberAuthorizationUpdate":
+    def validate_time_range(self) -> ScrubberAuthorizationUpdate:
         """校验时间范围（若同时提供起止时间）。"""
         if (
             self.authorized_at is not None
@@ -389,17 +358,13 @@ class ScrubberAuthorizationListResponse(BaseModel):
 class AnycastNodeBase(BaseModel):
     """Anycast 节点基础字段。"""
 
-    node_asn: int = Field(
-        ..., ge=1, le=4294967295, description="Anycast 节点 AS 号"
-    )
+    node_asn: int = Field(..., ge=1, le=4294967295, description="Anycast 节点 AS 号")
     prefix: str = Field(..., description="Anycast 前缀（CIDR）")
     region: str | None = Field(None, description="地域")
     site: str | None = Field(None, description="机房")
     business_tag: str | None = Field(None, description="业务标签")
     registered_at: datetime = Field(..., description="登记时间")
-    status: str = Field(
-        default="active", description="状态：active/inactive"
-    )
+    status: str = Field(default="active", description="状态：active/inactive")
 
     @field_validator("status")
     @classmethod
@@ -470,21 +435,15 @@ class BenignConflictAnalysisResult(BaseModel):
     注意：良性冲突识别只降低误报优先级，不能替代安全验证。
     """
 
-    conflict_type: str | None = Field(
-        None, description="识别到的冲突类型，未识别为良性时为 None"
-    )
+    conflict_type: str | None = Field(None, description="识别到的冲突类型，未识别为良性时为 None")
     confidence: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
         description="置信度（0-1）",
     )
-    evidence: dict[str, Any] = Field(
-        default_factory=dict, description="证据数据"
-    )
-    recommendation: str = Field(
-        default="", description="处理建议"
-    )
+    evidence: dict[str, Any] = Field(default_factory=dict, description="证据数据")
+    recommendation: str = Field(default="", description="处理建议")
     is_benign: bool = Field(
         default=False,
         description=(
@@ -517,15 +476,13 @@ class BenignConflictAnalyzeRequest(BaseModel):
     origin_as: int | None = Field(None, description="起源 AS 号")
 
     @model_validator(mode="after")
-    def validate_input(self) -> "BenignConflictAnalyzeRequest":
+    def validate_input(self) -> BenignConflictAnalyzeRequest:
         """校验输入：必须提供 alert_id 或 prefix+origin_as。"""
         if self.alert_id is not None:
             return self
         if self.prefix is not None and self.origin_as is not None:
             return self
-        raise ValueError(
-            "必须提供 alert_id，或同时提供 prefix 与 origin_as"
-        )
+        raise ValueError("必须提供 alert_id，或同时提供 prefix 与 origin_as")
 
 
 # ──────────────────────────────────────────────

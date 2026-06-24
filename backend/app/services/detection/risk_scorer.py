@@ -13,7 +13,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func, select
@@ -25,7 +25,6 @@ from app.models.bgp import BGPAnnouncement, BGPWithdraw
 from app.models.business import BusinessService, Customer
 from app.models.detection import Alert, RiskScore
 from app.models.prefix import Prefix
-from app.models.rpki import VRP
 from app.services.vrp_service import validate_bgp_announcement
 
 logger = get_logger("app.detection.risk_scorer")
@@ -42,9 +41,7 @@ DIMENSION_WEIGHTS = {
 }
 
 
-async def calculate_risk_score(
-    db: AsyncSession, alert: Alert
-) -> RiskScore:
+async def calculate_risk_score(db: AsyncSession, alert: Alert) -> RiskScore:
     """计算告警的可解释风险评分。
 
     Args:
@@ -62,29 +59,19 @@ async def calculate_risk_score(
     asset_score, asset_factors = await _score_asset_importance(db, prefix)
 
     # 2. RPKI 证据评分
-    rpki_score, rpki_factors = await _score_rpki_evidence(
-        db, prefix, origin_as, evidence
-    )
+    rpki_score, rpki_factors = await _score_rpki_evidence(db, prefix, origin_as, evidence)
 
     # 3. BGP 传播证据评分
-    bgp_score, bgp_factors = await _score_bgp_propagation(
-        db, prefix, origin_as, evidence
-    )
+    bgp_score, bgp_factors = await _score_bgp_propagation(db, prefix, origin_as, evidence)
 
     # 4. 授权与变更证据评分
-    auth_score, auth_factors = await _score_authorization(
-        db, prefix, origin_as, evidence
-    )
+    auth_score, auth_factors = await _score_authorization(db, prefix, origin_as, evidence)
 
     # 5. 历史与行为基线评分
-    hist_score, hist_factors = await _score_historical_baseline(
-        db, prefix, origin_as
-    )
+    hist_score, hist_factors = await _score_historical_baseline(db, prefix, origin_as)
 
     # 6. 外部风险特征评分
-    ext_score, ext_factors = await _score_external_risk(
-        db, origin_as, evidence
-    )
+    ext_score, ext_factors = await _score_external_risk(db, origin_as, evidence)
 
     # 计算加权总分（0-100）
     total_score = (
@@ -98,8 +85,12 @@ async def calculate_risk_score(
 
     # 计算置信度（基于证据充分性）
     confidence = _calculate_confidence(
-        asset_factors, rpki_factors, bgp_factors, auth_factors,
-        hist_factors, ext_factors,
+        asset_factors,
+        rpki_factors,
+        bgp_factors,
+        auth_factors,
+        hist_factors,
+        ext_factors,
     )
 
     # 生成建议动作
@@ -147,9 +138,7 @@ async def calculate_risk_score(
 # ──────────────────────────────────────────────
 
 
-async def _score_asset_importance(
-    db: AsyncSession, prefix: str
-) -> tuple[float, dict[str, Any]]:
+async def _score_asset_importance(db: AsyncSession, prefix: str) -> tuple[float, dict[str, Any]]:
     """资产重要性评分。
 
     评估因素：
@@ -184,9 +173,7 @@ async def _score_asset_importance(
     }
     imp_score = importance_score_map.get(prefix_obj.importance, 0.3)
     score = max(score, imp_score)
-    factors["additions"].append(
-        f"前缀重要度 {prefix_obj.importance}（+{imp_score:.2f}）"
-    )
+    factors["additions"].append(f"前缀重要度 {prefix_obj.importance}（+{imp_score:.2f}）")
 
     # 关联客户服务等级
     if prefix_obj.customer_id is not None:
@@ -203,9 +190,7 @@ async def _score_asset_importance(
             }
             sl_bonus = sl_score_map.get(customer.service_level, 0.0)
             score = min(1.0, score + sl_bonus)
-            factors["additions"].append(
-                f"客户服务等级 {customer.service_level}（+{sl_bonus:.2f}）"
-            )
+            factors["additions"].append(f"客户服务等级 {customer.service_level}（+{sl_bonus:.2f}）")
 
     # 关联业务服务重要度
     if prefix_obj.business_service:
@@ -224,9 +209,7 @@ async def _score_asset_importance(
             }
             biz_bonus = biz_score_map.get(biz.importance, 0.0)
             score = min(1.0, score + biz_bonus)
-            factors["additions"].append(
-                f"业务服务重要度 {biz.importance}（+{biz_bonus:.2f}）"
-            )
+            factors["additions"].append(f"业务服务重要度 {biz.importance}（+{biz_bonus:.2f}）")
 
     return min(1.0, score), factors
 
@@ -273,28 +256,18 @@ async def _score_rpki_evidence(
     if rpki_status == "invalid":
         # Invalid 是最强的劫持证据
         score = 0.9
-        factors["additions"].append(
-            f"RPKI 验证 Invalid（+0.6）"
-        )
+        factors["additions"].append("RPKI 验证 Invalid（+0.6）")
         if rpki_invalid_reason == "origin_as_mismatch":
             score = 1.0
-            factors["additions"].append(
-                "origin AS 不匹配（+0.1）"
-            )
+            factors["additions"].append("origin AS 不匹配（+0.1）")
         elif rpki_invalid_reason == "length_exceeded":
-            factors["additions"].append(
-                "前缀长度超过 maxLength（+0.0）"
-            )
+            factors["additions"].append("前缀长度超过 maxLength（+0.0）")
     elif rpki_status == "not_found":
         score = 0.4
-        factors["additions"].append(
-            "RPKI 验证 NotFound（+0.1）"
-        )
+        factors["additions"].append("RPKI 验证 NotFound（+0.1）")
     elif rpki_status == "valid":
         score = 0.1
-        factors["deductions"].append(
-            "RPKI 验证 Valid（-0.2，证据不支持劫持）"
-        )
+        factors["deductions"].append("RPKI 验证 Valid（-0.2，证据不支持劫持）")
 
     return min(1.0, max(0.0, score)), factors
 
@@ -333,22 +306,16 @@ async def _score_bgp_propagation(
     # 传播范围评分
     if propagation_scope >= 10:
         score = 0.9
-        factors["additions"].append(
-            f"传播范围广（{propagation_scope} 个观察点，+0.6）"
-        )
+        factors["additions"].append(f"传播范围广（{propagation_scope} 个观察点，+0.6）")
     elif propagation_scope >= 5:
         score = 0.7
-        factors["additions"].append(
-            f"传播范围中等（{propagation_scope} 个观察点，+0.4）"
-        )
+        factors["additions"].append(f"传播范围中等（{propagation_scope} 个观察点，+0.4）")
     elif propagation_scope >= 3:
         score = 0.5
-        factors["additions"].append(
-            f"传播范围较小（{propagation_scope} 个观察点，+0.2）"
-        )
+        factors["additions"].append(f"传播范围较小（{propagation_scope} 个观察点，+0.2）")
 
     # 撤路规模
-    since = datetime.now(timezone.utc) - timedelta(hours=1)
+    since = datetime.now(UTC) - timedelta(hours=1)
     withdraw_stmt = (
         select(func.count(BGPWithdraw.id))
         .where(BGPWithdraw.prefix == prefix)
@@ -360,9 +327,7 @@ async def _score_bgp_propagation(
 
     if withdraw_count >= 5:
         score = min(1.0, score + 0.2)
-        factors["additions"].append(
-            f"近期撤路频繁（{withdraw_count} 次，+0.2）"
-        )
+        factors["additions"].append(f"近期撤路频繁（{withdraw_count} 次，+0.2）")
 
     # 异常路径
     if evidence.get("path_mutation", {}).get("is_anomaly"):
@@ -412,36 +377,23 @@ async def _score_authorization(
     if prefix_obj is None:
         score = 0.7
         factors["in_asset_registry"] = False
-        factors["additions"].append(
-            "前缀不在资产台账中（+0.4，可疑）"
-        )
+        factors["additions"].append("前缀不在资产台账中（+0.4，可疑）")
     else:
         factors["in_asset_registry"] = True
-        factors["deductions"].append(
-            "前缀在资产台账中（-0.1，已知资产）"
-        )
+        factors["deductions"].append("前缀在资产台账中（-0.1，已知资产）")
 
     # 授权 origin AS 检查
     authorized_origin = evidence.get("authorized_origin_as")
     factors["authorized_origin_as"] = authorized_origin
 
-    if (
-        authorized_origin is not None
-        and origin_as is not None
-        and origin_as != authorized_origin
-    ):
+    if authorized_origin is not None and origin_as is not None and origin_as != authorized_origin:
         score = min(1.0, score + 0.4)
         factors["additions"].append(
             f"origin AS 不匹配授权（AS{origin_as} ≠ AS{authorized_origin}，+0.4）"
         )
-    elif (
-        authorized_origin is not None
-        and origin_as == authorized_origin
-    ):
+    elif authorized_origin is not None and origin_as == authorized_origin:
         score = max(0.0, score - 0.2)
-        factors["deductions"].append(
-            "origin AS 匹配授权（-0.2，已授权）"
-        )
+        factors["deductions"].append("origin AS 匹配授权（-0.2，已授权）")
 
     # TODO: 接入变更管理系统后实现变更窗口检查
     factors["in_change_window"] = None
@@ -477,7 +429,7 @@ async def _score_historical_baseline(
     }
 
     # 查询历史 origin AS
-    since = datetime.now(timezone.utc) - timedelta(days=30)
+    since = datetime.now(UTC) - timedelta(days=30)
     stmt = (
         select(BGPAnnouncement.origin_as)
         .where(BGPAnnouncement.prefix == prefix)
@@ -494,21 +446,15 @@ async def _score_historical_baseline(
             # 新 origin AS，可疑
             score = 0.7
             factors["is_new_origin"] = True
-            factors["additions"].append(
-                f"origin AS{origin_as} 历史上未宣告过该前缀（+0.4）"
-            )
+            factors["additions"].append(f"origin AS{origin_as} 历史上未宣告过该前缀（+0.4）")
         else:
             factors["is_new_origin"] = False
-            factors["deductions"].append(
-                f"origin AS{origin_as} 历史上宣告过该前缀（-0.1）"
-            )
+            factors["deductions"].append(f"origin AS{origin_as} 历史上宣告过该前缀（-0.1）")
 
     # 历史 MOAS
     if len(historical_asns) >= 2:
         factors["historical_moas"] = True
-        factors["deductions"].append(
-            "前缀历史上存在 MOAS（-0.05，可能是正常多 origin）"
-        )
+        factors["deductions"].append("前缀历史上存在 MOAS（-0.05，可能是正常多 origin）")
         score = max(0.0, score - 0.05)
 
     return min(1.0, max(0.0, score)), factors
@@ -550,34 +496,24 @@ async def _score_external_risk(
     if asn_obj is None:
         # 未知 AS
         score = 0.6
-        factors["additions"].append(
-            f"origin AS{origin_as} 不在 ASN 台账中（+0.4，未知 AS）"
-        )
+        factors["additions"].append(f"origin AS{origin_as} 不在 ASN 台账中（+0.4，未知 AS）")
     else:
         factors["asn_risk_profile"] = asn_obj.risk_profile
         if asn_obj.risk_profile:
             risk = asn_obj.risk_profile.lower()
             if "high_risk" in risk:
                 score = 0.8
-                factors["additions"].append(
-                    f"AS{origin_as} 风险画像标注为高风险（+0.6）"
-                )
+                factors["additions"].append(f"AS{origin_as} 风险画像标注为高风险（+0.6）")
             elif "medium_risk" in risk:
                 score = 0.5
-                factors["additions"].append(
-                    f"AS{origin_as} 风险画像标注为中等风险（+0.3）"
-                )
+                factors["additions"].append(f"AS{origin_as} 风险画像标注为中等风险（+0.3）")
 
     # 异常中转
     abnormal_transit = evidence.get("abnormal_transit", {})
     if abnormal_transit.get("is_anomaly"):
         score = min(1.0, score + 0.2)
-        factors["abnormal_transit"] = abnormal_transit.get(
-            "abnormal_asns", []
-        )
-        factors["additions"].append(
-            f"存在异常中转 AS（+0.2）"
-        )
+        factors["abnormal_transit"] = abnormal_transit.get("abnormal_asns", [])
+        factors["additions"].append("存在异常中转 AS（+0.2）")
 
     return min(1.0, score), factors
 
@@ -640,68 +576,86 @@ def _generate_recommended_actions(
 
     # 高风险：立即处置
     if total_score >= 70:
-        actions.append({
-            "priority": "immediate",
-            "action": "立即联系 origin AS 的 NOC，要求撤回异常公告",
-            "reason": "风险评分过高，需立即处置",
-        })
-        actions.append({
-            "priority": "immediate",
-            "action": "通知上游提供商过滤该前缀的异常路由",
-            "reason": "防止异常路由进一步传播",
-        })
+        actions.append(
+            {
+                "priority": "immediate",
+                "action": "立即联系 origin AS 的 NOC，要求撤回异常公告",
+                "reason": "风险评分过高，需立即处置",
+            }
+        )
+        actions.append(
+            {
+                "priority": "immediate",
+                "action": "通知上游提供商过滤该前缀的异常路由",
+                "reason": "防止异常路由进一步传播",
+            }
+        )
 
     # RPKI Invalid：建议部署 RPKI 过滤
     if rpki_factors.get("validation_status") == "invalid":
-        actions.append({
-            "priority": "high",
-            "action": "在边界路由器部署 RPKI ROV 过滤，拒绝 Invalid 路由",
-            "reason": "RPKI 验证失败，应拒绝该路由",
-        })
+        actions.append(
+            {
+                "priority": "high",
+                "action": "在边界路由器部署 RPKI ROV 过滤，拒绝 Invalid 路由",
+                "reason": "RPKI 验证失败，应拒绝该路由",
+            }
+        )
 
     # 传播范围广：建议联系上游
     if (bgp_factors.get("propagation_scope") or 0) >= 10:
-        actions.append({
-            "priority": "high",
-            "action": "联系主要上游提供商，协调全球范围撤回",
-            "reason": "异常路由已大范围传播",
-        })
+        actions.append(
+            {
+                "priority": "high",
+                "action": "联系主要上游提供商，协调全球范围撤回",
+                "reason": "异常路由已大范围传播",
+            }
+        )
 
     # 中等风险：调查确认
     if 40 <= total_score < 70:
-        actions.append({
-            "priority": "medium",
-            "action": "调查 origin AS 的公告意图，确认是否为授权变更",
-            "reason": "风险评分中等，需进一步调查",
-        })
+        actions.append(
+            {
+                "priority": "medium",
+                "action": "调查 origin AS 的公告意图，确认是否为授权变更",
+                "reason": "风险评分中等，需进一步调查",
+            }
+        )
 
     # 低风险：持续观察
     if total_score < 40:
-        actions.append({
-            "priority": "low",
-            "action": "持续观察，纳入基线监控",
-            "reason": "风险评分较低，可能是正常变更",
-        })
+        actions.append(
+            {
+                "priority": "low",
+                "action": "持续观察，纳入基线监控",
+                "reason": "风险评分较低，可能是正常变更",
+            }
+        )
 
     # 按告警类型补充建议
     if alert_type == "moas":
-        actions.append({
-            "priority": "medium",
-            "action": "核实 MOAS 是否为授权多 origin 或 Anycast",
-            "reason": "MOAS 可能是正常业务场景",
-        })
+        actions.append(
+            {
+                "priority": "medium",
+                "action": "核实 MOAS 是否为授权多 origin 或 Anycast",
+                "reason": "MOAS 可能是正常业务场景",
+            }
+        )
     elif alert_type == "route_leak":
-        actions.append({
-            "priority": "high",
-            "action": "检查 BGP 路由策略，必要时调整 import/export 策略",
-            "reason": "路由泄露通常源于策略配置错误",
-        })
+        actions.append(
+            {
+                "priority": "high",
+                "action": "检查 BGP 路由策略，必要时调整 import/export 策略",
+                "reason": "路由泄露通常源于策略配置错误",
+            }
+        )
     elif alert_type == "withdraw_flap":
-        actions.append({
-            "priority": "medium",
-            "action": "检查前缀的稳定性，联系 origin AS 排查",
-            "reason": "频繁震荡可能影响业务",
-        })
+        actions.append(
+            {
+                "priority": "medium",
+                "action": "检查前缀的稳定性，联系 origin AS 排查",
+                "reason": "频繁震荡可能影响业务",
+            }
+        )
 
     return actions
 

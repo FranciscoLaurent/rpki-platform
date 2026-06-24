@@ -65,16 +65,12 @@ async def create_rtr_server(
 async def list_rtr_servers(
     skip: int = Query(0, ge=0, description="跳过记录数"),
     limit: int = Query(50, ge=1, le=200, description="返回记录数上限"),
-    server_status: str | None = Query(
-        None, alias="status", description="按状态过滤"
-    ),
+    server_status: str | None = Query(None, alias="status", description="按状态过滤"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_permissions(RTR_READ)),
 ) -> RTRServerListResponse:
     """获取 RTR 服务列表（需要 ``rtr:read`` 权限）。"""
-    servers = await rtr_service.get_rtr_servers(
-        db, skip=skip, limit=limit, status=server_status
-    )
+    servers = await rtr_service.get_rtr_servers(db, skip=skip, limit=limit, status=server_status)
     total = await rtr_service.count_rtr_servers(db, status=server_status)
     return RTRServerListResponse(
         items=[RTRServerResponse.model_validate(s) for s in servers],
@@ -268,9 +264,7 @@ async def rollback_serial(
 ) -> RTRServerActionResponse:
     """回滚 RTR 服务序列号（需要 ``rtr:write`` 权限）。"""
     try:
-        server = await rtr_service.rollback_serial(
-            db, server_id, payload.target_serial
-        )
+        server = await rtr_service.rollback_serial(db, server_id, payload.target_serial)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -279,10 +273,7 @@ async def rollback_serial(
     return RTRServerActionResponse(
         server_id=server_id,
         status=server.status,
-        message=(
-            f"RTR 服务 {server_id} 已回滚到序列号 "
-            f"{payload.target_serial}"
-        ),
+        message=(f"RTR 服务 {server_id} 已回滚到序列号 {payload.target_serial}"),
         serial_number=server.current_serial,
     )
 

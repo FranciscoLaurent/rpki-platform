@@ -7,7 +7,6 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-
 # ──────────────────────────────────────────────
 # BGP 数据源
 # ──────────────────────────────────────────────
@@ -226,9 +225,7 @@ class BGPAnnouncementQueryParams(BaseModel):
     data_source_id: int | None = Field(None, description="按数据源过滤")
     start_time: datetime | None = Field(None, description="起始时间")
     end_time: datetime | None = Field(None, description="截止时间")
-    rpki_validation_status: str | None = Field(
-        None, description="按 RPKI 验证状态过滤"
-    )
+    rpki_validation_status: str | None = Field(None, description="按 RPKI 验证状态过滤")
     limit: int = Field(default=100, ge=1, le=1000, description="返回记录数上限")
     skip: int = Field(default=0, ge=0, description="跳过记录数")
 
@@ -297,9 +294,7 @@ class DeviceAdapterBase(BaseModel):
         description="设备厂商：cisco/juniper/huawei/h3c/arista/nokia/frr/bird/openbgpd",
     )
     model: str | None = Field(None, max_length=255, description="设备型号")
-    connection_type: str = Field(
-        ..., description="连接类型：snmp/netconf/restconf/gnmi/cli/bmp"
-    )
+    connection_type: str = Field(..., description="连接类型：snmp/netconf/restconf/gnmi/cli/bmp")
     endpoint: str = Field(..., max_length=500, description="设备端点")
     credentials: dict[str, Any] | None = Field(None, description="加密存储的凭据")
     capabilities: dict[str, Any] | None = Field(None, description="设备能力描述")

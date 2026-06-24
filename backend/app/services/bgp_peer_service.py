@@ -11,9 +11,7 @@ from app.models.bgp_peer import BGPPeer
 from app.schemas.bgp_peer import BGPPeerCreate, BGPPeerUpdate
 
 
-async def create_bgp_peer(
-    db: AsyncSession, peer_create: BGPPeerCreate
-) -> BGPPeer:
+async def create_bgp_peer(db: AsyncSession, peer_create: BGPPeerCreate) -> BGPPeer:
     """创建 BGP 邻居。
 
     Args:
@@ -26,13 +24,10 @@ async def create_bgp_peer(
     Raises:
         ValueError: (peer_ip, remote_asn) 组合已存在
     """
-    existing = await get_bgp_peer_by_ip_asn(
-        db, peer_create.peer_ip, peer_create.remote_asn
-    )
+    existing = await get_bgp_peer_by_ip_asn(db, peer_create.peer_ip, peer_create.remote_asn)
     if existing is not None:
         raise ValueError(
-            f"BGP 邻居 (peer_ip={peer_create.peer_ip}, "
-            f"remote_asn={peer_create.remote_asn}) 已存在"
+            f"BGP 邻居 (peer_ip={peer_create.peer_ip}, remote_asn={peer_create.remote_asn}) 已存在"
         )
 
     peer = BGPPeer(
@@ -59,9 +54,7 @@ async def get_bgp_peer(db: AsyncSession, peer_id: int) -> BGPPeer | None:
     return result.scalar_one_or_none()
 
 
-async def get_bgp_peer_by_ip_asn(
-    db: AsyncSession, peer_ip: str, remote_asn: int
-) -> BGPPeer | None:
+async def get_bgp_peer_by_ip_asn(db: AsyncSession, peer_ip: str, remote_asn: int) -> BGPPeer | None:
     """按 (peer_ip, remote_asn) 唯一组合查询。"""
     stmt = select(BGPPeer).where(
         BGPPeer.peer_ip == peer_ip,
@@ -96,15 +89,11 @@ async def get_bgp_peers(
         if filters.get("remote_asn") is not None:
             stmt = stmt.where(BGPPeer.remote_asn == filters["remote_asn"])
         if filters.get("address_family"):
-            stmt = stmt.where(
-                BGPPeer.address_family == filters["address_family"]
-            )
+            stmt = stmt.where(BGPPeer.address_family == filters["address_family"])
         if filters.get("session_type"):
             stmt = stmt.where(BGPPeer.session_type == filters["session_type"])
         if filters.get("session_state"):
-            stmt = stmt.where(
-                BGPPeer.session_state == filters["session_state"]
-            )
+            stmt = stmt.where(BGPPeer.session_state == filters["session_state"])
         if filters.get("router_id") is not None:
             stmt = stmt.where(BGPPeer.router_id == filters["router_id"])
 
@@ -113,9 +102,7 @@ async def get_bgp_peers(
     return list(result.scalars().all())
 
 
-async def count_bgp_peers(
-    db: AsyncSession, filters: dict[str, Any] | None = None
-) -> int:
+async def count_bgp_peers(db: AsyncSession, filters: dict[str, Any] | None = None) -> int:
     """统计 BGP 邻居数量。"""
     stmt = select(func.count(BGPPeer.id))
     if filters:
@@ -124,15 +111,11 @@ async def count_bgp_peers(
         if filters.get("remote_asn") is not None:
             stmt = stmt.where(BGPPeer.remote_asn == filters["remote_asn"])
         if filters.get("address_family"):
-            stmt = stmt.where(
-                BGPPeer.address_family == filters["address_family"]
-            )
+            stmt = stmt.where(BGPPeer.address_family == filters["address_family"])
         if filters.get("session_type"):
             stmt = stmt.where(BGPPeer.session_type == filters["session_type"])
         if filters.get("session_state"):
-            stmt = stmt.where(
-                BGPPeer.session_state == filters["session_state"]
-            )
+            stmt = stmt.where(BGPPeer.session_state == filters["session_state"])
         if filters.get("router_id") is not None:
             stmt = stmt.where(BGPPeer.router_id == filters["router_id"])
 
@@ -140,9 +123,7 @@ async def count_bgp_peers(
     return result.scalar_one()
 
 
-async def update_bgp_peer(
-    db: AsyncSession, peer: BGPPeer, peer_update: BGPPeerUpdate
-) -> BGPPeer:
+async def update_bgp_peer(db: AsyncSession, peer: BGPPeer, peer_update: BGPPeerUpdate) -> BGPPeer:
     """更新 BGP 邻居。
 
     Args:
@@ -164,9 +145,7 @@ async def update_bgp_peer(
     if new_ip != peer.peer_ip or new_asn != peer.remote_asn:
         existing = await get_bgp_peer_by_ip_asn(db, new_ip, new_asn)
         if existing is not None and existing.id != peer.id:
-            raise ValueError(
-                f"BGP 邻居 (peer_ip={new_ip}, remote_asn={new_asn}) 已存在"
-            )
+            raise ValueError(f"BGP 邻居 (peer_ip={new_ip}, remote_asn={new_asn}) 已存在")
 
     for field, value in update_data.items():
         setattr(peer, field, value)

@@ -52,17 +52,13 @@ class IPAMAdapter(BaseAdapter):
                 timeout=self._get_timeout(),
                 verify=self.connection_params.get("verify_tls", True),
             ) as client:
-                response = await client.get(
-                    f"{base_url}/status", headers=headers
-                )
+                response = await client.get(f"{base_url}/status", headers=headers)
             latency_ms = int((time.monotonic() - start) * 1000)
             success = response.status_code < 400
             return AdapterResult(
                 success=success,
                 data=response.json() if success else None,
-                error_message=None
-                if success
-                else f"状态码 {response.status_code}",
+                error_message=None if success else f"状态码 {response.status_code}",
                 latency_ms=latency_ms,
             )
         except Exception as e:
@@ -107,9 +103,7 @@ class IPAMAdapter(BaseAdapter):
             return AdapterResult(
                 success=success,
                 data=data,
-                error_message=None
-                if success
-                else f"状态码 {response.status_code}",
+                error_message=None if success else f"状态码 {response.status_code}",
                 latency_ms=latency_ms,
             )
         except Exception as e:
@@ -154,9 +148,7 @@ class IPAMAdapter(BaseAdapter):
             return AdapterResult(
                 success=success,
                 data=data,
-                error_message=None
-                if success
-                else f"状态码 {response.status_code}",
+                error_message=None if success else f"状态码 {response.status_code}",
                 latency_ms=latency_ms,
             )
         except Exception as e:
@@ -200,9 +192,7 @@ class IPAMAdapter(BaseAdapter):
             return AdapterResult(
                 success=success,
                 data=data,
-                error_message=None
-                if success
-                else f"状态码 {response.status_code}",
+                error_message=None if success else f"状态码 {response.status_code}",
                 latency_ms=latency_ms,
             )
         except Exception as e:
@@ -281,9 +271,7 @@ async def sync_from_netbox(config: dict[str, Any]) -> dict[str, Any]:
     vlans: list[dict[str, Any]] = []
 
     try:
-        async with httpx.AsyncClient(
-            timeout=timeout, verify=verify_tls
-        ) as client:
+        async with httpx.AsyncClient(timeout=timeout, verify=verify_tls) as client:
             # 同步前缀
             offset = 0
             while True:
@@ -347,9 +335,7 @@ async def sync_from_netbox(config: dict[str, Any]) -> dict[str, Any]:
         }
 
 
-async def sync_to_netbox(
-    config: dict[str, Any], prefixes: list[dict[str, Any]]
-) -> dict[str, Any]:
+async def sync_to_netbox(config: dict[str, Any], prefixes: list[dict[str, Any]]) -> dict[str, Any]:
     """推送前缀到 NetBox。
 
     Args:
@@ -382,9 +368,7 @@ async def sync_to_netbox(
     errors: list[dict[str, Any]] = []
 
     try:
-        async with httpx.AsyncClient(
-            timeout=timeout, verify=verify_tls
-        ) as client:
+        async with httpx.AsyncClient(timeout=timeout, verify=verify_tls) as client:
             for prefix_data in prefixes:
                 prefix = prefix_data.get("prefix")
                 if not prefix:
@@ -504,12 +488,8 @@ async def check_consistency(
             local_map[prefix_str] = p if isinstance(p, dict) else {"prefix": p}
 
     # 识别差异
-    only_local = [
-        local_map[k] for k in local_map if k not in ipam_map
-    ]
-    only_ipam = [
-        ipam_map[k] for k in ipam_map if k not in local_map
-    ]
+    only_local = [local_map[k] for k in local_map if k not in ipam_map]
+    only_ipam = [ipam_map[k] for k in ipam_map if k not in local_map]
     mismatched: list[dict[str, Any]] = []
     for prefix_str in set(local_map) & set(ipam_map):
         local_p = local_map[prefix_str]

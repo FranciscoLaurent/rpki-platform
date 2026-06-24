@@ -15,7 +15,6 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-
 # ──────────────────────────────────────────────
 # 枚举集合
 # ──────────────────────────────────────────────
@@ -97,12 +96,8 @@ class ForensicEvidenceBase(BaseModel):
     source: str | None = Field(None, max_length=255, description="证据来源")
     collected_at: datetime = Field(..., description="证据采集时间")
     collected_by: int | None = Field(None, description="采集人用户 ID")
-    is_auto_collected: bool = Field(
-        default=True, description="是否为自动采集"
-    )
-    integrity_hash: str | None = Field(
-        None, max_length=128, description="证据完整性哈希"
-    )
+    is_auto_collected: bool = Field(default=True, description="是否为自动采集")
+    integrity_hash: str | None = Field(None, max_length=128, description="证据完整性哈希")
 
     @field_validator("evidence_type")
     @classmethod
@@ -125,9 +120,7 @@ class ForensicEvidenceUpdate(BaseModel):
     title: str | None = Field(None, max_length=500, description="证据标题")
     description: str | None = Field(None, description="证据描述")
     content: dict[str, Any] | None = Field(None, description="证据内容快照")
-    integrity_hash: str | None = Field(
-        None, max_length=128, description="证据完整性哈希"
-    )
+    integrity_hash: str | None = Field(None, max_length=128, description="证据完整性哈希")
 
 
 class ForensicEvidenceResponse(ForensicEvidenceBase):
@@ -177,7 +170,7 @@ class ForensicCollectionRequest(BaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_input(self) -> "ForensicCollectionRequest":
+    def validate_input(self) -> ForensicCollectionRequest:
         """校验输入：必须提供 incident_id 或 alert_id。"""
         if self.incident_id is None and self.alert_id is None:
             raise ValueError("必须提供 incident_id 或 alert_id")
@@ -190,9 +183,7 @@ class ForensicCollectionResult(BaseModel):
     incident_id: int | None = Field(None, description="关联事件 ID")
     alert_id: int | None = Field(None, description="关联告警 ID")
     collected_count: int = Field(0, description="采集证据数量")
-    evidence_ids: list[int] = Field(
-        default_factory=list, description="采集的证据 ID 列表"
-    )
+    evidence_ids: list[int] = Field(default_factory=list, description="采集的证据 ID 列表")
     evidence_by_type: dict[str, int] = Field(
         default_factory=dict, description="按证据类型分组的数量"
     )
@@ -212,24 +203,18 @@ class RemediationActionBase(BaseModel):
     title: str = Field(..., max_length=500, description="动作标题")
     description: str | None = Field(None, description="动作描述")
     target: str | None = Field(None, max_length=255, description="处置目标")
-    priority: str = Field(
-        default="medium", description="优先级：immediate/high/medium/low"
-    )
+    priority: str = Field(default="medium", description="优先级：immediate/high/medium/low")
     status: str = Field(
         default="pending", description="状态：pending/in_progress/completed/failed/skipped"
     )
-    is_auto_generated: bool = Field(
-        default=False, description="是否为自动生成的建议动作"
-    )
+    is_auto_generated: bool = Field(default=False, description="是否为自动生成的建议动作")
 
     @field_validator("action_type")
     @classmethod
     def validate_action_type(cls, v: str) -> str:
         """校验动作类型。"""
         if v not in REMEDIATION_ACTION_TYPES:
-            raise ValueError(
-                f"action_type 必须为 {REMEDIATION_ACTION_TYPES} 之一"
-            )
+            raise ValueError(f"action_type 必须为 {REMEDIATION_ACTION_TYPES} 之一")
         return v
 
     @field_validator("priority")
@@ -264,9 +249,7 @@ class RemediationActionUpdate(BaseModel):
     priority: str | None = Field(None, description="优先级")
     status: str | None = Field(None, description="状态")
     result: str | None = Field(None, description="执行结果")
-    result_details: dict[str, Any] | None = Field(
-        None, description="执行结果详情"
-    )
+    result_details: dict[str, Any] | None = Field(None, description="执行结果详情")
 
     @field_validator("priority")
     @classmethod
@@ -347,12 +330,8 @@ class RemediationExecuteRequest(BaseModel):
 
     action_id: int = Field(..., description="处置动作 ID")
     result: str | None = Field(None, description="执行结果")
-    result_details: dict[str, Any] | None = Field(
-        None, description="执行结果详情"
-    )
-    status: str = Field(
-        default="completed", description="执行后状态：completed/failed/skipped"
-    )
+    result_details: dict[str, Any] | None = Field(None, description="执行结果详情")
+    status: str = Field(default="completed", description="执行后状态：completed/failed/skipped")
 
     @field_validator("status")
     @classmethod
@@ -380,15 +359,11 @@ class IncidentReviewBase(BaseModel):
     review_summary: str | None = Field(None, description="复盘总结")
     reviewed_by: int | None = Field(None, description="复盘人用户 ID")
     reviewed_at: datetime = Field(..., description="复盘时间")
-    evidence_preserved: bool = Field(
-        default=True, description="是否已保留证据与操作链"
-    )
+    evidence_preserved: bool = Field(default=True, description="是否已保留证据与操作链")
     operation_chain: list[dict[str, Any]] | None = Field(
         None, description="操作链（处置动作时间线）"
     )
-    rule_updates: list[dict[str, Any]] | None = Field(
-        None, description="沉淀的规则更新建议"
-    )
+    rule_updates: list[dict[str, Any]] | None = Field(None, description="沉淀的规则更新建议")
 
 
 class IncidentReviewCreate(IncidentReviewBase):
@@ -405,15 +380,9 @@ class IncidentReviewUpdate(BaseModel):
     improvements: str | None = Field(None, description="改进措施")
     prevention_measures: str | None = Field(None, description="预防措施")
     review_summary: str | None = Field(None, description="复盘总结")
-    evidence_preserved: bool | None = Field(
-        None, description="是否已保留证据与操作链"
-    )
-    operation_chain: list[dict[str, Any]] | None = Field(
-        None, description="操作链"
-    )
-    rule_updates: list[dict[str, Any]] | None = Field(
-        None, description="沉淀的规则更新建议"
-    )
+    evidence_preserved: bool | None = Field(None, description="是否已保留证据与操作链")
+    operation_chain: list[dict[str, Any]] | None = Field(None, description="操作链")
+    rule_updates: list[dict[str, Any]] | None = Field(None, description="沉淀的规则更新建议")
 
 
 class IncidentReviewResponse(IncidentReviewBase):
@@ -448,18 +417,12 @@ class IncidentCloseAndReviewRequest(BaseModel):
     lessons_learned: str | None = Field(None, description="经验教训")
     improvements: str | None = Field(None, description="改进措施")
     prevention_measures: str | None = Field(None, description="预防措施")
-    preserve_evidence: bool = Field(
-        default=True, description="是否保留证据与操作链"
-    )
-    save_to_case_library: bool = Field(
-        default=False, description="是否沉淀到案例库"
-    )
+    preserve_evidence: bool = Field(default=True, description="是否保留证据与操作链")
+    save_to_case_library: bool = Field(default=False, description="是否沉淀到案例库")
     case_title: str | None = Field(
         None, max_length=500, description="案例标题（沉淀到案例库时使用）"
     )
-    case_tags: list[str] | None = Field(
-        None, description="案例标签（沉淀到案例库时使用）"
-    )
+    case_tags: list[str] | None = Field(None, description="案例标签（沉淀到案例库时使用）")
 
 
 # ──────────────────────────────────────────────
@@ -475,12 +438,8 @@ class NotificationChannelBase(BaseModel):
     config: dict[str, Any] | None = Field(None, description="渠道配置")
     enabled: bool = Field(default=True, description="是否启用")
     description: str | None = Field(None, description="渠道描述")
-    severity_filter: list[str] | None = Field(
-        None, description="严重等级过滤"
-    )
-    event_filter: list[str] | None = Field(
-        None, description="事件类型过滤"
-    )
+    severity_filter: list[str] | None = Field(None, description="严重等级过滤")
+    event_filter: list[str] | None = Field(None, description="事件类型过滤")
 
     @field_validator("channel_type")
     @classmethod
@@ -500,18 +459,12 @@ class NotificationChannelCreate(NotificationChannelBase):
 class NotificationChannelUpdate(BaseModel):
     """更新通知渠道请求。"""
 
-    name: str | None = Field(
-        None, min_length=1, max_length=255, description="渠道名称"
-    )
+    name: str | None = Field(None, min_length=1, max_length=255, description="渠道名称")
     config: dict[str, Any] | None = Field(None, description="渠道配置")
     enabled: bool | None = Field(None, description="是否启用")
     description: str | None = Field(None, description="渠道描述")
-    severity_filter: list[str] | None = Field(
-        None, description="严重等级过滤"
-    )
-    event_filter: list[str] | None = Field(
-        None, description="事件类型过滤"
-    )
+    severity_filter: list[str] | None = Field(None, description="严重等级过滤")
+    event_filter: list[str] | None = Field(None, description="事件类型过滤")
 
 
 class NotificationChannelResponse(NotificationChannelBase):
@@ -595,9 +548,7 @@ class NotificationSendResult(BaseModel):
     total_channels: int = Field(0, description="通知渠道总数")
     sent_count: int = Field(0, description="成功发送数")
     failed_count: int = Field(0, description="失败数")
-    log_ids: list[int] = Field(
-        default_factory=list, description="通知记录 ID 列表"
-    )
+    log_ids: list[int] = Field(default_factory=list, description="通知记录 ID 列表")
     errors: list[str] = Field(default_factory=list, description="发送错误列表")
 
 
@@ -615,16 +566,10 @@ class CaseLibraryBase(BaseModel):
     remediation_plan: str | None = Field(None, description="处置方案")
     tags: list[str] | None = Field(None, description="标签列表")
     severity: str = Field(default="P3", description="严重等级")
-    incident_ids: list[int] | None = Field(
-        None, description="关联事件 ID 列表"
-    )
+    incident_ids: list[int] | None = Field(None, description="关联事件 ID 列表")
     alert_type: str | None = Field(None, description="关联告警类型")
-    affected_prefixes: list[str] | None = Field(
-        None, description="受影响前缀列表"
-    )
-    affected_asns: list[int] | None = Field(
-        None, description="受影响 ASN 列表"
-    )
+    affected_prefixes: list[str] | None = Field(None, description="受影响前缀列表")
+    affected_asns: list[int] | None = Field(None, description="受影响 ASN 列表")
     is_published: bool = Field(default=False, description="是否已发布")
 
     @field_validator("severity")
@@ -646,24 +591,16 @@ class CaseLibraryCreate(CaseLibraryBase):
 class CaseLibraryUpdate(BaseModel):
     """更新案例请求。"""
 
-    title: str | None = Field(
-        None, min_length=1, max_length=500, description="案例标题"
-    )
+    title: str | None = Field(None, min_length=1, max_length=500, description="案例标题")
     description: str | None = Field(None, description="案例描述")
     root_cause: str | None = Field(None, description="根因分析")
     remediation_plan: str | None = Field(None, description="处置方案")
     tags: list[str] | None = Field(None, description="标签列表")
     severity: str | None = Field(None, description="严重等级")
-    incident_ids: list[int] | None = Field(
-        None, description="关联事件 ID 列表"
-    )
+    incident_ids: list[int] | None = Field(None, description="关联事件 ID 列表")
     alert_type: str | None = Field(None, description="关联告警类型")
-    affected_prefixes: list[str] | None = Field(
-        None, description="受影响前缀列表"
-    )
-    affected_asns: list[int] | None = Field(
-        None, description="受影响 ASN 列表"
-    )
+    affected_prefixes: list[str] | None = Field(None, description="受影响前缀列表")
+    affected_asns: list[int] | None = Field(None, description="受影响 ASN 列表")
     is_published: bool | None = Field(None, description="是否已发布")
 
     @field_validator("severity")
@@ -729,30 +666,18 @@ class EvidenceCollection(BaseModel):
     evidence_by_type: dict[str, int] = Field(
         default_factory=dict, description="按证据类型分组的数量"
     )
-    roa_vrp: list[dict[str, Any]] = Field(
-        default_factory=list, description="ROA/VRP 授权快照"
-    )
-    bgp_samples: list[dict[str, Any]] = Field(
-        default_factory=list, description="BGP 公告样本"
-    )
-    as_paths: list[dict[str, Any]] = Field(
-        default_factory=list, description="AS_PATH 路径样本"
-    )
+    roa_vrp: list[dict[str, Any]] = Field(default_factory=list, description="ROA/VRP 授权快照")
+    bgp_samples: list[dict[str, Any]] = Field(default_factory=list, description="BGP 公告样本")
+    as_paths: list[dict[str, Any]] = Field(default_factory=list, description="AS_PATH 路径样本")
     propagation_scope: dict[str, Any] = Field(
         default_factory=dict, description="传播范围（观察点分布）"
     )
-    observation_points: list[dict[str, Any]] = Field(
-        default_factory=list, description="观察点信息"
-    )
+    observation_points: list[dict[str, Any]] = Field(default_factory=list, description="观察点信息")
     asset_relations: list[dict[str, Any]] = Field(
         default_factory=list, description="资产关系（前缀/ASN/客户/业务）"
     )
-    change_records: list[dict[str, Any]] = Field(
-        default_factory=list, description="变更记录"
-    )
-    historical_baseline: list[dict[str, Any]] = Field(
-        default_factory=list, description="历史基线"
-    )
+    change_records: list[dict[str, Any]] = Field(default_factory=list, description="变更记录")
+    historical_baseline: list[dict[str, Any]] = Field(default_factory=list, description="历史基线")
     errors: list[str] = Field(default_factory=list, description="采集错误列表")
 
 
@@ -766,8 +691,7 @@ class RemediationSuggestion(BaseModel):
     type: str = Field(
         ...,
         description=(
-            "建议类型：contact_asn/fix_roa/adjust_policy/"
-            "announce_specific/scrubber/notify_customer"
+            "建议类型：contact_asn/fix_roa/adjust_policy/announce_specific/scrubber/notify_customer"
         ),
     )
     priority: str = Field(
@@ -775,12 +699,8 @@ class RemediationSuggestion(BaseModel):
         description="优先级：immediate/high/medium/low",
     )
     description: str = Field(..., description="建议描述")
-    actionable_steps: list[str] = Field(
-        default_factory=list, description="可执行步骤列表"
-    )
-    estimated_impact: str = Field(
-        default="", description="预期影响评估"
-    )
+    actionable_steps: list[str] = Field(default_factory=list, description="可执行步骤列表")
+    estimated_impact: str = Field(default="", description="预期影响评估")
 
 
 class RemediationSuggestionList(BaseModel):
@@ -801,9 +721,7 @@ class IncidentCloseRequest(BaseModel):
     reviewer_id: int = Field(..., description="复盘人用户 ID")
     lessons_learned: str | None = Field(None, description="经验教训")
     improvements: str | None = Field(None, description="改进措施")
-    save_to_case_library: bool = Field(
-        default=False, description="是否沉淀到案例库"
-    )
+    save_to_case_library: bool = Field(default=False, description="是否沉淀到案例库")
 
 
 class IncidentReview(BaseModel):
@@ -814,9 +732,7 @@ class IncidentReview(BaseModel):
     resolution: str = Field(..., description="处置结论")
     reviewer_id: int | None = Field(None, description="复盘人用户 ID")
     reviewed_at: datetime = Field(..., description="复盘时间")
-    evidence_preserved: bool = Field(
-        default=True, description="是否已保留证据与操作链"
-    )
+    evidence_preserved: bool = Field(default=True, description="是否已保留证据与操作链")
     operation_chain: list[dict[str, Any]] = Field(
         default_factory=list, description="操作链（处置动作时间线）"
     )
@@ -835,17 +751,10 @@ class NotificationChannelConfig(BaseModel):
 
     channel_type: str = Field(
         ...,
-        description=(
-            "渠道类型：webhook/email/sms/wechat_work/dingtalk/"
-            "slack/teams/itsm/soc"
-        ),
+        description=("渠道类型：webhook/email/sms/wechat_work/dingtalk/slack/teams/itsm/soc"),
     )
-    target: str | None = Field(
-        None, description="投递目标（URL/邮箱列表/手机号/频道等）"
-    )
-    config: dict[str, Any] = Field(
-        default_factory=dict, description="渠道额外配置"
-    )
+    target: str | None = Field(None, description="投递目标（URL/邮箱列表/手机号/频道等）")
+    config: dict[str, Any] = Field(default_factory=dict, description="渠道额外配置")
 
 
 class NotificationRequest(BaseModel):
@@ -876,9 +785,7 @@ class NotificationResult(BaseModel):
     total_channels: int = Field(0, description="通知渠道总数")
     sent_count: int = Field(0, description="成功发送数")
     failed_count: int = Field(0, description="失败数")
-    results: list[dict[str, Any]] = Field(
-        default_factory=list, description="各渠道发送结果明细"
-    )
+    results: list[dict[str, Any]] = Field(default_factory=list, description="各渠道发送结果明细")
     errors: list[str] = Field(default_factory=list, description="发送错误列表")
 
 
@@ -926,7 +833,6 @@ __all__ = [
     "REMEDIATION_STATUSES",
     "RemediationActionBase",
     "RemediationActionCreate",
-    "RemediationActionExecuteRequest",
     "RemediationActionListResponse",
     "RemediationActionQueryParams",
     "RemediationActionResponse",

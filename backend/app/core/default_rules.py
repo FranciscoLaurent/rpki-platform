@@ -44,10 +44,7 @@ DEFAULT_RULES: list[dict[str, Any]] = [
     {
         "name": "子前缀劫持检测",
         "code": "subprefix_hijack",
-        "description": (
-            "检测更具体前缀的异常公告，评估流量吸引风险，"
-            "检查 ROA/maxLength 漏洞。"
-        ),
+        "description": ("检测更具体前缀的异常公告，评估流量吸引风险，检查 ROA/maxLength 漏洞。"),
         "rule_type": "subprefix_hijack",
         "enabled": True,
         "priority": 20,
@@ -108,8 +105,7 @@ DEFAULT_RULES: list[dict[str, Any]] = [
         "name": "路径异常检测",
         "code": "path_anomaly_detection",
         "description": (
-            "检测 AS_PATH 突变、异常中转 ASN、异常国家/区域传播、"
-            "路径异常拉长与黑洞风险。"
+            "检测 AS_PATH 突变、异常中转 ASN、异常国家/区域传播、路径异常拉长与黑洞风险。"
         ),
         "rule_type": "path_anomaly",
         "enabled": True,
@@ -132,10 +128,7 @@ DEFAULT_RULES: list[dict[str, Any]] = [
     {
         "name": "撤路与震荡检测",
         "code": "withdraw_flap_detection",
-        "description": (
-            "检测大范围撤路、频繁 announce/withdraw 震荡、"
-            "前缀数突变与收敛异常。"
-        ),
+        "description": ("检测大范围撤路、频繁 announce/withdraw 震荡、前缀数突变与收敛异常。"),
         "rule_type": "withdraw_flap",
         "enabled": True,
         "priority": 35,
@@ -154,10 +147,7 @@ DEFAULT_RULES: list[dict[str, Any]] = [
     {
         "name": "RPKI Invalid 传播检测",
         "code": "rpki_invalid_propagation",
-        "description": (
-            "统计 Invalid 路由被哪些观察点接收、传播或拒绝，"
-            "反映真实影响面。"
-        ),
+        "description": ("统计 Invalid 路由被哪些观察点接收、传播或拒绝，反映真实影响面。"),
         "rule_type": "rpki_invalid",
         "enabled": True,
         "priority": 30,

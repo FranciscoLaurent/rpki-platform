@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import random
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -26,7 +26,6 @@ from app.services.detection.rpki_invalid_detector import (
 )
 from app.services.detection.withdraw_detector import detect_withdraw_flap
 from app.services.rov_simulation_service import _validate_against_vrps
-
 
 # ──────────────────────────────────────────────
 # 性能测试常量
@@ -56,7 +55,7 @@ def _make_announcement(
     ann.observation_point_id = observation_point_id
     ann.rpki_validation_status = None
     ann.rpki_invalid_reason = None
-    ann.timestamp = datetime.now(timezone.utc)
+    ann.timestamp = datetime.now(UTC)
     return ann
 
 

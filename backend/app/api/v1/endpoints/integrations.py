@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -26,7 +26,6 @@ from app.schemas.integration import (
     ExternalInfoQuery,
     ExternalInfoResult,
     GrafanaDashboard,
-    GrafanaDashboardRequest,
     IntegrationConfigCreate,
     IntegrationConfigListResponse,
     IntegrationConfigResponse,
@@ -87,14 +86,12 @@ async def create_integration(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
-        )
+        ) from e
 
 
 @router.get("", response_model=IntegrationConfigListResponse)
 async def list_integrations(
-    integration_type: str | None = Query(
-        None, description="按集成类型过滤"
-    ),
+    integration_type: str | None = Query(None, description="按集成类型过滤"),
     enabled: bool | None = Query(None, description="按启用状态过滤"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_permissions(INTEGRATION_READ)),
@@ -103,9 +100,7 @@ async def list_integrations(
     items = await integration_config_service.list_integrations(db)
     # 应用过滤
     if integration_type:
-        items = [
-            i for i in items if i["integration_type"] == integration_type
-        ]
+        items = [i for i in items if i["integration_type"] == integration_type]
     if enabled is not None:
         items = [i for i in items if i["enabled"] == enabled]
     return IntegrationConfigListResponse(
@@ -140,9 +135,7 @@ async def update_integration(
     """更新集成配置（需要 ``integration:write`` 权限）。"""
     # 仅传入已设置的字段
     update_data = integration_update.model_dump(exclude_unset=True)
-    result = await integration_config_service.update_integration(
-        db, integration_id, update_data
-    )
+    result = await integration_config_service.update_integration(db, integration_id, update_data)
     if result is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -158,9 +151,7 @@ async def delete_integration(
     current_user: User = Depends(require_permissions(INTEGRATION_WRITE)),
 ) -> None:
     """删除集成配置（需要 ``integration:write`` 权限）。"""
-    deleted = await integration_config_service.delete_integration(
-        db, integration_id
-    )
+    deleted = await integration_config_service.delete_integration(db, integration_id)
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -178,9 +169,7 @@ async def test_integration(
     current_user: User = Depends(require_permissions(INTEGRATION_WRITE)),
 ) -> IntegrationTestResult:
     """测试集成连通性（需要 ``integration:write`` 权限）。"""
-    result = await integration_config_service.test_integration(
-        db, integration_id
-    )
+    result = await integration_config_service.test_integration(db, integration_id)
     return IntegrationTestResult(
         success=result["success"],
         message=result["message"],
@@ -333,7 +322,7 @@ async def export_metrics_endpoint(
     return MetricExportResponse(
         metrics=[MetricExport(**m) for m in metrics],
         total=len(metrics),
-        exported_at=datetime.now(timezone.utc),
+        exported_at=datetime.now(UTC),
     )
 
 

@@ -13,17 +13,14 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import MagicMock
 
-import pytest
-
 from app.core.rbac import (
     ALL_PERMISSIONS,
     SYSTEM_ROLES,
     PermissionChecker,
+    Permissions,
     TenantPermissionChecker,
     collect_user_permissions,
 )
-from app.core.rbac import Permissions
-
 
 # ──────────────────────────────────────────────
 # 辅助函数

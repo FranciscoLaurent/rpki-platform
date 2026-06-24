@@ -7,7 +7,6 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
 # ──────────────────────────────────────────────
 # 总览驾驶舱
 # ──────────────────────────────────────────────
@@ -21,9 +20,7 @@ class PrefixStats(BaseModel):
     by_importance: dict[str, int] = Field(
         default_factory=dict, description="按重要度分组：critical/important/normal/low"
     )
-    by_family: dict[str, int] = Field(
-        default_factory=dict, description="按协议族分组：ipv4/ipv6"
-    )
+    by_family: dict[str, int] = Field(default_factory=dict, description="按协议族分组：ipv4/ipv6")
 
 
 class ASNStats(BaseModel):
@@ -100,15 +97,11 @@ class DashboardOverview(BaseModel):
     prefix_stats: PrefixStats = Field(default_factory=PrefixStats)
     asn_stats: ASNStats = Field(default_factory=ASNStats)
     roa_coverage: ROACoverage = Field(default_factory=ROACoverage)
-    validation_distribution: ValidationDistribution = Field(
-        default_factory=ValidationDistribution
-    )
+    validation_distribution: ValidationDistribution = Field(default_factory=ValidationDistribution)
     incident_stats: IncidentStats = Field(default_factory=IncidentStats)
     rpki_cache_status: RPKICacheStatus = Field(default_factory=RPKICacheStatus)
     bgp_source_status: BGPSourceStatus = Field(default_factory=BGPSourceStatus)
-    risk_trend: list[RiskTrendPoint] = Field(
-        default_factory=list, description="最近 7 天风险趋势"
-    )
+    risk_trend: list[RiskTrendPoint] = Field(default_factory=list, description="最近 7 天风险趋势")
 
 
 # ──────────────────────────────────────────────
@@ -208,22 +201,16 @@ class PrefixDetail(BaseModel):
     asset: PrefixAssetInfo
     authorized_origins: list[AuthorizedOrigin] = Field(default_factory=list)
     current_announcements: list[CurrentAnnouncement] = Field(default_factory=list)
-    as_paths: list[list[int]] = Field(
-        default_factory=list, description="去重后的 AS_PATH 列表"
-    )
+    as_paths: list[list[int]] = Field(default_factory=list, description="去重后的 AS_PATH 列表")
     matched_roas: list[AuthorizedOrigin] = Field(default_factory=list)
     matched_vrps: list[MatchedVRP] = Field(default_factory=list)
-    irr_info: dict[str, Any] | None = Field(
-        None, description="IRR 信息（占位，TODO）"
-    )
+    irr_info: dict[str, Any] | None = Field(None, description="IRR 信息（占位，TODO）")
     history: list[dict[str, Any]] = Field(
         default_factory=list, description="历史状态（占位，从 ClickHouse 查询）"
     )
     alerts: list[PrefixAlertItem] = Field(default_factory=list)
     business_impact: str | None = Field(None, description="业务影响（业务归属）")
-    recommendations: list[str] = Field(
-        default_factory=list, description="操作建议"
-    )
+    recommendations: list[str] = Field(default_factory=list, description="操作建议")
 
 
 # ──────────────────────────────────────────────
@@ -292,9 +279,7 @@ class ASNDetail(BaseModel):
     upstream: list[int] = Field(
         default_factory=list, description="上游 AS（占位，从 BGP AS_PATH 分析）"
     )
-    downstream: list[int] = Field(
-        default_factory=list, description="下游 AS（占位）"
-    )
+    downstream: list[int] = Field(default_factory=list, description="下游 AS（占位）")
     peers: list[int] = Field(default_factory=list, description="对等 AS（占位）")
     history_paths: list[dict[str, Any]] = Field(
         default_factory=list, description="历史路径（占位）"
@@ -346,12 +331,8 @@ class IncidentTimeline(BaseModel):
     incident: IncidentBasicInfo
     timeline: list[IncidentTimelineItem] = Field(default_factory=list)
     related_alerts: list[dict[str, Any]] = Field(default_factory=list)
-    impact_scope: dict[str, Any] | None = Field(
-        None, description="影响范围摘要"
-    )
-    recommendations: list[str] = Field(
-        default_factory=list, description="处置建议"
-    )
+    impact_scope: dict[str, Any] | None = Field(None, description="影响范围摘要")
+    recommendations: list[str] = Field(default_factory=list, description="处置建议")
     root_cause_analysis: str | None = Field(None, description="根因分析")
 
 

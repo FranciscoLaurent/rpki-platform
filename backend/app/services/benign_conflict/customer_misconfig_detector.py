@@ -12,7 +12,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select
@@ -29,9 +29,7 @@ from app.schemas.benign_conflict import BenignConflictAnalysisResult
 logger = get_logger("app.benign_conflict.customer_misconfig")
 
 
-async def detect_customer_misconfig(
-    db: AsyncSession, alert: Alert
-) -> BenignConflictAnalysisResult:
+async def detect_customer_misconfig(db: AsyncSession, alert: Alert) -> BenignConflictAnalysisResult:
     """识别客户误配置。
 
     Args:
@@ -94,12 +92,8 @@ async def detect_customer_misconfig(
                 confidence += 0.2
 
     # 3. 检查 BGP 历史记录（客户是否曾宣告过该前缀）
-    historical_announcements = await _check_historical_announcements(
-        db, prefix, origin_as
-    )
-    evidence["checks"]["has_historical_announcement"] = historical_announcements[
-        "has_history"
-    ]
+    historical_announcements = await _check_historical_announcements(db, prefix, origin_as)
+    evidence["checks"]["has_historical_announcement"] = historical_announcements["has_history"]
     evidence["historical_announcements"] = historical_announcements
     if historical_announcements["has_history"]:
         confidence += 0.2
@@ -203,7 +197,7 @@ async def _check_historical_announcements(
     Returns:
         包含历史宣告信息的字典
     """
-    since = datetime.now(timezone.utc) - timedelta(days=lookback_days)
+    since = datetime.now(UTC) - timedelta(days=lookback_days)
     stmt = (
         select(BGPAnnouncement)
         .where(BGPAnnouncement.prefix == prefix)

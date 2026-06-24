@@ -68,9 +68,7 @@ async def list_bgp_peers(
     if router_id is not None:
         filters["router_id"] = router_id
 
-    items = await bgp_peer_service.get_bgp_peers(
-        db, filters=filters, skip=skip, limit=limit
-    )
+    items = await bgp_peer_service.get_bgp_peers(db, filters=filters, skip=skip, limit=limit)
     total = await bgp_peer_service.count_bgp_peers(db, filters=filters)
     return BGPPeerListResponse(
         items=[BGPPeerResponse.model_validate(p) for p in items],

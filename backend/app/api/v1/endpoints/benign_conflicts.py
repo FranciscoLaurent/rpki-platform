@@ -19,8 +19,8 @@ from app.core.database import get_db
 from app.models.detection import Alert
 from app.models.user import User
 from app.schemas.benign_conflict import (
-    BenignConflictAnalyzeRequest,
     BenignConflictAnalysisResult,
+    BenignConflictAnalyzeRequest,
     BenignConflictQueryParams,
     BenignConflictRecordListResponse,
     BenignConflictRecordResponse,
@@ -52,9 +52,7 @@ async def list_benign_conflicts(
     prefix: str | None = Query(None, description="按前缀过滤"),
     origin_as: int | None = Query(None, description="按起源 AS 过滤"),
     conflict_type: str | None = Query(None, description="按冲突类型过滤"),
-    status_filter: str | None = Query(
-        None, alias="status", description="按状态过滤"
-    ),
+    status_filter: str | None = Query(None, alias="status", description="按状态过滤"),
     start_time: datetime | None = Query(None, description="起始时间"),
     end_time: datetime | None = Query(None, description="截止时间"),
     skip: int = Query(0, ge=0, description="跳过记录数"),

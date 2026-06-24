@@ -24,15 +24,9 @@ class BusinessService(Base, TimestampMixin, TenantMixin):
         Index("ix_business_services_importance", "importance"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="业务服务名称"
-    )
-    description: Mapped[str | None] = mapped_column(
-        String(500), nullable=True, comment="业务描述"
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="业务服务名称")
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="业务描述")
     importance: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
@@ -59,21 +53,15 @@ class Customer(Base, TimestampMixin, TenantMixin):
         Index("ix_customers_status", "status"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="客户名称"
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="客户名称")
     contact_name: Mapped[str | None] = mapped_column(
         String(255), nullable=True, comment="客户联系人姓名"
     )
     contact_email: Mapped[str | None] = mapped_column(
         String(255), nullable=True, comment="客户联系人邮箱"
     )
-    contract_id: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, comment="合同编号"
-    )
+    contract_id: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="合同编号")
     service_level: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
@@ -103,24 +91,14 @@ class Router(Base, TimestampMixin, TenantMixin):
         Index("ix_routers_status", "status"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    hostname: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="主机名"
-    )
-    vendor: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, comment="厂商"
-    )
-    model: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, comment="设备型号"
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    hostname: Mapped[str] = mapped_column(String(255), nullable=False, comment="主机名")
+    vendor: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="厂商")
+    model: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="设备型号")
     management_ip: Mapped[str | None] = mapped_column(
         String(64), nullable=True, comment="管理 IP 地址"
     )
-    location: Mapped[str | None] = mapped_column(
-        String(255), nullable=True, comment="部署位置"
-    )
+    location: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="部署位置")
     snmp_community: Mapped[str | None] = mapped_column(
         String(255), nullable=True, comment="SNMP community 字符串"
     )

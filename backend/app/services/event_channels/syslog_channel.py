@@ -9,7 +9,7 @@ import asyncio
 import json
 import socket
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from structlog.stdlib import BoundLogger
@@ -85,9 +85,7 @@ class SyslogChannel(BaseChannel):
         port = int(connection_params.get("port", 514))
         protocol = connection_params.get("protocol", "udp").lower()
         facility = connection_params.get("facility", "local0")
-        hostname = connection_params.get(
-            "hostname", socket.gethostname()
-        )
+        hostname = connection_params.get("hostname", socket.gethostname())
         app_name = connection_params.get("app_name", "rpki-platform")
         timeout = float(connection_params.get("timeout", 5))
 
@@ -152,7 +150,7 @@ class SyslogChannel(BaseChannel):
             "event_type": "syslog_test",
             "severity": "P4",
             "message": "Syslog connection test",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         return await self.send(
             target=target,
@@ -174,9 +172,7 @@ class SyslogChannel(BaseChannel):
 
         格式：``<PRI>VERSION TIMESTAMP HOSTNAME APP_NAME PROCID MSGID STRUCTURED-DATA MSG``
         """
-        timestamp = datetime.now(timezone.utc).strftime(
-            "%Y-%m-%dT%H:%M:%S.%fZ"
-        )
+        timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         procid = str(payload.get("resource_id", "-"))
         msgid = payload.get("event_type", "-")
 
@@ -187,20 +183,14 @@ class SyslogChannel(BaseChannel):
             if value is not None:
                 escaped = str(value).replace('"', '\\"').replace("]", "\\]")
                 sd_fields.append(f'{key}="{escaped}"')
-        sd = (
-            f"[rpki@1.0 {' '.join(sd_fields)}]"
-            if sd_fields
-            else "-"
-        )
+        sd = f"[rpki@1.0 {' '.join(sd_fields)}]" if sd_fields else "-"
 
         # 消息体（JSON 格式）
         msg = json.dumps(payload, ensure_ascii=False, default=str)
 
         return f"<{pri}>1 {timestamp} {hostname} {app_name} {procid} {msgid} {sd} {msg}"
 
-    async def _send_udp(
-        self, host: str, port: int, message: str, timeout: float
-    ) -> None:
+    async def _send_udp(self, host: str, port: int, message: str, timeout: float) -> None:
         """通过 UDP 发送 Syslog 消息。"""
         # TODO: 实际生产环境应使用连接池与异步 socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -214,9 +204,7 @@ class SyslogChannel(BaseChannel):
         finally:
             sock.close()
 
-    async def _send_tcp(
-        self, host: str, port: int, message: str, timeout: float
-    ) -> None:
+    async def _send_tcp(self, host: str, port: int, message: str, timeout: float) -> None:
         """通过 TCP 发送 Syslog 消息（octet-counting 帧）。"""
         # TODO: 实际生产环境应使用连接池
         reader, writer = await asyncio.wait_for(

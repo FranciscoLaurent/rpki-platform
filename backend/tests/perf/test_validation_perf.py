@@ -12,7 +12,7 @@ from __future__ import annotations
 import ipaddress
 import random
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -23,7 +23,6 @@ from app.services.vrp_service import (
     _get_covering_prefixes,
     validate_bgp_announcement,
 )
-
 
 # ──────────────────────────────────────────────
 # 性能测试常量
@@ -75,8 +74,8 @@ def _make_vrp(prefix: str, prefix_length: int, origin_as: int,
     vrp.trust_anchor = "test"
     vrp.id = 1
     vrp.prefix_family = 4
-    vrp.created_at = datetime.now(timezone.utc)
-    vrp.updated_at = datetime.now(timezone.utc)
+    vrp.created_at = datetime.now(UTC)
+    vrp.updated_at = datetime.now(UTC)
     return vrp
 
 

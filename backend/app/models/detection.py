@@ -19,12 +19,10 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TenantMixin, TimestampMixin
-
 
 # ──────────────────────────────────────────────
 # 检测规则
@@ -46,21 +44,15 @@ class DetectionRule(Base, TimestampMixin, TenantMixin):
         Index("ix_detection_rules_severity", "severity"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="规则名称"
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="规则名称")
     code: Mapped[str] = mapped_column(
         String(100),
         nullable=False,
         unique=True,
         comment="规则唯一编码，用于幂等初始化",
     )
-    description: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="规则描述"
-    )
+    description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="规则描述")
     rule_type: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
@@ -101,15 +93,10 @@ class DetectionRule(Base, TimestampMixin, TenantMixin):
     )
 
     # 关联告警
-    alerts: Mapped[list[Alert]] = relationship(
-        back_populates="rule", cascade="all, delete-orphan"
-    )
+    alerts: Mapped[list[Alert]] = relationship(back_populates="rule", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
-        return (
-            f"<DetectionRule(id={self.id}, code={self.code}, "
-            f"type={self.rule_type})>"
-        )
+        return f"<DetectionRule(id={self.id}, code={self.code}, type={self.rule_type})>"
 
 
 # ──────────────────────────────────────────────
@@ -135,9 +122,7 @@ class Alert(Base, TimestampMixin, TenantMixin):
         Index("ix_alerts_incident_id", "incident_id"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     rule_id: Mapped[int | None] = mapped_column(
         ForeignKey("detection_rules.id", ondelete="SET NULL"),
         nullable=True,
@@ -154,29 +139,19 @@ class Alert(Base, TimestampMixin, TenantMixin):
         default="P3",
         comment="严重等级：P0/P1/P2/P3/P4",
     )
-    prefix: Mapped[str] = mapped_column(
-        String(64), nullable=False, comment="关联的网络前缀"
-    )
+    prefix: Mapped[str] = mapped_column(String(64), nullable=False, comment="关联的网络前缀")
     origin_as: Mapped[int | None] = mapped_column(
         Integer, nullable=True, comment="关联的起源 AS 号"
     )
-    as_path: Mapped[list[int] | None] = mapped_column(
-        JSON, nullable=True, comment="AS 路径列表"
-    )
+    as_path: Mapped[list[int] | None] = mapped_column(JSON, nullable=True, comment="AS 路径列表")
     observation_point_id: Mapped[int | None] = mapped_column(
         ForeignKey("observation_points.id", ondelete="SET NULL"),
         nullable=True,
         comment="观察点 ID",
     )
-    title: Mapped[str] = mapped_column(
-        String(500), nullable=False, comment="告警标题"
-    )
-    description: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="告警描述"
-    )
-    evidence: Mapped[dict[str, Any] | None] = mapped_column(
-        JSON, nullable=True, comment="证据数据"
-    )
+    title: Mapped[str] = mapped_column(String(500), nullable=False, comment="告警标题")
+    description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="告警描述")
+    evidence: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True, comment="证据数据")
     risk_score: Mapped[float] = mapped_column(
         Float, nullable=False, default=0.0, comment="风险评分（0-100）"
     )
@@ -187,9 +162,7 @@ class Alert(Base, TimestampMixin, TenantMixin):
         String(20),
         nullable=False,
         default="new",
-        comment=(
-            "处置状态：new/confirmed/assigned/resolved/closed/false_positive"
-        ),
+        comment=("处置状态：new/confirmed/assigned/resolved/closed/false_positive"),
     )
     is_benign_conflict: Mapped[bool] = mapped_column(
         Boolean,
@@ -246,15 +219,9 @@ class Incident(Base, TimestampMixin, TenantMixin):
         Index("ix_incidents_assigned_to", "assigned_to"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    title: Mapped[str] = mapped_column(
-        String(500), nullable=False, comment="事件标题"
-    )
-    description: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="事件描述"
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    title: Mapped[str] = mapped_column(String(500), nullable=False, comment="事件标题")
+    description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="事件描述")
     severity: Mapped[str] = mapped_column(
         String(10),
         nullable=False,
@@ -265,9 +232,7 @@ class Incident(Base, TimestampMixin, TenantMixin):
         String(20),
         nullable=False,
         default="open",
-        comment=(
-            "事件状态：open/investigating/mitigating/resolved/closed"
-        ),
+        comment=("事件状态：open/investigating/mitigating/resolved/closed"),
     )
     alert_ids: Mapped[list[int] | None] = mapped_column(
         JSON, nullable=True, comment="关联告警 ID 列表"
@@ -283,15 +248,9 @@ class Incident(Base, TimestampMixin, TenantMixin):
         nullable=True,
         comment="分派给的用户 ID",
     )
-    root_cause: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="根因分析"
-    )
-    resolution: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="处置结论"
-    )
-    evidence: Mapped[dict[str, Any] | None] = mapped_column(
-        JSON, nullable=True, comment="事件证据"
-    )
+    root_cause: Mapped[str | None] = mapped_column(Text, nullable=True, comment="根因分析")
+    resolution: Mapped[str | None] = mapped_column(Text, nullable=True, comment="处置结论")
+    evidence: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True, comment="事件证据")
     timeline: Mapped[list[dict[str, Any]] | None] = mapped_column(
         JSON, nullable=True, comment="事件时间线"
     )
@@ -309,10 +268,7 @@ class Incident(Base, TimestampMixin, TenantMixin):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<Incident(id={self.id}, title={self.title}, "
-            f"status={self.status})>"
-        )
+        return f"<Incident(id={self.id}, title={self.title}, status={self.status})>"
 
 
 # ──────────────────────────────────────────────
@@ -334,9 +290,7 @@ class RiskScore(Base, TimestampMixin):
         Index("ix_risk_scores_total_score", "total_score"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     alert_id: Mapped[int | None] = mapped_column(
         ForeignKey("alerts.id", ondelete="CASCADE"),
         nullable=True,
@@ -397,10 +351,7 @@ class RiskScore(Base, TimestampMixin):
     alert: Mapped[Alert | None] = relationship(back_populates="risk_scores")
 
     def __repr__(self) -> str:
-        return (
-            f"<RiskScore(id={self.id}, total={self.total_score}, "
-            f"confidence={self.confidence})>"
-        )
+        return f"<RiskScore(id={self.id}, total={self.total_score}, confidence={self.confidence})>"
 
 
 __all__ = [

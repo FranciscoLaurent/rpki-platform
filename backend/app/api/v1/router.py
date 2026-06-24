@@ -48,12 +48,20 @@ api_router.include_router(assets.router, prefix="/assets", tags=["资产管理"]
 api_router.include_router(rpki.router, prefix="/rpki", tags=["RPKI 管理"])
 api_router.include_router(roas.router, prefix="/roas", tags=["ROA 生命周期管理"])
 api_router.include_router(roa_changes.changes_router, prefix="/roa-changes", tags=["ROA 变更管理"])
-api_router.include_router(roa_changes.rules_router, prefix="/roa-approval-rules", tags=["ROA 审批规则"])
+api_router.include_router(
+    roa_changes.rules_router, prefix="/roa-approval-rules", tags=["ROA 审批规则"]
+)
 api_router.include_router(bgp.router, prefix="/bgp", tags=["BGP 监测"])
 api_router.include_router(detection.router, prefix="/detection", tags=["路由安全检测"])
-api_router.include_router(benign_conflicts.router, prefix="/benign-conflicts", tags=["良性冲突识别"])
-api_router.include_router(maintenance_windows.router, prefix="/maintenance-windows", tags=["维护窗口"])
-api_router.include_router(scrubber_authorizations.router, prefix="/scrubber-authorizations", tags=["清洗授权"])
+api_router.include_router(
+    benign_conflicts.router, prefix="/benign-conflicts", tags=["良性冲突识别"]
+)
+api_router.include_router(
+    maintenance_windows.router, prefix="/maintenance-windows", tags=["维护窗口"]
+)
+api_router.include_router(
+    scrubber_authorizations.router, prefix="/scrubber-authorizations", tags=["清洗授权"]
+)
 api_router.include_router(anycast_nodes.router, prefix="/anycast-nodes", tags=["Anycast 节点"])
 api_router.include_router(rov.router, prefix="/rov", tags=["ROV 策略模拟"])
 api_router.include_router(rtr.router, prefix="/rtr", tags=["RPKI-RTR 服务"])

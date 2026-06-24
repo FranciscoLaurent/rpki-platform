@@ -13,14 +13,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.logging import get_logger
 from app.models.bgp import BGPAnnouncement
 from app.models.prefix import Prefix
-from app.models.rpki import ROA, VRP
+from app.models.rpki import ROA
 from app.schemas.roa import (
     ROACoverageByImportance,
     ROACoverageByStatus,
     ROACoverageStats,
     ROAHealthSummary,
 )
-from app.services import roa_service, vrp_service
+from app.services import roa_service
 
 logger = get_logger("app.roa_validation_service")
 
@@ -30,9 +30,7 @@ logger = get_logger("app.roa_validation_service")
 # ──────────────────────────────────────────────
 
 
-async def validate_roa_against_bgp(
-    db: AsyncSession, roa_id: int
-) -> dict[str, Any]:
+async def validate_roa_against_bgp(db: AsyncSession, roa_id: int) -> dict[str, Any]:
     """验证 ROA 与 BGP 公告的一致性。
 
     检查 ROA 是否与实际 BGP 公告匹配：
@@ -63,9 +61,7 @@ async def validate_roa_against_bgp(
         }
 
     # 获取关联的 BGP 公告
-    related_announcements = await roa_service.get_related_bgp_announcements(
-        db, roa
-    )
+    related_announcements = await roa_service.get_related_bgp_announcements(db, roa)
 
     issues: list[str] = []
     has_matching = False
@@ -88,10 +84,7 @@ async def validate_roa_against_bgp(
 
             # 检查 maxLength 是否过宽
             effective_max_length = roa.max_length or roa.prefix_length
-            if (
-                effective_max_length > ann.prefix_length + 8
-                and ann.origin_as == roa.origin_as
-            ):
+            if effective_max_length > ann.prefix_length + 8 and ann.origin_as == roa.origin_as:
                 max_length_appropriate = False
                 issues.append(
                     f"maxLength={effective_max_length} 远大于实际公告长度 "
@@ -101,9 +94,7 @@ async def validate_roa_against_bgp(
     if not origin_matched and related_announcements:
         issues.append("无任何公告的 origin AS 与 ROA 授权一致")
 
-    is_consistent = (
-        has_matching and origin_matched and max_length_appropriate
-    )
+    is_consistent = has_matching and origin_matched and max_length_appropriate
 
     return {
         "roa_id": roa_id,
@@ -171,21 +162,14 @@ async def get_roa_coverage_stats(db: AsyncSession) -> ROACoverageStats:
 
     # 总覆盖率
     total_prefixes = len(all_prefixes)
-    covered_prefixes = sum(
-        1 for row in all_prefixes if row.prefix in roa_prefixes
-    )
-    coverage_rate = (
-        covered_prefixes / total_prefixes if total_prefixes > 0 else 0.0
-    )
+    covered_prefixes = sum(1 for row in all_prefixes if row.prefix in roa_prefixes)
+    coverage_rate = covered_prefixes / total_prefixes if total_prefixes > 0 else 0.0
 
     # 按验证状态统计 BGP 公告
-    status_stmt = (
-        select(
-            BGPAnnouncement.rpki_validation_status,
-            func.count(BGPAnnouncement.id),
-        )
-        .group_by(BGPAnnouncement.rpki_validation_status)
-    )
+    status_stmt = select(
+        BGPAnnouncement.rpki_validation_status,
+        func.count(BGPAnnouncement.id),
+    ).group_by(BGPAnnouncement.rpki_validation_status)
     status_result = await db.execute(status_stmt)
     by_status: list[ROACoverageByStatus] = []
     for row in status_result:
@@ -198,9 +182,7 @@ async def get_roa_coverage_stats(db: AsyncSession) -> ROACoverageStats:
         )
 
     # 公告总数
-    total_announcements_result = await db.execute(
-        select(func.count(BGPAnnouncement.id))
-    )
+    total_announcements_result = await db.execute(select(func.count(BGPAnnouncement.id)))
     total_announcements = total_announcements_result.scalar_one()
 
     return ROACoverageStats(
@@ -230,14 +212,9 @@ async def get_roa_health_summary(db: AsyncSession) -> ROAHealthSummary:
         ROA 健康度摘要
     """
     # ROA 状态分布
-    status_stmt = (
-        select(ROA.status, func.count(ROA.id))
-        .group_by(ROA.status)
-    )
+    status_stmt = select(ROA.status, func.count(ROA.id)).group_by(ROA.status)
     status_result = await db.execute(status_stmt)
-    status_counts: dict[str, int] = {
-        row.status: row.count for row in status_result
-    }
+    status_counts: dict[str, int] = {row.status: row.count for row in status_result}
 
     total_roas = sum(status_counts.values())
     valid_roas = status_counts.get("valid", 0)
@@ -270,10 +247,7 @@ async def get_roa_health_summary(db: AsyncSession) -> ROAHealthSummary:
 
     # 整体健康判定
     overall_healthy = (
-        expired_roas == 0
-        and conflict_count == 0
-        and coverage_rate >= 0.8
-        and high_risk_count == 0
+        expired_roas == 0 and conflict_count == 0 and coverage_rate >= 0.8 and high_risk_count == 0
     )
 
     return ROAHealthSummary(
@@ -288,9 +262,7 @@ async def get_roa_health_summary(db: AsyncSession) -> ROAHealthSummary:
         overall_healthy=overall_healthy,
         summary={
             "status_distribution": status_counts,
-            "coverage_by_importance": [
-                item.model_dump() for item in coverage_stats.by_importance
-            ],
+            "coverage_by_importance": [item.model_dump() for item in coverage_stats.by_importance],
         },
     )
 

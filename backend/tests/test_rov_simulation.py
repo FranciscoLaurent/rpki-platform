@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -19,7 +19,6 @@ from app.schemas.rov import (
     AffectedPrefix,
     ROAChangeSimulationRequest,
     ROVSimulationRequest,
-    ROVSimulationScope,
 )
 from app.services.rov_simulation_service import (
     _compute_simulated_status,
@@ -32,7 +31,6 @@ from app.services.rov_simulation_service import (
     simulate_roa_change,
     simulate_rov_policy,
 )
-
 
 # ──────────────────────────────────────────────
 # 辅助函数
@@ -76,7 +74,7 @@ def _make_announcement(
     ann.rpki_validation_status = rpki_validation_status
     ann.rpki_invalid_reason = rpki_invalid_reason
     ann.observation_point_id = observation_point_id
-    ann.timestamp = datetime.now(timezone.utc)
+    ann.timestamp = datetime.now(UTC)
     return ann
 
 

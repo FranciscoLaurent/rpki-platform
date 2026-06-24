@@ -7,7 +7,6 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
 # ──────────────────────────────────────────────
 # TAL
 # ──────────────────────────────────────────────
@@ -132,9 +131,7 @@ class VRPQueryParams(BaseModel):
 class ValidationResult(BaseModel):
     """BGP 公告验证结果。"""
 
-    validation_status: str = Field(
-        ..., description="验证状态：valid/invalid/not_found"
-    )
+    validation_status: str = Field(..., description="验证状态：valid/invalid/not_found")
     invalid_reason: str | None = Field(
         None,
         description=(
@@ -142,9 +139,7 @@ class ValidationResult(BaseModel):
             "roa_revoked/resource_chain_error/data_source_error"
         ),
     )
-    matched_vrps: list[VRPResponse] = Field(
-        default_factory=list, description="匹配到的 VRP 列表"
-    )
+    matched_vrps: list[VRPResponse] = Field(default_factory=list, description="匹配到的 VRP 列表")
 
 
 class BGPAnnouncementValidation(BaseModel):
@@ -152,9 +147,7 @@ class BGPAnnouncementValidation(BaseModel):
 
     prefix: str = Field(..., description="BGP 公告前缀")
     origin_as: int = Field(..., description="BGP 公告起源 AS 号")
-    validation_result: ValidationResult | None = Field(
-        None, description="验证结果（响应时填充）"
-    )
+    validation_result: ValidationResult | None = Field(None, description="验证结果（响应时填充）")
 
 
 class BGPAnnouncementValidationRequest(BaseModel):
@@ -231,15 +224,9 @@ class SnapshotResponse(BaseModel):
 class SnapshotDiff(BaseModel):
     """快照差异。"""
 
-    added_vrps: list[VRPResponse] = Field(
-        default_factory=list, description="新增的 VRP 列表"
-    )
-    removed_vrps: list[VRPResponse] = Field(
-        default_factory=list, description="移除的 VRP 列表"
-    )
-    modified_vrps: list[VRPResponse] = Field(
-        default_factory=list, description="修改的 VRP 列表"
-    )
+    added_vrps: list[VRPResponse] = Field(default_factory=list, description="新增的 VRP 列表")
+    removed_vrps: list[VRPResponse] = Field(default_factory=list, description="移除的 VRP 列表")
+    modified_vrps: list[VRPResponse] = Field(default_factory=list, description="修改的 VRP 列表")
 
 
 class SnapshotDiffResponse(BaseModel):

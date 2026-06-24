@@ -40,9 +40,7 @@ async def get_dashboard_overview(
     return await dashboard_service.get_dashboard_overview(db)
 
 
-@router.get(
-    "/prefixes/{prefix_id}/detail", response_model=PrefixDetail
-)
+@router.get("/prefixes/{prefix_id}/detail", response_model=PrefixDetail)
 async def get_prefix_detail(
     prefix_id: int,
     db: AsyncSession = Depends(get_db),
@@ -62,9 +60,7 @@ async def get_prefix_detail(
     return detail
 
 
-@router.get(
-    "/asns/{asn_id}/detail", response_model=ASNDetail
-)
+@router.get("/asns/{asn_id}/detail", response_model=ASNDetail)
 async def get_asn_detail(
     asn_id: int,
     db: AsyncSession = Depends(get_db),
@@ -84,9 +80,7 @@ async def get_asn_detail(
     return detail
 
 
-@router.get(
-    "/incidents/{incident_id}/timeline", response_model=IncidentTimeline
-)
+@router.get("/incidents/{incident_id}/timeline", response_model=IncidentTimeline)
 async def get_incident_timeline(
     incident_id: int,
     db: AsyncSession = Depends(get_db),

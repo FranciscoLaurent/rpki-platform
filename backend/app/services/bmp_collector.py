@@ -135,9 +135,7 @@ class BMPCollector:
                         "peer": peer_key,
                         "version": version,
                         "type": msg_type,
-                        "type_name": BMP_MSG_TYPE_NAMES.get(
-                            msg_type, f"unknown({msg_type})"
-                        ),
+                        "type_name": BMP_MSG_TYPE_NAMES.get(msg_type, f"unknown({msg_type})"),
                         "body": body,
                     }
                 )
@@ -219,8 +217,6 @@ class BMPCollector:
         # 解析 Peer 信息
         try:
             peer_as = struct.unpack("!I", peer_header[10:14])[0]
-            peer_bgp_id = peer_header[14:18]
-            peer_address = peer_header[2:18]
         except struct.error:
             peer_as = None
 
@@ -242,9 +238,7 @@ class BMPCollector:
             offset += withdrawn_length
 
             # 解析路径属性
-            path_attr_length = struct.unpack(
-                "!H", bgp_data[offset : offset + 2]
-            )[0]
+            path_attr_length = struct.unpack("!H", bgp_data[offset : offset + 2])[0]
             offset += 2
             path_attributes = bgp_data[offset : offset + path_attr_length]
             offset += path_attr_length
@@ -261,9 +255,7 @@ class BMPCollector:
                 "nlri": _extract_prefixes_from_bytes(nlri),
                 "attributes": attributes,
                 "origin_as": (
-                    attributes.get("as_path", [None])[-1]
-                    if attributes.get("as_path")
-                    else peer_as
+                    attributes.get("as_path", [None])[-1] if attributes.get("as_path") else peer_as
                 ),
             }
 
@@ -277,7 +269,7 @@ class BMPCollector:
         self._running = False
 
         # 关闭所有客户端连接
-        for peer_key, writer in list(self._connections.items()):
+        for _peer_key, writer in list(self._connections.items()):
             try:
                 writer.close()
                 await writer.wait_closed()

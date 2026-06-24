@@ -10,12 +10,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from app.schemas.rtr import RTRServerCreate, RTRServerUpdate
 from app.services.rtr_service import (
     _compute_vrp_diff,
     _vrp_to_dict,
@@ -30,8 +30,6 @@ from app.services.rtr_service import (
     update_rtr_server,
     update_vrps,
 )
-from app.schemas.rtr import RTRServerCreate, RTRServerUpdate
-
 
 # ──────────────────────────────────────────────
 # 辅助函数
@@ -272,7 +270,6 @@ async def test_get_rtr_server_not_found() -> None:
 async def test_get_rtr_servers_with_status_filter() -> None:
     """按状态过滤 RTR 服务列表。"""
     running_server = _make_server(server_id=1, status="running")
-    stopped_server = _make_server(server_id=2, status="stopped")
     db = _make_db_mock([[running_server]])
 
     result = await get_rtr_servers(db, status="running")

@@ -99,9 +99,7 @@ async def get_audit_logs(
     return list(result.scalars().all())
 
 
-async def count_audit_logs(
-    db: AsyncSession, filters: dict[str, Any] | None = None
-) -> int:
+async def count_audit_logs(db: AsyncSession, filters: dict[str, Any] | None = None) -> int:
     """统计审计日志数量。"""
     from sqlalchemy import func
 
@@ -209,9 +207,7 @@ def _export_to_csv(rows: list[dict[str, Any]]) -> str:
         # details 字段序列化为 JSON 字符串，便于 CSV 存储
         csv_row = dict(row)
         if csv_row.get("details") is not None:
-            csv_row["details"] = json.dumps(
-                csv_row["details"], ensure_ascii=False
-            )
+            csv_row["details"] = json.dumps(csv_row["details"], ensure_ascii=False)
         writer.writerow(csv_row)
     return output.getvalue()
 

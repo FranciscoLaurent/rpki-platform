@@ -22,30 +22,16 @@ class AuditLog(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    user_id: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="操作用户 ID"
-    )
-    tenant_id: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="租户 ID"
-    )
-    action: Mapped[str] = mapped_column(
-        String(100), nullable=False, comment="操作动作"
-    )
+    user_id: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="操作用户 ID")
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="租户 ID")
+    action: Mapped[str] = mapped_column(String(100), nullable=False, comment="操作动作")
     resource_type: Mapped[str | None] = mapped_column(
         String(100), nullable=True, comment="资源类型"
     )
-    resource_id: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, comment="资源 ID"
-    )
-    details: Mapped[dict | None] = mapped_column(
-        JSON, nullable=True, comment="操作详情"
-    )
-    ip_address: Mapped[str | None] = mapped_column(
-        String(45), nullable=True, comment="IP 地址"
-    )
-    user_agent: Mapped[str | None] = mapped_column(
-        String(500), nullable=True, comment="User-Agent"
-    )
+    resource_id: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="资源 ID")
+    details: Mapped[dict | None] = mapped_column(JSON, nullable=True, comment="操作详情")
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True, comment="IP 地址")
+    user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="User-Agent")
     request_id: Mapped[str | None] = mapped_column(
         String(100), nullable=True, comment="请求追踪 ID"
     )

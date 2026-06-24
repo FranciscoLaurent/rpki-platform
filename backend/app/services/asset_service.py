@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import func, select
@@ -24,15 +24,12 @@ from app.schemas.asset import (
     RouterUpdate,
 )
 
-
 # ──────────────────────────────────────────────
 # 业务服务 CRUD
 # ──────────────────────────────────────────────
 
 
-async def create_business_service(
-    db: AsyncSession, data: BusinessServiceCreate
-) -> BusinessService:
+async def create_business_service(db: AsyncSession, data: BusinessServiceCreate) -> BusinessService:
     """创建业务服务。"""
     service = BusinessService(
         name=data.name,
@@ -47,9 +44,7 @@ async def create_business_service(
     return service
 
 
-async def get_business_service(
-    db: AsyncSession, service_id: int
-) -> BusinessService | None:
+async def get_business_service(db: AsyncSession, service_id: int) -> BusinessService | None:
     """根据 ID 获取业务服务。"""
     stmt = select(BusinessService).where(BusinessService.id == service_id)
     result = await db.execute(stmt)
@@ -75,9 +70,7 @@ async def get_business_services(
     return list(result.scalars().all())
 
 
-async def count_business_services(
-    db: AsyncSession, filters: dict[str, Any] | None = None
-) -> int:
+async def count_business_services(db: AsyncSession, filters: dict[str, Any] | None = None) -> int:
     """统计业务服务数量。"""
     stmt = select(func.count(BusinessService.id))
     if filters:
@@ -105,9 +98,7 @@ async def update_business_service(
     return service
 
 
-async def delete_business_service(
-    db: AsyncSession, service: BusinessService
-) -> None:
+async def delete_business_service(db: AsyncSession, service: BusinessService) -> None:
     """删除业务服务。"""
     await db.delete(service)
     await db.commit()
@@ -118,9 +109,7 @@ async def delete_business_service(
 # ──────────────────────────────────────────────
 
 
-async def create_customer(
-    db: AsyncSession, data: CustomerCreate
-) -> Customer:
+async def create_customer(db: AsyncSession, data: CustomerCreate) -> Customer:
     """创建客户。"""
     customer = Customer(
         name=data.name,
@@ -165,9 +154,7 @@ async def get_customers(
     return list(result.scalars().all())
 
 
-async def count_customers(
-    db: AsyncSession, filters: dict[str, Any] | None = None
-) -> int:
+async def count_customers(db: AsyncSession, filters: dict[str, Any] | None = None) -> int:
     """统计客户数量。"""
     stmt = select(func.count(Customer.id))
     if filters:
@@ -182,9 +169,7 @@ async def count_customers(
     return result.scalar_one()
 
 
-async def update_customer(
-    db: AsyncSession, customer: Customer, data: CustomerUpdate
-) -> Customer:
+async def update_customer(db: AsyncSession, customer: Customer, data: CustomerUpdate) -> Customer:
     """更新客户。"""
     update_data = data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -252,9 +237,7 @@ async def get_routers(
     return list(result.scalars().all())
 
 
-async def count_routers(
-    db: AsyncSession, filters: dict[str, Any] | None = None
-) -> int:
+async def count_routers(db: AsyncSession, filters: dict[str, Any] | None = None) -> int:
     """统计路由器数量。"""
     stmt = select(func.count(Router.id))
     if filters:
@@ -269,9 +252,7 @@ async def count_routers(
     return result.scalar_one()
 
 
-async def update_router(
-    db: AsyncSession, router: Router, data: RouterUpdate
-) -> Router:
+async def update_router(db: AsyncSession, router: Router, data: RouterUpdate) -> Router:
     """更新路由器。"""
     update_data = data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -308,7 +289,7 @@ async def check_consistency(db: AsyncSession) -> ConsistencyCheckResult:
         一致性检查结果
     """
     items: list[ConsistencyCheckItem] = []
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # 加载所有前缀（含关联客户）
     stmt = select(Prefix)
@@ -318,9 +299,7 @@ async def check_consistency(db: AsyncSession) -> ConsistencyCheckResult:
     # 加载所有客户用于状态对比
     cust_stmt = select(Customer)
     cust_result = await db.execute(cust_stmt)
-    customers_map: dict[int, Customer] = {
-        c.id: c for c in cust_result.scalars().all()
-    }
+    customers_map: dict[int, Customer] = {c.id: c for c in cust_result.scalars().all()}
 
     for p in prefixes:
         # 1. 未登记前缀：active 但缺少业务归属与地域
@@ -329,26 +308,19 @@ async def check_consistency(db: AsyncSession) -> ConsistencyCheckResult:
                 ConsistencyCheckItem(
                     type="unregistered_prefix",
                     prefix=p.prefix,
-                    description=(
-                        f"前缀 {p.prefix} 处于 active 状态但缺少业务归属与地域信息"
-                    ),
+                    description=(f"前缀 {p.prefix} 处于 active 状态但缺少业务归属与地域信息"),
                     severity="warning",
                 )
             )
 
         # 2. 过期信息：expired_at 早于当前时间但状态仍为 active
-        if (
-            p.expired_at is not None
-            and p.expired_at < now
-            and p.status == "active"
-        ):
+        if p.expired_at is not None and p.expired_at < now and p.status == "active":
             items.append(
                 ConsistencyCheckItem(
                     type="expired",
                     prefix=p.prefix,
                     description=(
-                        f"前缀 {p.prefix} 已过期（{p.expired_at.isoformat()}）"
-                        "但状态仍为 active"
+                        f"前缀 {p.prefix} 已过期（{p.expired_at.isoformat()}）但状态仍为 active"
                     ),
                     severity="critical",
                 )
@@ -363,8 +335,7 @@ async def check_consistency(db: AsyncSession) -> ConsistencyCheckResult:
                         type="status_mismatch",
                         prefix=p.prefix,
                         description=(
-                            f"前缀 {p.prefix} 状态为 active，"
-                            f"但关联客户 {cust.name} 状态为 inactive"
+                            f"前缀 {p.prefix} 状态为 active，但关联客户 {cust.name} 状态为 inactive"
                         ),
                         severity="warning",
                     )
@@ -389,9 +360,7 @@ async def check_consistency(db: AsyncSession) -> ConsistencyCheckResult:
 # ──────────────────────────────────────────────
 
 
-async def get_relationship_view(
-    db: AsyncSession, prefix_id: int
-) -> RelationshipView | None:
+async def get_relationship_view(db: AsyncSession, prefix_id: int) -> RelationshipView | None:
     """获取前缀的关系视图（前缀—ASN—ROA—BGP—业务—事件）。
 
     目前为基础版实现：
@@ -406,11 +375,7 @@ async def get_relationship_view(
     Returns:
         关系视图对象；前缀不存在时返回 None
     """
-    stmt = (
-        select(Prefix)
-        .options(selectinload(Prefix.children))
-        .where(Prefix.id == prefix_id)
-    )
+    stmt = select(Prefix).options(selectinload(Prefix.children)).where(Prefix.id == prefix_id)
     result = await db.execute(stmt)
     prefix = result.scalar_one_or_none()
     if prefix is None:
@@ -440,9 +405,7 @@ async def get_relationship_view(
     # 关联业务服务（按名称匹配）
     business_dict: dict[str, Any] | None = None
     if prefix.business_service:
-        biz_stmt = select(BusinessService).where(
-            BusinessService.name == prefix.business_service
-        )
+        biz_stmt = select(BusinessService).where(BusinessService.name == prefix.business_service)
         biz_result = await db.execute(biz_stmt)
         biz = biz_result.scalar_one_or_none()
         if biz is not None:

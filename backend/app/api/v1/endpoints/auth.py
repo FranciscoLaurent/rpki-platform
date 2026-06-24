@@ -43,9 +43,7 @@ async def login(
 ) -> TokenResponse:
     """用户登录，返回访问令牌与刷新令牌。"""
     try:
-        user = await auth_service.authenticate_user(
-            db, login_data.username, login_data.password
-        )
+        user = await auth_service.authenticate_user(db, login_data.username, login_data.password)
     except ValueError as e:
         # 记录登录失败审计
         await audit_service.log_action(
@@ -62,7 +60,7 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(e),
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from e
 
     if not user.is_active:
         raise HTTPException(
@@ -107,7 +105,7 @@ async def refresh_token(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(e),
-        )
+        ) from e
 
     if payload.get("type") != "refresh":
         raise HTTPException(
@@ -172,7 +170,7 @@ async def register(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        )
+        ) from e
 
     return UserResponse.model_validate(user)
 
@@ -201,7 +199,7 @@ async def change_password(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        )
+        ) from e
 
     # 记录审计日志
     await audit_service.log_action(

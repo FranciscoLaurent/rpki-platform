@@ -65,9 +65,7 @@ async def list_business_services(
     if importance is not None:
         filters["importance"] = importance
 
-    items = await asset_service.get_business_services(
-        db, filters=filters, skip=skip, limit=limit
-    )
+    items = await asset_service.get_business_services(db, filters=filters, skip=skip, limit=limit)
     total = await asset_service.count_business_services(db, filters=filters)
     return BusinessServiceListResponse(
         items=[BusinessServiceResponse.model_validate(i) for i in items],
@@ -175,9 +173,7 @@ async def list_customers(
     if service_level is not None:
         filters["service_level"] = service_level
 
-    items = await asset_service.get_customers(
-        db, filters=filters, skip=skip, limit=limit
-    )
+    items = await asset_service.get_customers(db, filters=filters, skip=skip, limit=limit)
     total = await asset_service.count_customers(db, filters=filters)
     return CustomerListResponse(
         items=[CustomerResponse.model_validate(i) for i in items],
@@ -279,9 +275,7 @@ async def list_routers(
     if vendor is not None:
         filters["vendor"] = vendor
 
-    items = await asset_service.get_routers(
-        db, filters=filters, skip=skip, limit=limit
-    )
+    items = await asset_service.get_routers(db, filters=filters, skip=skip, limit=limit)
     total = await asset_service.count_routers(db, filters=filters)
     return RouterListResponse(
         items=[RouterResponse.model_validate(i) for i in items],

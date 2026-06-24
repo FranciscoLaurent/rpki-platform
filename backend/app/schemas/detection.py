@@ -7,7 +7,6 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-
 # ──────────────────────────────────────────────
 # 检测规则
 # ──────────────────────────────────────────────
@@ -164,12 +163,8 @@ class AlertStatusUpdate(BaseModel):
     """告警状态更新请求。"""
 
     status: str = Field(..., description="新的处置状态")
-    is_benign_conflict: bool | None = Field(
-        None, description="是否标记为良性冲突"
-    )
-    benign_conflict_type: str | None = Field(
-        None, description="良性冲突类型"
-    )
+    is_benign_conflict: bool | None = Field(None, description="是否标记为良性冲突")
+    benign_conflict_type: str | None = Field(None, description="良性冲突类型")
 
     @field_validator("status")
     @classmethod
@@ -207,12 +202,8 @@ class IncidentCreate(BaseModel):
     description: str | None = Field(None, description="事件描述")
     severity: str = Field(default="P3", description="严重等级")
     alert_ids: list[int] | None = Field(None, description="关联告警 ID 列表")
-    affected_prefixes: list[str] | None = Field(
-        None, description="受影响前缀列表"
-    )
-    affected_asns: list[int] | None = Field(
-        None, description="受影响 ASN 列表"
-    )
+    affected_prefixes: list[str] | None = Field(None, description="受影响前缀列表")
+    affected_asns: list[int] | None = Field(None, description="受影响 ASN 列表")
     tenant_id: int | None = Field(None, description="租户 ID")
 
     @field_validator("severity")
@@ -231,12 +222,8 @@ class IncidentUpdate(BaseModel):
     description: str | None = Field(None, description="事件描述")
     severity: str | None = Field(None, description="严重等级")
     status: str | None = Field(None, description="事件状态")
-    affected_prefixes: list[str] | None = Field(
-        None, description="受影响前缀列表"
-    )
-    affected_asns: list[int] | None = Field(
-        None, description="受影响 ASN 列表"
-    )
+    affected_prefixes: list[str] | None = Field(None, description="受影响前缀列表")
+    affected_asns: list[int] | None = Field(None, description="受影响 ASN 列表")
     root_cause: str | None = Field(None, description="根因分析")
     resolution: str | None = Field(None, description="处置结论")
     evidence: dict[str, Any] | None = Field(None, description="事件证据")
@@ -366,31 +353,19 @@ class DetectionResult(BaseModel):
     alert_type: str = Field(..., description="告警类型")
     severity: str = Field(..., description="严重等级")
     description: str = Field(..., description="检测描述")
-    evidence: dict[str, Any] = Field(
-        default_factory=dict, description="证据数据"
-    )
+    evidence: dict[str, Any] = Field(default_factory=dict, description="证据数据")
     risk_score: float = Field(default=0.0, description="风险评分")
     confidence: float = Field(default=0.0, description="置信度")
-    is_detected: bool = Field(
-        default=False, description="是否检测到异常"
-    )
+    is_detected: bool = Field(default=False, description="是否检测到异常")
 
 
 class HijackDetectionResult(DetectionResult):
     """源 AS 劫持检测结果。"""
 
-    authorized_origin_as: int | None = Field(
-        None, description="授权的起源 AS"
-    )
-    detected_origin_as: int | None = Field(
-        None, description="检测到的起源 AS"
-    )
-    rpki_validation_status: str | None = Field(
-        None, description="RPKI 验证状态"
-    )
-    propagation_scope: int = Field(
-        default=0, description="传播范围（观察点数量）"
-    )
+    authorized_origin_as: int | None = Field(None, description="授权的起源 AS")
+    detected_origin_as: int | None = Field(None, description="检测到的起源 AS")
+    rpki_validation_status: str | None = Field(None, description="RPKI 验证状态")
+    propagation_scope: int = Field(default=0, description="传播范围（观察点数量）")
 
 
 class SubprefixHijackResult(DetectionResult):
@@ -398,26 +373,17 @@ class SubprefixHijackResult(DetectionResult):
 
     parent_prefix: str | None = Field(None, description="父前缀")
     subprefix: str | None = Field(None, description="子前缀")
-    max_length_allowed: int | None = Field(
-        None, description="允许的最大前缀长度"
-    )
-    traffic_attraction_risk: str | None = Field(
-        None, description="流量吸引风险等级"
-    )
+    max_length_allowed: int | None = Field(None, description="允许的最大前缀长度")
+    traffic_attraction_risk: str | None = Field(None, description="流量吸引风险等级")
 
 
 class MOASDetectionResult(DetectionResult):
     """MOAS 检测结果。"""
 
-    origin_as_list: list[int] = Field(
-        default_factory=list, description="所有起源 AS 列表"
-    )
+    origin_as_list: list[int] = Field(default_factory=list, description="所有起源 AS 列表")
     moas_type: str | None = Field(
         None,
-        description=(
-            "MOAS 类型：authorized_multi_origin/anycast/managed/"
-            "scrubber/unknown"
-        ),
+        description=("MOAS 类型：authorized_multi_origin/anycast/managed/scrubber/unknown"),
     )
 
 
@@ -426,14 +392,9 @@ class RouteLeakDetectionResult(DetectionResult):
 
     leak_type: str | None = Field(
         None,
-        description=(
-            "泄露类型：customer_to_provider/provider_to_customer/"
-            "peer_to_peer/lateral"
-        ),
+        description=("泄露类型：customer_to_provider/provider_to_customer/peer_to_peer/lateral"),
     )
-    leak_path: list[int] = Field(
-        default_factory=list, description="泄露路径 AS 列表"
-    )
+    leak_path: list[int] = Field(default_factory=list, description="泄露路径 AS 列表")
 
 
 class PathAnomalyResult(DetectionResult):
@@ -442,16 +403,11 @@ class PathAnomalyResult(DetectionResult):
     anomaly_type: str | None = Field(
         None,
         description=(
-            "异常类型：path_mutation/abnormal_transit/path_elongation/"
-            "blackhole_risk/abnormal_geo"
+            "异常类型：path_mutation/abnormal_transit/path_elongation/blackhole_risk/abnormal_geo"
         ),
     )
-    baseline_path: list[int] | None = Field(
-        None, description="基线 AS 路径"
-    )
-    observed_path: list[int] | None = Field(
-        None, description="观测 AS 路径"
-    )
+    baseline_path: list[int] | None = Field(None, description="基线 AS 路径")
+    observed_path: list[int] | None = Field(None, description="观测 AS 路径")
 
 
 class WithdrawFlapResult(DetectionResult):
@@ -459,21 +415,15 @@ class WithdrawFlapResult(DetectionResult):
 
     withdraw_count: int = Field(default=0, description="撤路次数")
     announce_count: int = Field(default=0, description="公告次数")
-    affected_observation_points: int = Field(
-        default=0, description="受影响观察点数"
-    )
+    affected_observation_points: int = Field(default=0, description="受影响观察点数")
     flap_rate: float = Field(default=0.0, description="震荡频率（次/分钟）")
 
 
 class RPKIInvalidResult(DetectionResult):
     """RPKI Invalid 传播检测结果。"""
 
-    invalid_reason: str | None = Field(
-        None, description="RPKI Invalid 原因"
-    )
-    propagation_count: int = Field(
-        default=0, description="传播该 Invalid 路由的观察点数"
-    )
+    invalid_reason: str | None = Field(None, description="RPKI Invalid 原因")
+    propagation_count: int = Field(default=0, description="传播该 Invalid 路由的观察点数")
     propagation_points: list[int] = Field(
         default_factory=list, description="传播 Invalid 的观察点 ID 列表"
     )
@@ -490,9 +440,7 @@ class ScanRequest(BaseModel):
     prefix: str | None = Field(None, description="待扫描的网络前缀")
     origin_as: int | None = Field(None, description="待扫描的起源 AS")
     as_path: list[int] | None = Field(None, description="AS 路径")
-    observation_point_id: int | None = Field(
-        None, description="观察点 ID"
-    )
+    observation_point_id: int | None = Field(None, description="观察点 ID")
     rule_types: list[str] | None = Field(
         None, description="指定执行的规则类型列表（为空则全部执行）"
     )
@@ -501,12 +449,8 @@ class ScanRequest(BaseModel):
 class ScanResponse(BaseModel):
     """手动扫描响应。"""
 
-    total_rules_executed: int = Field(
-        0, description="执行的规则总数"
-    )
-    results: list[DetectionResult] = Field(
-        default_factory=list, description="检测结果列表"
-    )
+    total_rules_executed: int = Field(0, description="执行的规则总数")
+    results: list[DetectionResult] = Field(default_factory=list, description="检测结果列表")
     alerts_created: int = Field(default=0, description="生成的告警数")
 
 

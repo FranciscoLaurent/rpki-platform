@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -101,9 +101,7 @@ async def get_cache_status(db: AsyncSession) -> dict[str, Any]:
     }
 
 
-async def check_repository_health(
-    db: AsyncSession, repository_id: int
-) -> RepositoryHealthResponse:
+async def check_repository_health(db: AsyncSession, repository_id: int) -> RepositoryHealthResponse:
     """检查单个仓库的健康状态。
 
     健康判定标准：
@@ -129,7 +127,7 @@ async def check_repository_health(
 
     # 判定健康状态
     is_healthy = True
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     if repo.sync_status == "failed":
         is_healthy = False
@@ -142,7 +140,7 @@ async def check_repository_health(
         # 检查同步新鲜度
         last_synced = repo.last_synced_at
         if last_synced.tzinfo is None:
-            last_synced = last_synced.replace(tzinfo=timezone.utc)
+            last_synced = last_synced.replace(tzinfo=UTC)
         delta_hours = (now - last_synced).total_seconds() / 3600
         if delta_hours > SYNC_STALE_THRESHOLD_HOURS:
             is_healthy = False

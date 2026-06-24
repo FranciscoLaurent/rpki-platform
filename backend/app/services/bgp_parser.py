@@ -196,7 +196,6 @@ def _parse_as_path_binary(data: bytes) -> list[int]:
         if offset + 2 > len(data):
             break
 
-        segment_type = data[offset]
         segment_length = data[offset + 1]
         offset += 2
 
@@ -204,8 +203,7 @@ def _parse_as_path_binary(data: bytes) -> list[int]:
         # 4 字节 AS：每段数据长度 = segment_length * 4
         # 2 字节 AS：每段数据长度 = segment_length * 2
         remaining = len(data) - offset
-        if remaining >= segment_length * 4:
-            # 4 字节 AS
+        if remaining >= segment_length * 4:  # 4 字节 AS
             for _ in range(segment_length):
                 if offset + 4 > len(data):
                     break
@@ -358,9 +356,7 @@ def _parse_large_communities_binary(data: bytes) -> list[str]:
     offset = 0
 
     while offset + 12 <= len(data):
-        global_admin, local_data1, local_data2 = struct.unpack(
-            "!III", data[offset : offset + 12]
-        )
+        global_admin, local_data1, local_data2 = struct.unpack("!III", data[offset : offset + 12])
         communities.append(f"{global_admin}:{local_data1}:{local_data2}")
         offset += 12
 
@@ -431,9 +427,7 @@ def _parse_attributes_from_dict(data: dict[str, Any]) -> dict[str, Any]:
         result["communities"] = parse_communities(data["communities"])
 
     if "large_communities" in data:
-        result["large_communities"] = parse_large_communities(
-            data["large_communities"]
-        )
+        result["large_communities"] = parse_large_communities(data["large_communities"])
 
     if "atomic_aggregate" in data:
         result["atomic_aggregate"] = bool(data["atomic_aggregate"])
@@ -510,9 +504,7 @@ def _parse_attributes_from_binary(data: bytes) -> dict[str, Any]:
             elif attr_type == BGP_ATTR_COMMUNITIES:
                 result["communities"] = _parse_communities_binary(attr_value)
             elif attr_type == BGP_ATTR_LARGE_COMMUNITIES:
-                result["large_communities"] = _parse_large_communities_binary(
-                    attr_value
-                )
+                result["large_communities"] = _parse_large_communities_binary(attr_value)
             elif attr_type == BGP_ATTR_ORIGIN:
                 if len(attr_value) == 1:
                     result["origin"] = attr_value[0]

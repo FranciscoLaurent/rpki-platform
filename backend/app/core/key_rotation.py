@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import secrets
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from app.core.config import settings
@@ -77,17 +77,13 @@ class KeyRotationHistory:
         if len(self.records) > 100:
             self.records = self.records[-100:]
 
-    def list_records(
-        self, key_type: str | None = None, limit: int = 50
-    ) -> list[dict[str, Any]]:
+    def list_records(self, key_type: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
         """查询轮换历史记录。"""
         records = self.records
         if key_type is not None:
             records = [r for r in records if r.key_type == key_type]
         # 按时间倒序返回
-        sorted_records = sorted(
-            records, key=lambda r: r.rotated_at, reverse=True
-        )
+        sorted_records = sorted(records, key=lambda r: r.rotated_at, reverse=True)
         return [r.to_dict() for r in sorted_records[:limit]]
 
     def latest_version(self, key_type: str) -> int | None:
@@ -125,7 +121,7 @@ def rotate_jwt_key(
         新生成的 JWT 密钥字符串（64 个十六进制字符）
     """
     new_key = secrets.token_hex(32)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     previous_version = _history.latest_version("jwt")
     new_version = (previous_version or 0) + 1
@@ -178,7 +174,7 @@ def rotate_api_key_secret(
         新生成的 API Key 签名密钥字符串（64 个十六进制字符）
     """
     new_key = secrets.token_hex(32)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     previous_version = _history.latest_version("api_key")
     new_version = (previous_version or 0) + 1
@@ -213,9 +209,7 @@ def get_api_key_rotation_history(limit: int = 50) -> list[dict[str, Any]]:
 # ──────────────────────────────────────────────
 
 
-def get_rotation_history(
-    key_type: str | None = None, limit: int = 50
-) -> list[dict[str, Any]]:
+def get_rotation_history(key_type: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
     """查询密钥轮换历史。
 
     Args:
@@ -248,7 +242,7 @@ def is_rotation_due(key_type: str) -> bool:
         return False
 
     latest = max(records, key=lambda r: r.rotated_at)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return now - latest.rotated_at >= timedelta(days=interval_days)
 
 

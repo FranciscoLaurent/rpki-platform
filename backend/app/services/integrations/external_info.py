@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -63,9 +63,7 @@ class RIRAdapter(BaseAdapter):
         base_url = self._get_base_url() or RIR_STAT_SOURCES["ripe"]
         start = time.monotonic()
         try:
-            async with httpx.AsyncClient(
-                timeout=self._get_timeout()
-            ) as client:
+            async with httpx.AsyncClient(timeout=self._get_timeout()) as client:
                 response = await client.get(f"{base_url}/data/wholesite/info.json")
             latency_ms = int((time.monotonic() - start) * 1000)
             success = response.status_code < 400
@@ -77,9 +75,7 @@ class RIRAdapter(BaseAdapter):
             )
         except Exception as e:
             latency_ms = int((time.monotonic() - start) * 1000)
-            return AdapterResult(
-                success=False, error_message=str(e), latency_ms=latency_ms
-            )
+            return AdapterResult(success=False, error_message=str(e), latency_ms=latency_ms)
 
 
 # ──────────────────────────────────────────────
@@ -151,7 +147,7 @@ async def query_rir(config: dict[str, Any], prefix: str) -> dict[str, Any]:
             "country": block.get("country", ""),
             "status": block.get("status", "allocated"),
             "cached": False,
-            "fetched_at": datetime.now(timezone.utc).isoformat(),
+            "fetched_at": datetime.now(UTC).isoformat(),
         }
         # 写入缓存
         await _set_cached_data(cache_key, result, "rir")
@@ -222,7 +218,7 @@ async def query_irr(config: dict[str, Any], prefix: str) -> dict[str, Any]:
             "routes": routes,
             "route_count": len(routes),
             "cached": False,
-            "fetched_at": datetime.now(timezone.utc).isoformat(),
+            "fetched_at": datetime.now(UTC).isoformat(),
         }
         await _set_cached_data(cache_key, result, "irr", source)
         return result
@@ -296,7 +292,7 @@ async def query_peeringdb(asn: int) -> dict[str, Any]:
             "info_scope": net.get("info_scope"),
             "country": net.get("country"),
             "cached": False,
-            "fetched_at": datetime.now(timezone.utc).isoformat(),
+            "fetched_at": datetime.now(UTC).isoformat(),
         }
         await _set_cached_data(cache_key, result, "peeringdb")
         return result
@@ -325,7 +321,7 @@ async def enrich_prefix(db: AsyncSession, prefix: str) -> dict[str, Any]:
         "prefix": prefix,
         "rir_info": None,
         "irr_info": None,
-        "enriched_at": datetime.now(timezone.utc).isoformat(),
+        "enriched_at": datetime.now(UTC).isoformat(),
     }
 
     # 并发查询 RIR 与 IRR
@@ -373,7 +369,7 @@ async def enrich_asn(db: AsyncSession, asn: int) -> dict[str, Any]:
     enriched: dict[str, Any] = {
         "asn": asn,
         "peeringdb_info": None,
-        "enriched_at": datetime.now(timezone.utc).isoformat(),
+        "enriched_at": datetime.now(UTC).isoformat(),
     }
 
     # 查询 PeeringDB
@@ -415,7 +411,7 @@ async def _get_cached_data(cache_key: str) -> dict[str, Any] | None:
         async with async_session_factory() as session:
             stmt = select(ExternalDataCache).where(
                 ExternalDataCache.cache_key == cache_key,
-                ExternalDataCache.expires_at > datetime.now(timezone.utc),
+                ExternalDataCache.expires_at > datetime.now(UTC),
             )
             result = await session.execute(stmt)
             cached = result.scalar_one_or_none()
@@ -438,15 +434,11 @@ async def _set_cached_data(
 
         async with async_session_factory() as session:
             # 检查是否已存在缓存记录
-            stmt = select(ExternalDataCache).where(
-                ExternalDataCache.cache_key == cache_key
-            )
+            stmt = select(ExternalDataCache).where(ExternalDataCache.cache_key == cache_key)
             result = await session.execute(stmt)
             existing = result.scalar_one_or_none()
 
-            expires_at = datetime.now(timezone.utc) + timedelta(
-                seconds=DEFAULT_CACHE_TTL
-            )
+            expires_at = datetime.now(UTC) + timedelta(seconds=DEFAULT_CACHE_TTL)
             if existing:
                 existing.cache_value = data
                 existing.expires_at = expires_at

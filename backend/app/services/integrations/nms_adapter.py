@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -56,9 +56,7 @@ class NMSAdapter(BaseAdapter):
                 timeout=self._get_timeout(),
                 verify=self.connection_params.get("verify_tls", True),
             ) as client:
-                response = await client.get(
-                    f"{base_url}/api/v1/status", headers=headers
-                )
+                response = await client.get(f"{base_url}/api/v1/status", headers=headers)
             latency_ms = int((time.monotonic() - start) * 1000)
             success = response.status_code < 400
             return AdapterResult(
@@ -69,9 +67,7 @@ class NMSAdapter(BaseAdapter):
             )
         except Exception as e:
             latency_ms = int((time.monotonic() - start) * 1000)
-            return AdapterResult(
-                success=False, error_message=str(e), latency_ms=latency_ms
-            )
+            return AdapterResult(success=False, error_message=str(e), latency_ms=latency_ms)
 
     async def query_device_status(self, device_name: str) -> AdapterResult:
         """查询单个设备状态。"""
@@ -102,9 +98,7 @@ class NMSAdapter(BaseAdapter):
             )
         except Exception as e:
             latency_ms = int((time.monotonic() - start) * 1000)
-            return AdapterResult(
-                success=False, error_message=str(e), latency_ms=latency_ms
-            )
+            return AdapterResult(success=False, error_message=str(e), latency_ms=latency_ms)
 
 
 # ──────────────────────────────────────────────
@@ -112,9 +106,7 @@ class NMSAdapter(BaseAdapter):
 # ──────────────────────────────────────────────
 
 
-async def push_to_prometheus(
-    config: dict[str, Any], metrics: list[dict[str, Any]]
-) -> bool:
+async def push_to_prometheus(config: dict[str, Any], metrics: list[dict[str, Any]]) -> bool:
     """推送指标到 Prometheus Pushgateway。
 
     Args:
@@ -151,9 +143,7 @@ async def push_to_prometheus(
         lines.append(f"# TYPE {name} {metric_type}")
         labels = metric.get("labels") or {}
         if labels:
-            label_str = ",".join(
-                f'{k}="{v}"' for k, v in labels.items()
-            )
+            label_str = ",".join(f'{k}="{v}"' for k, v in labels.items())
             lines.append(f"{name}{{{label_str}}} {value}")
         else:
             lines.append(f"{name} {value}")
@@ -310,21 +300,15 @@ async def query_nms_status(config: dict[str, Any]) -> dict[str, Any]:
 
         username = config.get("username", "")
         password = config.get("password", "")
-        credentials = base64.b64encode(
-            f"{username}:{password}".encode("utf-8")
-        ).decode("ascii")
+        credentials = base64.b64encode(f"{username}:{password}".encode()).decode("ascii")
         headers["Authorization"] = f"Basic {credentials}"
 
     timeout = float(config.get("timeout", 10))
     verify_tls = config.get("verify_tls", True)
 
     try:
-        async with httpx.AsyncClient(
-            timeout=timeout, verify=verify_tls
-        ) as client:
-            response = await client.get(
-                f"{base_url}/api/v1/devices", headers=headers
-            )
+        async with httpx.AsyncClient(timeout=timeout, verify=verify_tls) as client:
+            response = await client.get(f"{base_url}/api/v1/devices", headers=headers)
         if response.status_code >= 400:
             return {
                 "success": False,
@@ -369,13 +353,10 @@ async def export_metrics(db: AsyncSession) -> list[dict[str, Any]]:
         指标列表，每项包含 name、value、labels、help、type 字段。
     """
     metrics: list[dict[str, Any]] = []
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     # 前缀总数（按状态分组）
-    stmt = (
-        select(Prefix.status, func.count(Prefix.id))
-        .group_by(Prefix.status)
-    )
+    stmt = select(Prefix.status, func.count(Prefix.id)).group_by(Prefix.status)
     result = await db.execute(stmt)
     for status, count in result.all():
         metrics.append(

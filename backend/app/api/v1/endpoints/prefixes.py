@@ -117,9 +117,7 @@ async def batch_import_prefixes(
 
     逐条创建，单条失败不影响其他项。
     """
-    return await prefix_service.batch_import_prefixes(
-        db, payload.prefixes, current_user
-    )
+    return await prefix_service.batch_import_prefixes(db, payload.prefixes, current_user)
 
 
 @router.get("/{prefix_id}", response_model=PrefixResponse)

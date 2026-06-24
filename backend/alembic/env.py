@@ -6,10 +6,11 @@ import asyncio
 import os
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
+
+from alembic import context
 
 # 加载 Alembic 日志配置
 config = context.config
@@ -24,7 +25,6 @@ if database_url:
 
 # 导入应用配置与模型，确保模型被注册到 metadata
 # 这里使用延迟导入避免在配置加载阶段触发不必要的依赖
-from app.core.config import settings  # noqa: E402
 from app.models import Base  # noqa: E402
 
 target_metadata = Base.metadata

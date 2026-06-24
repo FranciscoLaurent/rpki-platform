@@ -12,10 +12,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import get_logger
@@ -28,9 +28,7 @@ from app.schemas.benign_conflict import BenignConflictAnalysisResult
 logger = get_logger("app.benign_conflict.anycast")
 
 
-async def detect_anycast_expansion(
-    db: AsyncSession, alert: Alert
-) -> BenignConflictAnalysisResult:
+async def detect_anycast_expansion(db: AsyncSession, alert: Alert) -> BenignConflictAnalysisResult:
     """识别 Anycast 扩容。
 
     Args:
@@ -129,9 +127,7 @@ async def detect_anycast_expansion(
     )
 
 
-async def _check_anycast_node(
-    db: AsyncSession, asn: int, prefix: str
-) -> AnycastNode | None:
+async def _check_anycast_node(db: AsyncSession, asn: int, prefix: str) -> AnycastNode | None:
     """检查是否为已登记的 Anycast 节点。
 
     Args:
@@ -168,7 +164,7 @@ async def _get_historical_origin_asns(
     Returns:
         历史 origin AS 列表
     """
-    since = datetime.now(timezone.utc) - timedelta(days=lookback_days)
+    since = datetime.now(UTC) - timedelta(days=lookback_days)
     stmt = (
         select(BGPAnnouncement.origin_as)
         .where(BGPAnnouncement.prefix == prefix)

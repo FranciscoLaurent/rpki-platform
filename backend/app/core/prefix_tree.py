@@ -83,7 +83,9 @@ class PrefixTree(Generic[T]):
         binary = format(addr_int, f"0{total_bits}b")
         return binary[:prefix_len]
 
-    def _get_root(self, network: ipaddress.IPv4Network | ipaddress.IPv6Network) -> PrefixTreeNode[T]:
+    def _get_root(
+        self, network: ipaddress.IPv4Network | ipaddress.IPv6Network
+    ) -> PrefixTreeNode[T]:
         """根据网络类型获取对应的根节点。"""
         if isinstance(network, ipaddress.IPv4Network):
             return self._root_v4

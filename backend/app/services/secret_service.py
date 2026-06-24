@@ -9,14 +9,12 @@ from __future__ import annotations
 from typing import Any
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.encryption import (
     decrypt_data,
     decrypt_dict,
     encrypt_data,
     encrypt_dict,
-    get_encryption_key,
     rotate_encryption_key,
 )
 from app.core.logging import get_logger
@@ -121,9 +119,7 @@ async def rotate_secrets(old_key: str, new_key: str) -> int:
 
     # 使用独立的数据库会话执行批量轮换，避免依赖调用方会话
     async with async_session_factory() as db:
-        stmt = select(IntegrationConfig).where(
-            IntegrationConfig.auth_config.isnot(None)
-        )
+        stmt = select(IntegrationConfig).where(IntegrationConfig.auth_config.isnot(None))
         result = await db.execute(stmt)
         integrations = result.scalars().all()
 
@@ -151,9 +147,9 @@ async def rotate_secrets(old_key: str, new_key: str) -> int:
                         field=field,
                     )
                     continue
-                new_auth_config[field] = new_fernet.encrypt(
-                    plaintext.encode("utf-8")
-                ).decode("utf-8")
+                new_auth_config[field] = new_fernet.encrypt(plaintext.encode("utf-8")).decode(
+                    "utf-8"
+                )
                 changed = True
 
             if changed:

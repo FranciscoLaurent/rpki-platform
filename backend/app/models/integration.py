@@ -19,13 +19,11 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.field_encryption import EncryptedJSON
 from app.models.base import Base, TenantMixin, TimestampMixin
-
 
 # ──────────────────────────────────────────────
 # 集成配置
@@ -47,28 +45,19 @@ class IntegrationConfig(Base, TimestampMixin, TenantMixin):
         Index("ix_integration_configs_name", "name"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="集成名称"
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="集成名称")
     code: Mapped[str] = mapped_column(
         String(100),
         nullable=False,
         unique=True,
         comment="集成唯一编码，用于幂等校验",
     )
-    description: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="集成描述"
-    )
+    description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="集成描述")
     integration_type: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
-        comment=(
-            "集成类型：webhook/syslog/kafka/ipam/siem/nms/rir/"
-            "collaboration"
-        ),
+        comment=("集成类型：webhook/syslog/kafka/ipam/siem/nms/rir/collaboration"),
     )
     # 子类型用于区分同类集成的不同实现，如 siem 下的 splunk/qradar
     subtype: Mapped[str | None] = mapped_column(
@@ -114,10 +103,7 @@ class IntegrationConfig(Base, TimestampMixin, TenantMixin):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<IntegrationConfig(id={self.id}, name={self.name}, "
-            f"type={self.integration_type})>"
-        )
+        return f"<IntegrationConfig(id={self.id}, name={self.name}, type={self.integration_type})>"
 
 
 # ──────────────────────────────────────────────
@@ -139,12 +125,8 @@ class EventSubscription(Base, TimestampMixin, TenantMixin):
         Index("ix_event_subscriptions_enabled", "enabled"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="订阅名称"
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="订阅名称")
     integration_id: Mapped[int] = mapped_column(
         ForeignKey("integration_configs.id", ondelete="CASCADE"),
         nullable=False,
@@ -217,19 +199,14 @@ class EventSubscription(Base, TimestampMixin, TenantMixin):
     )
 
     # 关联
-    integration: Mapped[IntegrationConfig] = relationship(
-        back_populates="subscriptions"
-    )
+    integration: Mapped[IntegrationConfig] = relationship(back_populates="subscriptions")
     deliveries: Mapped[list[EventDelivery]] = relationship(
         back_populates="subscription",
         cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<EventSubscription(id={self.id}, name={self.name}, "
-            f"event_type={self.event_type})>"
-        )
+        return f"<EventSubscription(id={self.id}, name={self.name}, event_type={self.event_type})>"
 
 
 # ──────────────────────────────────────────────
@@ -253,25 +230,17 @@ class EventDelivery(Base, TimestampMixin):
         Index("ix_event_deliveries_next_retry_at", "next_retry_at"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     subscription_id: Mapped[int] = mapped_column(
         ForeignKey("event_subscriptions.id", ondelete="CASCADE"),
         nullable=False,
         comment="关联的订阅 ID",
     )
     # 事件类型冗余存储，便于查询
-    event_type: Mapped[str] = mapped_column(
-        String(100), nullable=False, comment="事件类型"
-    )
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False, comment="事件类型")
     # 关联的资源 ID（如 alert_id、incident_id）
-    resource_type: Mapped[str | None] = mapped_column(
-        String(50), nullable=True, comment="资源类型"
-    )
-    resource_id: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, comment="资源 ID"
-    )
+    resource_type: Mapped[str | None] = mapped_column(String(50), nullable=True, comment="资源类型")
+    resource_id: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="资源 ID")
     # 投递 payload（JSON 序列化后的事件内容）
     payload: Mapped[dict[str, Any] | None] = mapped_column(
         JSON, nullable=True, comment="投递 payload"
@@ -307,20 +276,13 @@ class EventDelivery(Base, TimestampMixin):
         Text, nullable=True, comment="响应内容（截断）"
     )
     # 错误信息
-    error_message: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="错误信息"
-    )
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True, comment="错误信息")
 
     # 关联
-    subscription: Mapped[EventSubscription] = relationship(
-        back_populates="deliveries"
-    )
+    subscription: Mapped[EventSubscription] = relationship(back_populates="deliveries")
 
     def __repr__(self) -> str:
-        return (
-            f"<EventDelivery(id={self.id}, status={self.status}, "
-            f"event_type={self.event_type})>"
-        )
+        return f"<EventDelivery(id={self.id}, status={self.status}, event_type={self.event_type})>"
 
 
 # ──────────────────────────────────────────────
@@ -343,9 +305,7 @@ class IntegrationLog(Base, TimestampMixin, TenantMixin):
         Index("ix_integration_logs_created_at", "created_at"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     config_id: Mapped[int | None] = mapped_column(
         ForeignKey("integration_configs.id", ondelete="SET NULL"),
         nullable=True,
@@ -365,9 +325,7 @@ class IntegrationLog(Base, TimestampMixin, TenantMixin):
         default="pending",
         comment="状态：pending/success/failed",
     )
-    error: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="错误信息"
-    )
+    error: Mapped[str | None] = mapped_column(Text, nullable=True, comment="错误信息")
 
     def __repr__(self) -> str:
         return (
@@ -395,9 +353,7 @@ class ExternalDataCache(Base, TimestampMixin, TenantMixin):
         Index("ix_external_data_cache_expires_at", "expires_at"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     # 数据源类型：rir/irr/peeringdb/ipam/cmdb/siem 等
     source_type: Mapped[str] = mapped_column(
         String(50),
@@ -411,17 +367,13 @@ class ExternalDataCache(Base, TimestampMixin, TenantMixin):
         comment="数据源子类型（如 ripe/apnic/arin）",
     )
     # 缓存键（如 "asn:13335" 或 "prefix:1.1.1.0/24"）
-    cache_key: Mapped[str] = mapped_column(
-        String(500), nullable=False, comment="缓存键"
-    )
+    cache_key: Mapped[str] = mapped_column(String(500), nullable=False, comment="缓存键")
     # 缓存值（JSON 序列化）
     cache_value: Mapped[dict[str, Any] | None] = mapped_column(
         JSON, nullable=True, comment="缓存值"
     )
     # 原始响应文本（用于审计或调试）
-    raw_response: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="原始响应文本"
-    )
+    raw_response: Mapped[str | None] = mapped_column(Text, nullable=True, comment="原始响应文本")
     # 过期时间
     expires_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="过期时间"
@@ -432,10 +384,7 @@ class ExternalDataCache(Base, TimestampMixin, TenantMixin):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<ExternalDataCache(id={self.id}, source={self.source_type}, "
-            f"key={self.cache_key})>"
-        )
+        return f"<ExternalDataCache(id={self.id}, source={self.source_type}, key={self.cache_key})>"
 
 
 __all__ = [

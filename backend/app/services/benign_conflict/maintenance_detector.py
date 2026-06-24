@@ -12,7 +12,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -50,21 +50,19 @@ async def detect_planned_maintenance(
     confidence = 0.0
 
     # 1. 检查是否有匹配的维护窗口
-    maintenance_window = await _find_matching_maintenance(
-        db, prefix, origin_as, alert.created_at
-    )
+    maintenance_window = await _find_matching_maintenance(db, prefix, origin_as, alert.created_at)
     evidence["checks"]["has_maintenance_window"] = maintenance_window is not None
     if maintenance_window is not None:
         evidence["maintenance_window"] = {
             "id": maintenance_window.id,
             "name": maintenance_window.name,
             "description": maintenance_window.description,
-            "start_time": maintenance_window.start_time.isoformat()
-            if maintenance_window.start_time
-            else None,
-            "end_time": maintenance_window.end_time.isoformat()
-            if maintenance_window.end_time
-            else None,
+            "start_time": (
+                maintenance_window.start_time.isoformat() if maintenance_window.start_time else None
+            ),
+            "end_time": (
+                maintenance_window.end_time.isoformat() if maintenance_window.end_time else None
+            ),
             "prefixes": maintenance_window.prefixes,
             "asns": maintenance_window.asns,
             "status": maintenance_window.status,
@@ -96,10 +94,7 @@ async def detect_planned_maintenance(
     confidence = max(0.0, min(1.0, confidence))
 
     # 判定：存在匹配的维护窗口且有审批 → 良性冲突
-    is_benign = (
-        maintenance_window is not None
-        and maintenance_window.approved_by is not None
-    )
+    is_benign = maintenance_window is not None and maintenance_window.approved_by is not None
 
     if is_benign:
         recommendation = (

@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import func, select
@@ -58,9 +58,7 @@ async def create_maintenance_window(
     return window
 
 
-async def get_maintenance_window(
-    db: AsyncSession, window_id: int
-) -> MaintenanceWindow | None:
+async def get_maintenance_window(db: AsyncSession, window_id: int) -> MaintenanceWindow | None:
     """根据 ID 获取维护窗口。"""
     stmt = select(MaintenanceWindow).where(MaintenanceWindow.id == window_id)
     result = await db.execute(stmt)
@@ -89,29 +87,21 @@ async def get_maintenance_windows(
         if filters.get("status"):
             stmt = stmt.where(MaintenanceWindow.status == filters["status"])
         if filters.get("work_order_id"):
-            stmt = stmt.where(
-                MaintenanceWindow.work_order_id == filters["work_order_id"]
-            )
+            stmt = stmt.where(MaintenanceWindow.work_order_id == filters["work_order_id"])
 
-    stmt = stmt.order_by(
-        MaintenanceWindow.start_time.desc()
-    ).offset(skip).limit(limit)
+    stmt = stmt.order_by(MaintenanceWindow.start_time.desc()).offset(skip).limit(limit)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
 
-async def count_maintenance_windows(
-    db: AsyncSession, filters: dict[str, Any] | None = None
-) -> int:
+async def count_maintenance_windows(db: AsyncSession, filters: dict[str, Any] | None = None) -> int:
     """统计维护窗口数量。"""
     stmt = select(func.count(MaintenanceWindow.id))
     if filters:
         if filters.get("status"):
             stmt = stmt.where(MaintenanceWindow.status == filters["status"])
         if filters.get("work_order_id"):
-            stmt = stmt.where(
-                MaintenanceWindow.work_order_id == filters["work_order_id"]
-            )
+            stmt = stmt.where(MaintenanceWindow.work_order_id == filters["work_order_id"])
 
     result = await db.execute(stmt)
     return int(result.scalar_one() or 0)
@@ -147,9 +137,7 @@ async def update_maintenance_window(
     return window
 
 
-async def delete_maintenance_window(
-    db: AsyncSession, window: MaintenanceWindow
-) -> None:
+async def delete_maintenance_window(db: AsyncSession, window: MaintenanceWindow) -> None:
     """删除维护窗口。"""
     await db.delete(window)
     await db.commit()
@@ -182,7 +170,7 @@ async def check_active_maintenance(
     Returns:
         匹配的维护窗口对象，无匹配返回 None
     """
-    check_time = at_time or datetime.now(timezone.utc)
+    check_time = at_time or datetime.now(UTC)
 
     stmt = (
         select(MaintenanceWindow)

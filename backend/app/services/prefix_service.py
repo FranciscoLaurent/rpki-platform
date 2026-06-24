@@ -90,18 +90,12 @@ async def create_prefix(
 
 async def get_prefix(db: AsyncSession, prefix_id: int) -> Prefix | None:
     """根据 ID 获取前缀。"""
-    stmt = (
-        select(Prefix)
-        .options(selectinload(Prefix.children))
-        .where(Prefix.id == prefix_id)
-    )
+    stmt = select(Prefix).options(selectinload(Prefix.children)).where(Prefix.id == prefix_id)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
 
-async def get_prefix_by_cidr(
-    db: AsyncSession, cidr: str
-) -> Prefix | None:
+async def get_prefix_by_cidr(db: AsyncSession, cidr: str) -> Prefix | None:
     """根据 CIDR 字符串获取前缀。"""
     stmt = select(Prefix).where(Prefix.prefix == cidr)
     result = await db.execute(stmt)
@@ -146,18 +140,14 @@ async def get_prefixes(
             # JSON 数组包含查询（PostgreSQL）
             stmt = stmt.where(Prefix.tags.contains([filters["tag"]]))
         if filters.get("business_service"):
-            stmt = stmt.where(
-                Prefix.business_service == filters["business_service"]
-            )
+            stmt = stmt.where(Prefix.business_service == filters["business_service"])
 
     stmt = stmt.order_by(Prefix.prefix).offset(skip).limit(limit)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
 
-async def count_prefixes(
-    db: AsyncSession, filters: dict[str, Any] | None = None
-) -> int:
+async def count_prefixes(db: AsyncSession, filters: dict[str, Any] | None = None) -> int:
     """统计前缀数量。"""
     stmt = select(func.count(Prefix.id))
     if filters:
@@ -178,17 +168,13 @@ async def count_prefixes(
         if filters.get("tag"):
             stmt = stmt.where(Prefix.tags.contains([filters["tag"]]))
         if filters.get("business_service"):
-            stmt = stmt.where(
-                Prefix.business_service == filters["business_service"]
-            )
+            stmt = stmt.where(Prefix.business_service == filters["business_service"])
 
     result = await db.execute(stmt)
     return result.scalar_one()
 
 
-async def update_prefix(
-    db: AsyncSession, prefix: Prefix, prefix_update: PrefixUpdate
-) -> Prefix:
+async def update_prefix(db: AsyncSession, prefix: Prefix, prefix_update: PrefixUpdate) -> Prefix:
     """更新前缀。
 
     若更新了 prefix 字段，则同步刷新 prefix_family、prefix_length 与 parent_id。
@@ -289,9 +275,7 @@ async def batch_import_prefixes(
     )
 
 
-async def get_prefix_tree(
-    db: AsyncSession, root_id: int | None = None
-) -> list[Prefix]:
+async def get_prefix_tree(db: AsyncSession, root_id: int | None = None) -> list[Prefix]:
     """获取前缀树。
 
     Args:
@@ -302,11 +286,7 @@ async def get_prefix_tree(
         前缀列表（已预加载 children 关系）
     """
     if root_id is not None:
-        stmt = (
-            select(Prefix)
-            .options(selectinload(Prefix.children))
-            .where(Prefix.id == root_id)
-        )
+        stmt = select(Prefix).options(selectinload(Prefix.children)).where(Prefix.id == root_id)
         result = await db.execute(stmt)
         root = result.scalar_one_or_none()
         return [root] if root is not None else []
@@ -322,9 +302,7 @@ async def get_prefix_tree(
     return list(result.scalars().all())
 
 
-async def find_parent_prefix(
-    db: AsyncSession, prefix: str
-) -> Prefix | None:
+async def find_parent_prefix(db: AsyncSession, prefix: str) -> Prefix | None:
     """查找给定前缀的父前缀（CIDR 包含关系）。
 
     在所有已登记前缀中，找到包含给定前缀且前缀长度最大的那个
@@ -368,9 +346,7 @@ async def find_parent_prefix(
     return best_parent
 
 
-async def check_prefix_overlap(
-    db: AsyncSession, prefix: str
-) -> list[Prefix]:
+async def check_prefix_overlap(db: AsyncSession, prefix: str) -> list[Prefix]:
     """检查前缀重叠。
 
     返回与给定前缀存在重叠但非严格父子关系的前缀列表。

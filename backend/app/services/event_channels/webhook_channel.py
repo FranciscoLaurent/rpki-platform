@@ -59,9 +59,7 @@ class WebhookChannel(BaseChannel):
         verify_tls = connection_params.get("verify_tls", True)
 
         # 序列化 payload
-        body = json.dumps(payload, ensure_ascii=False, default=str).encode(
-            "utf-8"
-        )
+        body = json.dumps(payload, ensure_ascii=False, default=str).encode("utf-8")
 
         # 构造请求头
         headers = {
@@ -77,12 +75,8 @@ class WebhookChannel(BaseChannel):
         start = time.monotonic()
         try:
             # TODO: 实际生产环境应使用连接池与重试策略
-            async with httpx.AsyncClient(
-                timeout=timeout, verify=verify_tls
-            ) as client:
-                response = await client.post(
-                    target, content=body, headers=headers
-                )
+            async with httpx.AsyncClient(timeout=timeout, verify=verify_tls) as client:
+                response = await client.post(target, content=body, headers=headers)
             latency_ms = int((time.monotonic() - start) * 1000)
             response_body = response.text
             if len(response_body) > 2000:
@@ -111,9 +105,7 @@ class WebhookChannel(BaseChannel):
             )
         except httpx.TimeoutException as e:
             latency_ms = int((time.monotonic() - start) * 1000)
-            logger.error(
-                "Webhook 推送超时", target=target, error=str(e)
-            )
+            logger.error("Webhook 推送超时", target=target, error=str(e))
             return ChannelResult(
                 success=False,
                 error_message=f"请求超时: {e}",
@@ -121,9 +113,7 @@ class WebhookChannel(BaseChannel):
             )
         except httpx.HTTPError as e:
             latency_ms = int((time.monotonic() - start) * 1000)
-            logger.error(
-                "Webhook 推送失败", target=target, error=str(e)
-            )
+            logger.error("Webhook 推送失败", target=target, error=str(e))
             return ChannelResult(
                 success=False,
                 error_message=f"HTTP 错误: {e}",
@@ -131,9 +121,7 @@ class WebhookChannel(BaseChannel):
             )
         except Exception as e:
             latency_ms = int((time.monotonic() - start) * 1000)
-            logger.error(
-                "Webhook 推送异常", target=target, error=str(e)
-            )
+            logger.error("Webhook 推送异常", target=target, error=str(e))
             return ChannelResult(
                 success=False,
                 error_message=f"未知错误: {e}",
@@ -162,9 +150,7 @@ class WebhookChannel(BaseChannel):
 
         start = time.monotonic()
         try:
-            async with httpx.AsyncClient(
-                timeout=timeout, verify=verify_tls
-            ) as client:
+            async with httpx.AsyncClient(timeout=timeout, verify=verify_tls) as client:
                 response = await client.head(target, headers=headers)
             latency_ms = int((time.monotonic() - start) * 1000)
             success = response.status_code < 500
@@ -172,9 +158,7 @@ class WebhookChannel(BaseChannel):
                 success=success,
                 status_code=response.status_code,
                 latency_ms=latency_ms,
-                error_message=None
-                if success
-                else f"状态码 {response.status_code}",
+                error_message=None if success else f"状态码 {response.status_code}",
             )
         except Exception as e:
             latency_ms = int((time.monotonic() - start) * 1000)
@@ -202,9 +186,7 @@ class WebhookChannel(BaseChannel):
             sign_field = extra_config.get("sign_field", "X-Signature")
             # 计算 HMAC 签名
             digestmod = getattr(hashlib, algorithm, hashlib.sha256)
-            signature = hmac.new(
-                secret.encode("utf-8"), body, digestmod
-            ).hexdigest()
+            signature = hmac.new(secret.encode("utf-8"), body, digestmod).hexdigest()
             headers[sign_field] = signature
             headers["X-Signature-Algorithm"] = algorithm
         elif auth_type == "bearer":
@@ -215,9 +197,7 @@ class WebhookChannel(BaseChannel):
 
             username = auth_config.get("username", "")
             password = auth_config.get("password", "")
-            credentials = base64.b64encode(
-                f"{username}:{password}".encode("utf-8")
-            ).decode("ascii")
+            credentials = base64.b64encode(f"{username}:{password}".encode()).decode("ascii")
             headers["Authorization"] = f"Basic {credentials}"
         elif auth_type == "header":
             header_name = auth_config.get("header_name", "X-API-Key")

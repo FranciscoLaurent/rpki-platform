@@ -21,8 +21,8 @@ from app.schemas.roa import (
     ROAConflictCheckResult,
     ROACoverageStats,
     ROACreationSuggestion,
-    ROAHealthSummary,
     ROADetailResponse,
+    ROAHealthSummary,
     ROAListResponse,
     ROAMissingCheckResult,
     ROAQueryParams,
@@ -183,16 +183,11 @@ async def get_roa_detail(
         )
 
     # 获取关联的 BGP 公告
-    bgp_announcements = await roa_service.get_related_bgp_announcements(
-        db, roa
-    )
+    bgp_announcements = await roa_service.get_related_bgp_announcements(db, roa)
 
     return ROADetailResponse(
         **ROAResponse.model_validate(roa).model_dump(),
-        bgp_announcements=[
-            BGPAnnouncementResponse.model_validate(a)
-            for a in bgp_announcements
-        ],
+        bgp_announcements=[BGPAnnouncementResponse.model_validate(a) for a in bgp_announcements],
         vrps=[VRPResponse.model_validate(v) for v in roa.vrps],
     )
 
@@ -234,9 +229,7 @@ async def assess_roa_change_impact(
     需要 ``roa:read`` 权限。输入变更参数，返回受影响的 BGP 公告、业务、
     客户与验证状态变化，并识别高风险变更。
     """
-    result = await roa_service.assess_roa_change_impact(
-        db, roa_id, change_params
-    )
+    result = await roa_service.assess_roa_change_impact(db, roa_id, change_params)
     if result is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

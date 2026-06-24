@@ -76,9 +76,7 @@ class BenignConflictDetector:
         """初始化良性冲突识别引擎。"""
         self.detectors = list(_DETECTORS)
 
-    async def analyze(
-        self, db: AsyncSession, alert: Alert
-    ) -> BenignConflictAnalysisResult:
+    async def analyze(self, db: AsyncSession, alert: Alert) -> BenignConflictAnalysisResult:
         """分析告警是否为良性冲突。
 
         依次执行所有检测器，收集每个检测器的分析结果，

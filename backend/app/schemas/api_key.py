@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -12,12 +11,8 @@ class ApiKeyCreate(BaseModel):
     """创建 API Key 请求。"""
 
     name: str = Field(..., min_length=1, max_length=255, description="密钥名称")
-    scopes: list[str] = Field(
-        default_factory=list, description="权限范围列表（如 prefix:read）"
-    )
-    expires_at: datetime | None = Field(
-        None, description="过期时间，为空表示永不过期"
-    )
+    scopes: list[str] = Field(default_factory=list, description="权限范围列表（如 prefix:read）")
+    expires_at: datetime | None = Field(None, description="过期时间，为空表示永不过期")
 
 
 class ApiKeyUpdate(BaseModel):

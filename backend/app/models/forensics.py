@@ -18,7 +18,6 @@ from sqlalchemy import (
     JSON,
     Boolean,
     DateTime,
-    Float,
     ForeignKey,
     Index,
     Integer,
@@ -28,7 +27,6 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TenantMixin, TimestampMixin
-
 
 # ──────────────────────────────────────────────
 # 取证证据
@@ -52,9 +50,7 @@ class ForensicEvidence(Base, TimestampMixin, TenantMixin):
         Index("ix_forensic_evidences_collected_by", "collected_by"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     incident_id: Mapped[int | None] = mapped_column(
         ForeignKey("incidents.id", ondelete="CASCADE"),
         nullable=True,
@@ -74,12 +70,8 @@ class ForensicEvidence(Base, TimestampMixin, TenantMixin):
             "historical_baseline/other"
         ),
     )
-    title: Mapped[str] = mapped_column(
-        String(500), nullable=False, comment="证据标题"
-    )
-    description: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="证据描述"
-    )
+    title: Mapped[str] = mapped_column(String(500), nullable=False, comment="证据标题")
+    description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="证据描述")
     content: Mapped[dict[str, Any] | None] = mapped_column(
         JSON, nullable=True, comment="证据内容快照（结构化 JSON）"
     )
@@ -137,9 +129,7 @@ class RemediationAction(Base, TimestampMixin, TenantMixin):
         Index("ix_remediation_actions_executed_at", "executed_at"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     incident_id: Mapped[int | None] = mapped_column(
         ForeignKey("incidents.id", ondelete="CASCADE"),
         nullable=True,
@@ -154,12 +144,8 @@ class RemediationAction(Base, TimestampMixin, TenantMixin):
             "customer_notification/other"
         ),
     )
-    title: Mapped[str] = mapped_column(
-        String(500), nullable=False, comment="动作标题"
-    )
-    description: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="动作描述"
-    )
+    title: Mapped[str] = mapped_column(String(500), nullable=False, comment="动作标题")
+    description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="动作描述")
     target: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
@@ -177,15 +163,11 @@ class RemediationAction(Base, TimestampMixin, TenantMixin):
         default="pending",
         comment="状态：pending/in_progress/completed/failed/skipped",
     )
-    executed_by: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="执行人用户 ID"
-    )
+    executed_by: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="执行人用户 ID")
     executed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="执行时间"
     )
-    result: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="执行结果"
-    )
+    result: Mapped[str | None] = mapped_column(Text, nullable=True, comment="执行结果")
     result_details: Mapped[dict[str, Any] | None] = mapped_column(
         JSON, nullable=True, comment="执行结果详情（结构化 JSON）"
     )
@@ -197,10 +179,7 @@ class RemediationAction(Base, TimestampMixin, TenantMixin):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<RemediationAction(id={self.id}, type={self.action_type}, "
-            f"status={self.status})>"
-        )
+        return f"<RemediationAction(id={self.id}, type={self.action_type}, status={self.status})>"
 
 
 # ──────────────────────────────────────────────
@@ -222,32 +201,18 @@ class IncidentReview(Base, TimestampMixin, TenantMixin):
         Index("ix_incident_reviews_reviewed_at", "reviewed_at"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     incident_id: Mapped[int] = mapped_column(
         ForeignKey("incidents.id", ondelete="CASCADE"),
         nullable=False,
         comment="关联事件 ID",
     )
-    root_cause: Mapped[str] = mapped_column(
-        Text, nullable=False, comment="根因分析"
-    )
-    lessons_learned: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="经验教训"
-    )
-    improvements: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="改进措施"
-    )
-    prevention_measures: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="预防措施"
-    )
-    review_summary: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="复盘总结"
-    )
-    reviewed_by: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="复盘人用户 ID"
-    )
+    root_cause: Mapped[str] = mapped_column(Text, nullable=False, comment="根因分析")
+    lessons_learned: Mapped[str | None] = mapped_column(Text, nullable=True, comment="经验教训")
+    improvements: Mapped[str | None] = mapped_column(Text, nullable=True, comment="改进措施")
+    prevention_measures: Mapped[str | None] = mapped_column(Text, nullable=True, comment="预防措施")
+    review_summary: Mapped[str | None] = mapped_column(Text, nullable=True, comment="复盘总结")
+    reviewed_by: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="复盘人用户 ID")
     reviewed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -267,10 +232,7 @@ class IncidentReview(Base, TimestampMixin, TenantMixin):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<IncidentReview(id={self.id}, "
-            f"incident_id={self.incident_id})>"
-        )
+        return f"<IncidentReview(id={self.id}, incident_id={self.incident_id})>"
 
 
 # ──────────────────────────────────────────────
@@ -292,34 +254,22 @@ class NotificationChannel(Base, TimestampMixin, TenantMixin):
         Index("ix_notification_channels_enabled", "enabled"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="渠道名称"
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="渠道名称")
     channel_type: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
         comment=(
-            "渠道类型：webhook/email/sms/wechat_work/dingtalk/slack/"
-            "teams/pagerduty/itsm/soc/other"
+            "渠道类型：webhook/email/sms/wechat_work/dingtalk/slack/teams/pagerduty/itsm/soc/other"
         ),
     )
     config: Mapped[dict[str, Any] | None] = mapped_column(
         JSON,
         nullable=True,
-        comment=(
-            "渠道配置（如 webhook URL、SMTP 配置、API Token 等，"
-            "敏感字段应加密存储）"
-        ),
+        comment=("渠道配置（如 webhook URL、SMTP 配置、API Token 等，敏感字段应加密存储）"),
     )
-    enabled: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True, comment="是否启用"
-    )
-    description: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="渠道描述"
-    )
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, comment="是否启用")
+    description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="渠道描述")
     severity_filter: Mapped[list[str] | None] = mapped_column(
         JSON,
         nullable=True,
@@ -333,8 +283,7 @@ class NotificationChannel(Base, TimestampMixin, TenantMixin):
 
     def __repr__(self) -> str:
         return (
-            f"<NotificationChannel(id={self.id}, "
-            f"type={self.channel_type}, enabled={self.enabled})>"
+            f"<NotificationChannel(id={self.id}, type={self.channel_type}, enabled={self.enabled})>"
         )
 
 
@@ -358,9 +307,7 @@ class NotificationLog(Base, TimestampMixin):
         Index("ix_notification_logs_sent_at", "sent_at"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     incident_id: Mapped[int | None] = mapped_column(
         ForeignKey("incidents.id", ondelete="SET NULL"),
         nullable=True,
@@ -374,12 +321,8 @@ class NotificationLog(Base, TimestampMixin):
     channel_type: Mapped[str] = mapped_column(
         String(50), nullable=False, comment="渠道类型（冗余存储便于查询）"
     )
-    title: Mapped[str] = mapped_column(
-        String(500), nullable=False, comment="通知标题"
-    )
-    content: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="通知内容"
-    )
+    title: Mapped[str] = mapped_column(String(500), nullable=False, comment="通知标题")
+    content: Mapped[str | None] = mapped_column(Text, nullable=True, comment="通知内容")
     content_details: Mapped[dict[str, Any] | None] = mapped_column(
         JSON, nullable=True, comment="通知内容详情（结构化 JSON）"
     )
@@ -389,15 +332,11 @@ class NotificationLog(Base, TimestampMixin):
         default="pending",
         comment="状态：pending/sent/failed/retry",
     )
-    error_message: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="失败错误信息"
-    )
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True, comment="失败错误信息")
     sent_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="发送时间"
     )
-    retry_count: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0, comment="重试次数"
-    )
+    retry_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, comment="重试次数")
     triggered_by: Mapped[int | None] = mapped_column(
         Integer, nullable=True, comment="触发人用户 ID（自动触发为空）"
     )
@@ -428,24 +367,12 @@ class CaseLibrary(Base, TimestampMixin, TenantMixin):
         Index("ix_case_library_is_published", "is_published"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    title: Mapped[str] = mapped_column(
-        String(500), nullable=False, comment="案例标题"
-    )
-    description: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="案例描述"
-    )
-    root_cause: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="根因分析"
-    )
-    remediation_plan: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="处置方案"
-    )
-    tags: Mapped[list[str] | None] = mapped_column(
-        JSON, nullable=True, comment="标签列表"
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    title: Mapped[str] = mapped_column(String(500), nullable=False, comment="案例标题")
+    description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="案例描述")
+    root_cause: Mapped[str | None] = mapped_column(Text, nullable=True, comment="根因分析")
+    remediation_plan: Mapped[str | None] = mapped_column(Text, nullable=True, comment="处置方案")
+    tags: Mapped[list[str] | None] = mapped_column(JSON, nullable=True, comment="标签列表")
     severity: Mapped[str] = mapped_column(
         String(10),
         nullable=False,
@@ -470,15 +397,10 @@ class CaseLibrary(Base, TimestampMixin, TenantMixin):
         default=False,
         comment="是否已发布（发布后可被检索复用）",
     )
-    created_by: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="创建人用户 ID"
-    )
+    created_by: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="创建人用户 ID")
 
     def __repr__(self) -> str:
-        return (
-            f"<CaseLibrary(id={self.id}, title={self.title}, "
-            f"severity={self.severity})>"
-        )
+        return f"<CaseLibrary(id={self.id}, title={self.title}, severity={self.severity})>"
 
 
 __all__ = [

@@ -9,7 +9,7 @@ key 为 RTR 服务 ID，value 为 :class:`RTRServerEngine` 实例。
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import func, select
@@ -19,8 +19,8 @@ from app.core.logging import get_logger
 from app.core.rtr_server import RTRServerEngine
 from app.models.rpki import VRP
 from app.models.rtr import (
-    RTRServer,
     RTRSerialHistory,
+    RTRServer,
     RTRSession,
 )
 from app.schemas.rtr import (
@@ -43,9 +43,7 @@ _running_engines: dict[int, RTRServerEngine] = {}
 # ──────────────────────────────────────────────
 
 
-async def create_rtr_server(
-    db: AsyncSession, server_create: RTRServerCreate
-) -> RTRServer:
+async def create_rtr_server(db: AsyncSession, server_create: RTRServerCreate) -> RTRServer:
     """创建 RTR 服务配置。
 
     Args:
@@ -96,9 +94,7 @@ async def get_rtr_server(db: AsyncSession, server_id: int) -> RTRServer | None:
     return result.scalar_one_or_none()
 
 
-async def get_rtr_server_by_name(
-    db: AsyncSession, name: str
-) -> RTRServer | None:
+async def get_rtr_server_by_name(db: AsyncSession, name: str) -> RTRServer | None:
     """根据名称获取 RTR 服务。"""
     stmt = select(RTRServer).where(RTRServer.name == name)
     result = await db.execute(stmt)
@@ -130,9 +126,7 @@ async def get_rtr_servers(
     return list(result.scalars().all())
 
 
-async def count_rtr_servers(
-    db: AsyncSession, status: str | None = None
-) -> int:
+async def count_rtr_servers(db: AsyncSession, status: str | None = None) -> int:
     """统计 RTR 服务数量。"""
     stmt = select(func.count(RTRServer.id))
     if status is not None:
@@ -168,7 +162,6 @@ async def update_rtr_server(
 
     # 若服务正在运行且监听地址/端口/session_id 变更，需重启
     if server_id in _running_engines:
-        engine = _running_engines[server_id]
         if any(
             k in update_data
             for k in ("listen_host", "listen_port", "session_id", "whitelist", "mtls_enabled")
@@ -181,9 +174,7 @@ async def update_rtr_server(
     return server
 
 
-async def delete_rtr_server(
-    db: AsyncSession, server_id: int
-) -> bool:
+async def delete_rtr_server(db: AsyncSession, server_id: int) -> bool:
     """删除 RTR 服务。
 
     若服务正在运行，会先停止。
@@ -215,9 +206,7 @@ async def delete_rtr_server(
 # ──────────────────────────────────────────────
 
 
-async def start_rtr_server(
-    db: AsyncSession, server_id: int
-) -> RTRServer:
+async def start_rtr_server(db: AsyncSession, server_id: int) -> RTRServer:
     """启动 RTR 服务。
 
     流程：
@@ -278,7 +267,7 @@ async def start_rtr_server(
     server.status = "running"
     server.vrps_count = len(vrp_dicts)
     server.connected_clients = 0
-    server.last_started_at = datetime.now(timezone.utc)
+    server.last_started_at = datetime.now(UTC)
     server.last_error = None
     await db.commit()
     await db.refresh(server)
@@ -292,9 +281,7 @@ async def start_rtr_server(
     return server
 
 
-async def stop_rtr_server(
-    db: AsyncSession, server_id: int
-) -> RTRServer:
+async def stop_rtr_server(db: AsyncSession, server_id: int) -> RTRServer:
     """停止 RTR 服务。
 
     Args:
@@ -324,9 +311,7 @@ async def stop_rtr_server(
     return server
 
 
-async def get_rtr_server_status(
-    db: AsyncSession, server_id: int
-) -> RTRServerStatus:
+async def get_rtr_server_status(db: AsyncSession, server_id: int) -> RTRServerStatus:
     """获取 RTR 服务运行状态。
 
     Args:
@@ -373,9 +358,7 @@ async def get_rtr_server_status(
 # ──────────────────────────────────────────────
 
 
-async def update_vrps(
-    db: AsyncSession, server_id: int
-) -> RTRServer:
+async def update_vrps(db: AsyncSession, server_id: int) -> RTRServer:
     """更新 RTR 服务的 VRP 数据。
 
     流程：
@@ -449,9 +432,7 @@ async def update_vrps(
     return server
 
 
-async def rollback_serial(
-    db: AsyncSession, server_id: int, target_serial: int
-) -> RTRServer:
+async def rollback_serial(db: AsyncSession, server_id: int, target_serial: int) -> RTRServer:
     """回滚到指定序列号。
 
     流程：
@@ -489,9 +470,7 @@ async def rollback_serial(
     history_result = await db.execute(history_stmt)
     history = history_result.scalar_one_or_none()
     if history is None:
-        raise ValueError(
-            f"RTR 服务 {server_id} 不存在序列号 {target_serial} 的历史记录"
-        )
+        raise ValueError(f"RTR 服务 {server_id} 不存在序列号 {target_serial} 的历史记录")
 
     # 加载 VRP 数据（当前实现：使用当前 VRP 表）
     # TODO: 实际实现应从快照恢复 VRP 状态
@@ -541,9 +520,7 @@ async def rollback_serial(
 # ──────────────────────────────────────────────
 
 
-async def check_consistency(
-    db: AsyncSession, server_id: int
-) -> RTRConsistencyCheckResult:
+async def check_consistency(db: AsyncSession, server_id: int) -> RTRConsistencyCheckResult:
     """检查 RTR 服务端 VRP 与数据库 VRP 的一致性。
 
     比较运行中引擎内存中的 VRP 集合与数据库 VRP 表，返回差异列表。
@@ -584,12 +561,8 @@ async def check_consistency(
     def _key(v: dict[str, Any]) -> tuple[str, int, int]:
         return (v["prefix"], v["prefix_length"], v["origin_as"])
 
-    server_map: dict[tuple[str, int, int], dict[str, Any]] = {
-        _key(v): v for v in server_vrps
-    }
-    db_map: dict[tuple[str, int, int], dict[str, Any]] = {
-        _key(v): v for v in db_vrp_dicts
-    }
+    server_map: dict[tuple[str, int, int], dict[str, Any]] = {_key(v): v for v in server_vrps}
+    db_map: dict[tuple[str, int, int], dict[str, Any]] = {_key(v): v for v in db_vrp_dicts}
 
     differences: list[RTRConsistencyDifference] = []
 
@@ -651,9 +624,7 @@ async def check_consistency(
 # ──────────────────────────────────────────────
 
 
-async def get_rtr_sessions(
-    db: AsyncSession, server_id: int
-) -> list[RTRSession]:
+async def get_rtr_sessions(db: AsyncSession, server_id: int) -> list[RTRSession]:
     """获取 RTR 服务的客户端会话列表。
 
     优先返回运行中引擎的实时会话信息，回退到数据库历史记录。
@@ -668,7 +639,7 @@ async def get_rtr_sessions(
     # 优先从运行中引擎获取实时数据
     engine = _running_engines.get(server_id)
     if engine is not None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         sessions: list[RTRSession] = []
         for client_info in engine.get_client_infos():
             session = RTRSession(
@@ -727,11 +698,7 @@ async def get_serial_history(
 
 async def _load_vrps_from_db(db: AsyncSession) -> list[VRP]:
     """从数据库加载所有有效 VRP。"""
-    stmt = (
-        select(VRP)
-        .where(VRP.validation_status == "valid")
-        .order_by(VRP.id)
-    )
+    stmt = select(VRP).where(VRP.validation_status == "valid").order_by(VRP.id)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -759,6 +726,7 @@ def _compute_vrp_diff(
     Returns:
         (added, removed, modified) 三元组
     """
+
     def _key(v: dict[str, Any]) -> tuple[str, int, int]:
         return (v["prefix"], v["prefix_length"], v["origin_as"])
 

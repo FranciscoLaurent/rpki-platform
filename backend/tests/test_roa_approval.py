@@ -14,13 +14,11 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.schemas.roa_change import ApprovalFlowMatch
 from app.services.roa_approval_service import (
     _get_required_approvals,
     _match_condition,
     match_approval_rule,
 )
-
 
 # ──────────────────────────────────────────────
 # 辅助函数

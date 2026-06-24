@@ -6,7 +6,7 @@ ROA/VRP 命中信息与 IRR 信息，返回综合验证结果。
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import require_permissions
@@ -32,9 +32,7 @@ async def validate_prefix(
     需要 ``rpki:read`` 权限。返回前缀的 RPKI 验证状态（Valid/Invalid/NotFound）、
     匹配的 VRP/ROA 记录与验证原因。
     """
-    result = await vrp_service.validate_bgp_announcement(
-        db, prefix=prefix, origin_as=origin_as
-    )
+    result = await vrp_service.validate_bgp_announcement(db, prefix=prefix, origin_as=origin_as)
     return result.model_dump(mode="json")
 
 
@@ -53,9 +51,7 @@ async def validate_batch(
         prefix = item.get("prefix", "")
         origin_as = item.get("origin_as")
         if not prefix or origin_as is None:
-            results.append(
-                {"prefix": prefix, "error": "prefix 和 origin_as 不能为空"}
-            )
+            results.append({"prefix": prefix, "error": "prefix 和 origin_as 不能为空"})
             continue
         try:
             result = await vrp_service.validate_bgp_announcement(

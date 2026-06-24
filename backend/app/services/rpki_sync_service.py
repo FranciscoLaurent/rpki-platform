@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -16,8 +16,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import get_logger
 from app.core.rpki_validator import (
-    check_resource_coverage,
-    check_revocation,
     check_validity_period,
     parse_certificate,
     parse_crl,
@@ -25,9 +23,9 @@ from app.core.rpki_validator import (
     parse_roa,
 )
 from app.models.rpki import (
+    TAL,
     RPKIObject,
     RPKIRepository,
-    TAL,
 )
 from app.schemas.rpki import TALCreate
 
@@ -121,7 +119,7 @@ async def sync_repository(db: AsyncSession, repository_id: int) -> RPKIRepositor
             raise ValueError(f"不支持的协议: {repository.protocol}")
 
         repository.sync_status = "success"
-        repository.last_synced_at = datetime.now(timezone.utc)
+        repository.last_synced_at = datetime.now(UTC)
         repository.last_error = None
         logger.info(
             "仓库同步成功",
@@ -145,9 +143,7 @@ async def sync_repository(db: AsyncSession, repository_id: int) -> RPKIRepositor
     return repository
 
 
-async def _sync_rrdp_repository(
-    db: AsyncSession, repository: RPKIRepository
-) -> None:
+async def _sync_rrdp_repository(db: AsyncSession, repository: RPKIRepository) -> None:
     """通过 RRDP 协议同步仓库。
 
     RRDP（RPKI Repository Delta Protocol，RFC 8182）流程：
@@ -196,9 +192,7 @@ async def _sync_rrdp_repository(
     repository.object_count = 0
 
 
-async def _sync_rsync_repository(
-    db: AsyncSession, repository: RPKIRepository
-) -> None:
+async def _sync_rsync_repository(db: AsyncSession, repository: RPKIRepository) -> None:
     """通过 rsync 协议同步仓库。
 
     Note:
@@ -482,7 +476,7 @@ async def check_sync_health(db: AsyncSession) -> dict[str, Any]:
     running = sum(1 for r in repositories if r.sync_status == "running")
     pending = sum(1 for r in repositories if r.sync_status == "pending")
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     stale_repos: list[dict[str, Any]] = []
     for repo in repositories:
         if repo.last_synced_at is None:
@@ -519,9 +513,7 @@ async def get_tal_by_id(db: AsyncSession, tal_id: int) -> TAL | None:
     return result.scalar_one_or_none()
 
 
-async def get_repository_by_id(
-    db: AsyncSession, repository_id: int
-) -> RPKIRepository | None:
+async def get_repository_by_id(db: AsyncSession, repository_id: int) -> RPKIRepository | None:
     """根据 ID 获取仓库。"""
     stmt = select(RPKIRepository).where(RPKIRepository.id == repository_id)
     result = await db.execute(stmt)
@@ -551,16 +543,9 @@ async def delete_tal(db: AsyncSession, tal_id: int) -> bool:
     return True
 
 
-async def list_tals(
-    db: AsyncSession, skip: int = 0, limit: int = 50
-) -> list[TAL]:
+async def list_tals(db: AsyncSession, skip: int = 0, limit: int = 50) -> list[TAL]:
     """获取 TAL 列表。"""
-    stmt = (
-        select(TAL)
-        .order_by(TAL.id)
-        .offset(skip)
-        .limit(limit)
-    )
+    stmt = select(TAL).order_by(TAL.id).offset(skip).limit(limit)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -596,9 +581,7 @@ async def list_repositories(
     return list(result.scalars().all())
 
 
-async def count_repositories(
-    db: AsyncSession, tal_id: int | None = None
-) -> int:
+async def count_repositories(db: AsyncSession, tal_id: int | None = None) -> int:
     """统计仓库总数。"""
     from sqlalchemy import func
 

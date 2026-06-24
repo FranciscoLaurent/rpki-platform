@@ -11,7 +11,7 @@ import hmac
 import json
 import time
 import urllib.parse
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -46,9 +46,7 @@ class CollaborationAdapter(BaseAdapter):
 
         start = time.monotonic()
         try:
-            async with httpx.AsyncClient(
-                timeout=self._get_timeout()
-            ) as client:
+            async with httpx.AsyncClient(timeout=self._get_timeout()) as client:
                 # 发送测试消息
                 test_payload = {"text": "RPKI 平台连通性测试"}
                 response = await client.post(
@@ -66,9 +64,7 @@ class CollaborationAdapter(BaseAdapter):
             )
         except Exception as e:
             latency_ms = int((time.monotonic() - start) * 1000)
-            return AdapterResult(
-                success=False, error_message=str(e), latency_ms=latency_ms
-            )
+            return AdapterResult(success=False, error_message=str(e), latency_ms=latency_ms)
 
 
 # ──────────────────────────────────────────────
@@ -76,9 +72,7 @@ class CollaborationAdapter(BaseAdapter):
 # ──────────────────────────────────────────────
 
 
-async def send_email(
-    config: dict[str, Any], to: list[str], subject: str, body: str
-) -> bool:
+async def send_email(config: dict[str, Any], to: list[str], subject: str, body: str) -> bool:
     """通过 SMTP 发送邮件。
 
     Args:
@@ -136,9 +130,7 @@ async def send_email(
         return False
 
 
-async def send_sms(
-    config: dict[str, Any], to: list[str], message: str
-) -> bool:
+async def send_sms(config: dict[str, Any], to: list[str], message: str) -> bool:
     """发送短信通知（预留接口）。
 
     支持的短信服务商：aliyun、tencent、twilio。
@@ -175,9 +167,7 @@ async def send_sms(
     return True
 
 
-async def send_voice_call(
-    config: dict[str, Any], to: list[str], message: str
-) -> bool:
+async def send_voice_call(config: dict[str, Any], to: list[str], message: str) -> bool:
     """发送电话语音通知（预留接口）。
 
     支持的电话服务商：aliyun、twilio。
@@ -372,7 +362,7 @@ async def send_pagerduty(config: dict[str, Any], incident: dict[str, Any]) -> bo
             "group": incident.get("group", "network-security"),
             "class": incident.get("class", "incident"),
             "custom_details": incident.get("details", {}),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
     try:
@@ -395,9 +385,7 @@ async def send_pagerduty(config: dict[str, Any], incident: dict[str, Any]) -> bo
         return False
 
 
-async def send_notification(
-    channel: str, config: dict[str, Any], payload: dict[str, Any]
-) -> bool:
+async def send_notification(channel: str, config: dict[str, Any], payload: dict[str, Any]) -> bool:
     """统一通知入口。
 
     根据通道类型分发到对应的通知发送函数。
@@ -422,27 +410,13 @@ async def send_notification(
             payload.get("subject", ""),
             payload.get("body", ""),
         ),
-        "sms": lambda: send_sms(
-            config, payload.get("to", []), payload.get("message", "")
-        ),
-        "voice": lambda: send_voice_call(
-            config, payload.get("to", []), payload.get("message", "")
-        ),
-        "wechat_work": lambda: send_wechat_work(
-            config, payload.get("message", "")
-        ),
-        "dingtalk": lambda: send_dingtalk(
-            config, payload.get("message", "")
-        ),
-        "slack": lambda: send_slack(
-            config, payload.get("message", "")
-        ),
-        "teams": lambda: send_teams(
-            config, payload.get("message", "")
-        ),
-        "pagerduty": lambda: send_pagerduty(
-            config, payload.get("incident", payload)
-        ),
+        "sms": lambda: send_sms(config, payload.get("to", []), payload.get("message", "")),
+        "voice": lambda: send_voice_call(config, payload.get("to", []), payload.get("message", "")),
+        "wechat_work": lambda: send_wechat_work(config, payload.get("message", "")),
+        "dingtalk": lambda: send_dingtalk(config, payload.get("message", "")),
+        "slack": lambda: send_slack(config, payload.get("message", "")),
+        "teams": lambda: send_teams(config, payload.get("message", "")),
+        "pagerduty": lambda: send_pagerduty(config, payload.get("incident", payload)),
     }
 
     handler = channel_handlers.get(channel)
@@ -466,9 +440,7 @@ async def send_notification(
 # ──────────────────────────────────────────────
 
 
-async def _post_webhook(
-    url: str, payload: dict[str, Any], channel_name: str
-) -> bool:
+async def _post_webhook(url: str, payload: dict[str, Any], channel_name: str) -> bool:
     """向 Webhook URL 发送 POST 请求。"""
     try:
         async with httpx.AsyncClient(timeout=10) as client:

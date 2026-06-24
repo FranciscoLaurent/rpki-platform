@@ -13,7 +13,6 @@ ROA 创建建议与变更影响评估等功能。
 from __future__ import annotations
 
 import ipaddress
-from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +20,6 @@ from sqlalchemy.orm import selectinload
 
 from app.core.logging import get_logger
 from app.models.bgp import BGPAnnouncement
-from app.models.business import BusinessService, Customer
 from app.models.prefix import Prefix
 from app.models.rpki import ROA, VRP
 from app.schemas.roa import (
@@ -34,8 +32,7 @@ from app.schemas.roa import (
     ROAQueryParams,
     ROAValidationChange,
 )
-from app.schemas.rpki import ROAResponse, VRPResponse
-from app.services import vrp_service
+from app.schemas.rpki import ROAResponse
 
 logger = get_logger("app.roa_service")
 
@@ -137,9 +134,7 @@ async def _get_prefix_metadata(
 # ──────────────────────────────────────────────
 
 
-async def get_roas(
-    db: AsyncSession, query_params: ROAQueryParams
-) -> tuple[list[ROA], int]:
+async def get_roas(db: AsyncSession, query_params: ROAQueryParams) -> tuple[list[ROA], int]:
     """查询 ROA 列表（支持过滤与分页）。
 
     利用 ix_roas_prefix_origin_as、ix_roas_origin_as、ix_roas_tal_id、
@@ -173,9 +168,7 @@ async def get_roas(
 
     # 分页
     skip = (query_params.page - 1) * query_params.page_size
-    stmt = (
-        stmt.order_by(ROA.id).offset(skip).limit(query_params.page_size)
-    )
+    stmt = stmt.order_by(ROA.id).offset(skip).limit(query_params.page_size)
 
     result = await db.execute(stmt)
     roas = list(result.scalars().all())
@@ -196,18 +189,12 @@ async def get_roa_detail(db: AsyncSession, roa_id: int) -> ROA | None:
     Returns:
         ROA 对象（已预加载 VRP 关系），不存在返回 None
     """
-    stmt = (
-        select(ROA)
-        .options(selectinload(ROA.vrps))
-        .where(ROA.id == roa_id)
-    )
+    stmt = select(ROA).options(selectinload(ROA.vrps)).where(ROA.id == roa_id)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
 
-async def get_roa_by_prefix_origin(
-    db: AsyncSession, prefix: str, origin_as: int
-) -> list[ROA]:
+async def get_roa_by_prefix_origin(db: AsyncSession, prefix: str, origin_as: int) -> list[ROA]:
     """按前缀和 origin AS 查询 ROA。
 
     利用 ix_roas_prefix_origin_as 复合索引实现高性能查询。
@@ -220,16 +207,12 @@ async def get_roa_by_prefix_origin(
     Returns:
         匹配的 ROA 列表
     """
-    stmt = select(ROA).where(
-        ROA.prefix == prefix, ROA.origin_as == origin_as
-    )
+    stmt = select(ROA).where(ROA.prefix == prefix, ROA.origin_as == origin_as)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
 
-async def get_related_bgp_announcements(
-    db: AsyncSession, roa: ROA
-) -> list[BGPAnnouncement]:
+async def get_related_bgp_announcements(db: AsyncSession, roa: ROA) -> list[BGPAnnouncement]:
     """获取与 ROA 关联的 BGP 公告。
 
     关联规则：
@@ -312,16 +295,12 @@ async def check_roa_missing(db: AsyncSession) -> list[ROAMissingCheckResult]:
     # 批量查询所有 ROA 的 (prefix, origin_as) 集合
     roa_stmt = select(ROA.prefix, ROA.origin_as)
     roa_result = await db.execute(roa_stmt)
-    roa_set: set[tuple[str, int]] = {
-        (row.prefix, row.origin_as) for row in roa_result
-    }
+    roa_set: set[tuple[str, int]] = {(row.prefix, row.origin_as) for row in roa_result}
 
     # 批量查询所有 VRP 的 (prefix, origin_as) 集合
     vrp_stmt = select(VRP.prefix, VRP.origin_as)
     vrp_result = await db.execute(vrp_stmt)
-    vrp_set: set[tuple[str, int]] = {
-        (row.prefix, row.origin_as) for row in vrp_result
-    }
+    vrp_set: set[tuple[str, int]] = {(row.prefix, row.origin_as) for row in vrp_result}
 
     missing_results: list[ROAMissingCheckResult] = []
     for row in announcement_rows:
@@ -336,9 +315,7 @@ async def check_roa_missing(db: AsyncSession) -> list[ROAMissingCheckResult]:
 
         if not has_roa:
             # 查询前缀元数据
-            importance, business_service, customer_id = await _get_prefix_metadata(
-                db, prefix
-            )
+            importance, business_service, customer_id = await _get_prefix_metadata(db, prefix)
             missing_results.append(
                 ROAMissingCheckResult(
                     prefix=prefix,
@@ -407,9 +384,7 @@ async def check_roa_conflict(db: AsyncSession) -> list[ROAConflictCheckResult]:
                 origin_as=None,
                 conflicting_roas=[ROAResponse.model_validate(r) for r in roas],
                 conflict_type="multiple_origin_as",
-                description=(
-                    f"前缀 {row.prefix} 被授权给 {row.origin_count} 个不同的起源 AS"
-                ),
+                description=(f"前缀 {row.prefix} 被授权给 {row.origin_count} 个不同的起源 AS"),
             )
         )
 
@@ -444,18 +419,14 @@ async def check_roa_conflict(db: AsyncSession) -> list[ROAConflictCheckResult]:
             continue
 
         # 检查是否有 origin_as 匹配的 ROA
-        has_origin_match = any(
-            r.origin_as == ann.origin_as for r in covering_roas
-        )
+        has_origin_match = any(r.origin_as == ann.origin_as for r in covering_roas)
         if not has_origin_match:
             # 存在覆盖 ROA 但 origin_as 不匹配 → 冲突
             conflicts.append(
                 ROAConflictCheckResult(
                     prefix=ann.prefix,
                     origin_as=ann.origin_as,
-                    conflicting_roas=[
-                        ROAResponse.model_validate(r) for r in covering_roas
-                    ],
+                    conflicting_roas=[ROAResponse.model_validate(r) for r in covering_roas],
                     conflict_type="roa_bgp_mismatch",
                     description=(
                         f"前缀 {ann.prefix} 的实际公告 origin AS "
@@ -477,9 +448,7 @@ async def check_roa_conflict(db: AsyncSession) -> list[ROAConflictCheckResult]:
 # ──────────────────────────────────────────────
 
 
-async def check_max_length_risk(
-    db: AsyncSession, roa_id: int
-) -> MaxLengthRiskResult | None:
+async def check_max_length_risk(db: AsyncSession, roa_id: int) -> MaxLengthRiskResult | None:
     """maxLength 风险检查。
 
     分析 ROA 的 maxLength 设置是否过宽，可能导致被劫持：
@@ -532,19 +501,13 @@ async def check_max_length_risk(
         risk_level = "none"
     elif diff < 3:
         risk_level = "low"
-        risk_factors.append(
-            f"maxLength 比实际公告长度大 {diff} 位"
-        )
+        risk_factors.append(f"maxLength 比实际公告长度大 {diff} 位")
     elif diff < 8:
         risk_level = "medium"
-        risk_factors.append(
-            f"maxLength 比实际公告长度大 {diff} 位，存在一定劫持风险"
-        )
+        risk_factors.append(f"maxLength 比实际公告长度大 {diff} 位，存在一定劫持风险")
     else:
         risk_level = "high"
-        risk_factors.append(
-            f"maxLength 比实际公告长度大 {diff} 位，存在严重劫持风险"
-        )
+        risk_factors.append(f"maxLength 比实际公告长度大 {diff} 位，存在严重劫持风险")
 
     # 检查未实际使用的子前缀授权
     if actual_lengths and current_max_length > recommended_max_length:
@@ -555,21 +518,15 @@ async def check_max_length_risk(
 
     # 检查无实际公告但有 maxLength 设置的情况
     if not actual_lengths and roa.max_length is not None:
-        risk_factors.append(
-            "ROA 设置了 maxLength 但无对应的实际 BGP 公告"
-        )
+        risk_factors.append("ROA 设置了 maxLength 但无对应的实际 BGP 公告")
         risk_level = "medium" if risk_level == "none" else risk_level
 
     # 计算劫持面：从 roa.prefix_length+1 到 current_max_length 的所有子前缀
     hijack_surface: list[str] = []
     if current_max_length > roa.prefix_length:
-        hijack_surface = _get_more_specific_prefixes(
-            roa.prefix, current_max_length
-        )
+        hijack_surface = _get_more_specific_prefixes(roa.prefix, current_max_length)
         if hijack_surface:
-            risk_factors.append(
-                f"劫持面包含 {len(hijack_surface)} 个可能被利用的子前缀"
-            )
+            risk_factors.append(f"劫持面包含 {len(hijack_surface)} 个可能被利用的子前缀")
 
     return MaxLengthRiskResult(
         roa_id=roa.id,
@@ -622,9 +579,7 @@ async def generate_roa_creation_suggestions(
     # 批量查询所有现有 ROA 的 (prefix, origin_as) 集合
     roa_stmt = select(ROA.prefix, ROA.origin_as)
     roa_result = await db.execute(roa_stmt)
-    roa_set: set[tuple[str, int]] = {
-        (row.prefix, row.origin_as) for row in roa_result
-    }
+    roa_set: set[tuple[str, int]] = {(row.prefix, row.origin_as) for row in roa_result}
 
     suggestions: list[ROACreationSuggestion] = []
     for ann in bgp_announcements:
@@ -635,9 +590,7 @@ async def generate_roa_creation_suggestions(
             continue
 
         # 查询前缀元数据
-        importance, business_service, customer_id = await _get_prefix_metadata(
-            db, ann.prefix
-        )
+        importance, business_service, customer_id = await _get_prefix_metadata(db, ann.prefix)
 
         # minimal ROA：maxLength = 实际公告前缀长度
         recommended_max_length = ann.prefix_length
@@ -701,9 +654,7 @@ async def assess_roa_change_impact(
     # 计算变更后的 ROA 参数
     new_prefix = change_params.new_prefix or roa.prefix
     new_origin_as = (
-        change_params.new_origin_as
-        if change_params.new_origin_as is not None
-        else roa.origin_as
+        change_params.new_origin_as if change_params.new_origin_as is not None else roa.origin_as
     )
     if change_params.revoke:
         # 撤销 ROA：所有受影响公告将变为 NotFound
@@ -774,24 +725,16 @@ async def assess_roa_change_impact(
             )
 
             # 查询该前缀的资产元数据，识别高风险变更
-            importance, business_service, customer_id = (
-                await _get_prefix_metadata(db, ann.prefix)
-            )
+            importance, business_service, customer_id = await _get_prefix_metadata(db, ann.prefix)
             if business_service:
                 affected_business.add(business_service)
             if customer_id is not None:
                 affected_customers.add(customer_id)
 
             # 识别高风险变更：核心前缀变 Invalid
-            if (
-                importance in ("critical", "important")
-                and after_status == "invalid"
-            ):
+            if importance in ("critical", "important") and after_status == "invalid":
                 is_high_risk = True
-                risk_description = (
-                    f"核心前缀 {ann.prefix}（{importance}）"
-                    f"在变更后将变为 Invalid"
-                )
+                risk_description = f"核心前缀 {ann.prefix}（{importance}）在变更后将变为 Invalid"
 
     # 撤销 ROA 时，所有受影响公告变为 NotFound，若涉及核心前缀则为高风险
     if is_revoked and affected_announcements:
@@ -800,8 +743,7 @@ async def assess_roa_change_impact(
             if importance in ("critical", "important"):
                 is_high_risk = True
                 risk_description = (
-                    f"撤销 ROA 将导致核心前缀 {ann.prefix}"
-                    f"（{importance}）失去 RPKI 保护"
+                    f"撤销 ROA 将导致核心前缀 {ann.prefix}（{importance}）失去 RPKI 保护"
                 )
                 break
 

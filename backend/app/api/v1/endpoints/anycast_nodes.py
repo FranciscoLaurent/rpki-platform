@@ -59,9 +59,7 @@ async def list_anycast_nodes(
     node_asn: int | None = Query(None, description="按节点 ASN 过滤"),
     prefix: str | None = Query(None, description="按前缀过滤"),
     region: str | None = Query(None, description="按地域过滤"),
-    status_filter: str | None = Query(
-        None, alias="status", description="按状态过滤"
-    ),
+    status_filter: str | None = Query(None, alias="status", description="按状态过滤"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_permissions(ASSET_READ)),
 ) -> AnycastNodeListResponse:

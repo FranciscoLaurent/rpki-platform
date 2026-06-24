@@ -33,9 +33,7 @@ class Prefix(Base, TimestampMixin, TenantMixin):
         Index("ix_prefixes_customer_id", "customer_id"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     prefix: Mapped[str] = mapped_column(
         String(64),
         unique=True,
@@ -72,27 +70,17 @@ class Prefix(Base, TimestampMixin, TenantMixin):
     business_service: Mapped[str | None] = mapped_column(
         String(255), nullable=True, comment="业务归属"
     )
-    region: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, comment="地域"
-    )
-    site: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, comment="机房"
-    )
-    cloud_zone: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, comment="云区域"
-    )
+    region: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="地域")
+    site: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="机房")
+    cloud_zone: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="云区域")
     customer_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("customers.id", ondelete="SET NULL"),
         nullable=True,
         comment="关联客户 ID",
     )
-    tags: Mapped[list | None] = mapped_column(
-        JSON, nullable=True, default=list, comment="标签列表"
-    )
-    description: Mapped[str | None] = mapped_column(
-        String(500), nullable=True, comment="描述"
-    )
+    tags: Mapped[list | None] = mapped_column(JSON, nullable=True, default=list, comment="标签列表")
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="描述")
     registered_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="登记时间"
     )
@@ -101,13 +89,13 @@ class Prefix(Base, TimestampMixin, TenantMixin):
     )
 
     # 自引用关系：父前缀与子前缀
-    parent: Mapped["Prefix"] = relationship(
+    parent: Mapped[Prefix] = relationship(
         "Prefix",
         remote_side="Prefix.id",
         back_populates="children",
         foreign_keys=[parent_id],
     )
-    children: Mapped[list["Prefix"]] = relationship(
+    children: Mapped[list[Prefix]] = relationship(
         "Prefix",
         back_populates="parent",
         foreign_keys=[parent_id],
@@ -132,7 +120,7 @@ class Prefix(Base, TimestampMixin, TenantMixin):
         """将前缀字符串转换为 ipaddress 网络对象。"""
         return ipaddress.ip_network(self.prefix, strict=False)
 
-    def contains(self, other_prefix: str | "Prefix") -> bool:
+    def contains(self, other_prefix: str | Prefix) -> bool:
         """判断当前前缀是否包含另一个前缀。
 
         Args:
@@ -141,11 +129,7 @@ class Prefix(Base, TimestampMixin, TenantMixin):
         Returns:
             当前前缀严格包含另一个前缀时返回 True，相等时返回 False。
         """
-        other = (
-            other_prefix.prefix
-            if isinstance(other_prefix, Prefix)
-            else other_prefix
-        )
+        other = other_prefix.prefix if isinstance(other_prefix, Prefix) else other_prefix
         try:
             self_net = self._as_network()
             other_net = ipaddress.ip_network(other, strict=False)

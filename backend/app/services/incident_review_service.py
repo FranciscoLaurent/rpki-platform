@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import func, select
@@ -34,9 +34,7 @@ from app.services import incident_service
 logger = get_logger("app.incident_review_service")
 
 
-async def create_review(
-    db: AsyncSession, review_data: IncidentReviewCreate
-) -> IncidentReview:
+async def create_review(db: AsyncSession, review_data: IncidentReviewCreate) -> IncidentReview:
     """创建事件复盘记录。
 
     Args:
@@ -49,9 +47,7 @@ async def create_review(
     # 若未提供操作链，自动构建
     operation_chain = review_data.operation_chain
     if operation_chain is None:
-        operation_chain = await _build_operation_chain(
-            db, review_data.incident_id
-        )
+        operation_chain = await _build_operation_chain(db, review_data.incident_id)
 
     review = IncidentReview(
         incident_id=review_data.incident_id,
@@ -78,18 +74,14 @@ async def create_review(
     return review
 
 
-async def get_review(
-    db: AsyncSession, review_id: int
-) -> IncidentReview | None:
+async def get_review(db: AsyncSession, review_id: int) -> IncidentReview | None:
     """根据 ID 获取复盘记录。"""
     stmt = select(IncidentReview).where(IncidentReview.id == review_id)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
 
-async def get_review_by_incident(
-    db: AsyncSession, incident_id: int
-) -> IncidentReview | None:
+async def get_review_by_incident(db: AsyncSession, incident_id: int) -> IncidentReview | None:
     """根据事件 ID 获取复盘记录。"""
     stmt = (
         select(IncidentReview)
@@ -108,10 +100,7 @@ async def get_reviews(
 ) -> list[IncidentReview]:
     """查询复盘记录列表。"""
     stmt = (
-        select(IncidentReview)
-        .order_by(IncidentReview.reviewed_at.desc())
-        .offset(skip)
-        .limit(limit)
+        select(IncidentReview).order_by(IncidentReview.reviewed_at.desc()).offset(skip).limit(limit)
     )
     result = await db.execute(stmt)
     return list(result.scalars().all())
@@ -164,12 +153,10 @@ async def close_and_review(
     Returns:
         包含 incident、review、case（可选）的字典
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # 1. 关闭事件
-    incident = await incident_service.close_incident(
-        db, request.incident_id, request.resolution
-    )
+    incident = await incident_service.close_incident(db, request.incident_id, request.resolution)
     if incident is None:
         return {
             "incident": None,
@@ -230,9 +217,7 @@ async def close_and_review(
 # ──────────────────────────────────────────────
 
 
-async def create_case(
-    db: AsyncSession, case_data: CaseLibraryCreate
-) -> CaseLibrary:
+async def create_case(db: AsyncSession, case_data: CaseLibraryCreate) -> CaseLibrary:
     """创建案例库记录。"""
     case = CaseLibrary(
         title=case_data.title,
@@ -289,8 +274,7 @@ async def get_cases(
         # 关键词搜索（标题与描述）
         like_pattern = f"%{keyword}%"
         stmt = stmt.where(
-            (CaseLibrary.title.ilike(like_pattern))
-            | (CaseLibrary.description.ilike(like_pattern))
+            (CaseLibrary.title.ilike(like_pattern)) | (CaseLibrary.description.ilike(like_pattern))
         )
 
     stmt = stmt.order_by(CaseLibrary.created_at.desc()).offset(skip).limit(limit)
@@ -299,9 +283,7 @@ async def get_cases(
 
     # 标签过滤（内存过滤，JSON 包含查询）
     if tag:
-        cases = [
-            c for c in cases if c.tags and tag in c.tags
-        ]
+        cases = [c for c in cases if c.tags and tag in c.tags]
 
     return cases
 
@@ -325,8 +307,7 @@ async def count_cases(
     if keyword:
         like_pattern = f"%{keyword}%"
         stmt = stmt.where(
-            (CaseLibrary.title.ilike(like_pattern))
-            | (CaseLibrary.description.ilike(like_pattern))
+            (CaseLibrary.title.ilike(like_pattern)) | (CaseLibrary.description.ilike(like_pattern))
         )
 
     result = await db.execute(stmt)
@@ -364,9 +345,7 @@ async def delete_case(db: AsyncSession, case: CaseLibrary) -> None:
 # ──────────────────────────────────────────────
 
 
-async def _build_operation_chain(
-    db: AsyncSession, incident_id: int
-) -> list[dict[str, Any]]:
+async def _build_operation_chain(db: AsyncSession, incident_id: int) -> list[dict[str, Any]]:
     """构建事件的操作链（处置动作时间线）。
 
     汇总事件关联的处置动作，按时间排序形成操作链。
@@ -388,9 +367,7 @@ async def _build_operation_chain(
                 "title": action.title,
                 "status": action.status,
                 "executed_by": action.executed_by,
-                "executed_at": action.executed_at.isoformat()
-                if action.executed_at
-                else None,
+                "executed_at": action.executed_at.isoformat() if action.executed_at else None,
                 "result": action.result,
             }
         )

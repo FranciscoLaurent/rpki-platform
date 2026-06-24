@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     JSON,
@@ -22,14 +22,13 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
-    from app.models.user import User
+    pass
 
 
 # ──────────────────────────────────────────────
@@ -51,18 +50,10 @@ class ServiceAccount(Base, TimestampMixin):
         Index("ix_service_accounts_name", "name"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="服务账号名称"
-    )
-    description: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="服务账号描述"
-    )
-    tenant_id: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="所属租户 ID"
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="服务账号名称")
+    description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="服务账号描述")
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="所属租户 ID")
     status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
@@ -90,7 +81,7 @@ class ServiceAccount(Base, TimestampMixin):
     )
 
     # 关联 API 密钥
-    api_keys: Mapped[list["APIKey"]] = relationship(
+    api_keys: Mapped[list[APIKey]] = relationship(
         back_populates="service_account",
         cascade="all, delete-orphan",
     )
@@ -118,18 +109,14 @@ class APIKey(Base, TimestampMixin):
         Index("ix_api_keys_status", "status"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     service_account_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("service_accounts.id", ondelete="CASCADE"),
         nullable=False,
         comment="所属服务账号 ID",
     )
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="密钥名称（用于识别）"
-    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="密钥名称（用于识别）")
     key_hash: Mapped[str] = mapped_column(
         String(255), nullable=False, comment="密钥哈希值（bcrypt）"
     )
@@ -148,9 +135,7 @@ class APIKey(Base, TimestampMixin):
     last_used_ip: Mapped[str | None] = mapped_column(
         String(45), nullable=True, comment="最后使用 IP 地址"
     )
-    use_count: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0, comment="使用次数"
-    )
+    use_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, comment="使用次数")
     status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
@@ -159,9 +144,7 @@ class APIKey(Base, TimestampMixin):
     )
 
     # 关联服务账号
-    service_account: Mapped["ServiceAccount"] = relationship(
-        back_populates="api_keys"
-    )
+    service_account: Mapped[ServiceAccount] = relationship(back_populates="api_keys")
 
     def __repr__(self) -> str:
         return f"<APIKey(id={self.id}, name={self.name}, prefix={self.key_prefix})>"
@@ -185,9 +168,7 @@ class OAuth2Client(Base, TimestampMixin):
         Index("ix_oauth2_clients_status", "status"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     client_id: Mapped[str] = mapped_column(
         String(100),
         unique=True,
@@ -197,9 +178,7 @@ class OAuth2Client(Base, TimestampMixin):
     client_secret_hash: Mapped[str | None] = mapped_column(
         String(255), nullable=True, comment="客户端密钥哈希（公开客户端为空）"
     )
-    client_name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="客户端名称"
-    )
+    client_name: Mapped[str] = mapped_column(String(255), nullable=False, comment="客户端名称")
     client_type: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
@@ -224,16 +203,14 @@ class OAuth2Client(Base, TimestampMixin):
         default="active",
         comment="状态：active/disabled",
     )
-    tenant_id: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="所属租户 ID"
-    )
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="所属租户 ID")
 
     # 关联授权码与令牌
-    authorization_codes: Mapped[list["OAuth2AuthorizationCode"]] = relationship(
+    authorization_codes: Mapped[list[OAuth2AuthorizationCode]] = relationship(
         back_populates="client",
         cascade="all, delete-orphan",
     )
-    tokens: Mapped[list["OAuth2Token"]] = relationship(
+    tokens: Mapped[list[OAuth2Token]] = relationship(
         back_populates="client",
         cascade="all, delete-orphan",
     )
@@ -260,9 +237,7 @@ class OAuth2AuthorizationCode(Base, TimestampMixin):
         Index("ix_oauth2_auth_codes_client_id", "client_id"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     code: Mapped[str] = mapped_column(
         String(255),
         unique=True,
@@ -296,14 +271,10 @@ class OAuth2AuthorizationCode(Base, TimestampMixin):
     expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, comment="过期时间"
     )
-    used: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False, comment="是否已使用"
-    )
+    used: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, comment="是否已使用")
 
     # 关联
-    client: Mapped["OAuth2Client"] = relationship(
-        back_populates="authorization_codes"
-    )
+    client: Mapped[OAuth2Client] = relationship(back_populates="authorization_codes")
 
     def __repr__(self) -> str:
         return f"<OAuth2AuthorizationCode(id={self.id}, client_id={self.client_id})>"
@@ -328,9 +299,7 @@ class OAuth2Token(Base, TimestampMixin):
         Index("ix_oauth2_tokens_client_id", "client_id"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     access_token: Mapped[str] = mapped_column(
         String(512),
         unique=True,
@@ -381,7 +350,7 @@ class OAuth2Token(Base, TimestampMixin):
     )
 
     # 关联
-    client: Mapped["OAuth2Client"] = relationship(back_populates="tokens")
+    client: Mapped[OAuth2Client] = relationship(back_populates="tokens")
 
     def __repr__(self) -> str:
         return f"<OAuth2Token(id={self.id}, client_id={self.client_id})>"
@@ -406,15 +375,9 @@ class APIThrottlePolicy(Base, TimestampMixin):
         Index("ix_api_throttle_policies_enabled", "enabled"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="策略名称"
-    )
-    description: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="策略描述"
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="策略名称")
+    description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="策略描述")
     # 关联主体（二选一，均为空表示全局策略）
     role_code: Mapped[str | None] = mapped_column(
         String(100), nullable=True, comment="关联角色编码"
@@ -426,21 +389,15 @@ class APIThrottlePolicy(Base, TimestampMixin):
         comment="关联服务账号 ID",
     )
     # 限流参数
-    request_limit: Mapped[int] = mapped_column(
-        Integer, nullable=False, comment="请求上限"
-    )
+    request_limit: Mapped[int] = mapped_column(Integer, nullable=False, comment="请求上限")
     window_seconds: Mapped[int] = mapped_column(
         Integer, nullable=False, default=60, comment="时间窗口（秒）"
     )
     path_pattern: Mapped[str | None] = mapped_column(
         String(500), nullable=True, comment="路径模式（正则，为空匹配全部）"
     )
-    enabled: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True, comment="是否启用"
-    )
-    tenant_id: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="所属租户 ID"
-    )
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, comment="是否启用")
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="所属租户 ID")
 
     def __repr__(self) -> str:
         return (

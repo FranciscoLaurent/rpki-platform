@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import ipaddress
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from app.core.logging import get_logger
@@ -218,9 +218,7 @@ def check_resource_coverage(
         if roa_res.resource_type not in ("ipv4", "ipv6"):
             continue
         try:
-            roa_network = ipaddress.ip_network(
-                f"{roa_res.start}/{roa_res.prefix_length}"
-            )
+            roa_network = ipaddress.ip_network(f"{roa_res.start}/{roa_res.prefix_length}")
         except ValueError:
             logger.warning("无效的 ROA 资源范围", resource=roa_res)
             return False
@@ -270,12 +268,12 @@ def check_validity_period(
         是否在有效期内
     """
     if now is None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
     # 统一时区为 UTC 比较
     if not_before.tzinfo is None:
-        not_before = not_before.replace(tzinfo=timezone.utc)
+        not_before = not_before.replace(tzinfo=UTC)
     if not_after.tzinfo is None:
-        not_after = not_after.replace(tzinfo=timezone.utc)
+        not_after = not_after.replace(tzinfo=UTC)
     return not_before <= now <= not_after
 
 

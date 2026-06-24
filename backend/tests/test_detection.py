@@ -11,7 +11,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -28,8 +28,6 @@ from app.services.detection.rpki_invalid_detector import (
     detect_rpki_invalid_propagation,
 )
 from app.services.detection.withdraw_detector import detect_withdraw_flap
-from app.services.vrp_service import BGPAnnouncementValidation
-
 
 # ──────────────────────────────────────────────
 # 辅助函数
@@ -52,7 +50,7 @@ def _make_announcement(
     ann.observation_point_id = observation_point_id
     ann.rpki_validation_status = rpki_validation_status
     ann.rpki_invalid_reason = rpki_invalid_reason
-    ann.timestamp = datetime.now(timezone.utc)
+    ann.timestamp = datetime.now(UTC)
     return ann
 
 

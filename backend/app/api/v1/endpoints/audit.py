@@ -126,20 +126,14 @@ async def export_audit_logs_csv(
 
     支持与列表查询相同的过滤条件，导出量通过 ``limit`` 限制。
     """
-    filters = _build_filters(
-        user_id, tenant_id, action, resource_type, start_date, end_date
-    )
-    content = await audit_service.export_audit_logs(
-        db, filters=filters, format="csv", limit=limit
-    )
+    filters = _build_filters(user_id, tenant_id, action, resource_type, start_date, end_date)
+    content = await audit_service.export_audit_logs(db, filters=filters, format="csv", limit=limit)
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     return Response(
         content=content,
         media_type="text/csv",
         headers={
-            "Content-Disposition": (
-                f'attachment; filename="audit_logs_{timestamp}.csv"'
-            ),
+            "Content-Disposition": (f'attachment; filename="audit_logs_{timestamp}.csv"'),
         },
     )
 
@@ -160,19 +154,13 @@ async def export_audit_logs_json(
 
     支持与列表查询相同的过滤条件，导出量通过 ``limit`` 限制。
     """
-    filters = _build_filters(
-        user_id, tenant_id, action, resource_type, start_date, end_date
-    )
-    content = await audit_service.export_audit_logs(
-        db, filters=filters, format="json", limit=limit
-    )
+    filters = _build_filters(user_id, tenant_id, action, resource_type, start_date, end_date)
+    content = await audit_service.export_audit_logs(db, filters=filters, format="json", limit=limit)
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     return Response(
         content=content,
         media_type="application/json",
         headers={
-            "Content-Disposition": (
-                f'attachment; filename="audit_logs_{timestamp}.json"'
-            ),
+            "Content-Disposition": (f'attachment; filename="audit_logs_{timestamp}.json"'),
         },
     )

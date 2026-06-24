@@ -10,8 +10,6 @@
 
 from __future__ import annotations
 
-import asyncio
-import json
 from typing import Any
 
 from structlog.stdlib import BoundLogger
@@ -68,9 +66,7 @@ class RIPERisCollector:
         logger.info("连接 RIS Live WebSocket", url=self._url)
         self._running = True
         # 占位：实际连接逻辑待实现
-        raise NotImplementedError(
-            "RIS Live WebSocket 连接尚未实现，请引入 websockets 库并完成实现"
-        )
+        raise NotImplementedError("RIS Live WebSocket 连接尚未实现，请引入 websockets 库并完成实现")
 
     async def subscribe(self, prefixes: list[str] | None = None) -> None:
         """订阅特定前缀的 BGP 公告。
@@ -176,9 +172,7 @@ class RIPERisCollector:
                             "prefix_family": family,
                             "prefix_length": length,
                             "origin_as": (
-                                attributes["as_path"][-1]
-                                if attributes.get("as_path")
-                                else None
+                                attributes["as_path"][-1] if attributes.get("as_path") else None
                             ),
                             "as_path": attributes.get("as_path", []),
                             "next_hop": ann.get("next_hop") or attributes.get("next_hop"),

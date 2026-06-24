@@ -37,18 +37,10 @@ class TAL(Base, TimestampMixin):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="TAL 名称"
-    )
-    uri: Mapped[str] = mapped_column(
-        String(1024), nullable=False, comment="RRDP URI"
-    )
-    rsync_uri: Mapped[str] = mapped_column(
-        String(1024), nullable=False, comment="rsync URI"
-    )
-    raw_tal: Mapped[str] = mapped_column(
-        Text, nullable=False, comment="原始 TAL 文件内容"
-    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="TAL 名称")
+    uri: Mapped[str] = mapped_column(String(1024), nullable=False, comment="RRDP URI")
+    rsync_uri: Mapped[str] = mapped_column(String(1024), nullable=False, comment="rsync URI")
+    raw_tal: Mapped[str] = mapped_column(Text, nullable=False, comment="原始 TAL 文件内容")
     status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
@@ -93,9 +85,7 @@ class RPKIRepository(Base, TimestampMixin):
         nullable=False,
         comment="所属 TAL ID",
     )
-    uri: Mapped[str] = mapped_column(
-        String(1024), nullable=False, comment="仓库 URI"
-    )
+    uri: Mapped[str] = mapped_column(String(1024), nullable=False, comment="仓库 URI")
     protocol: Mapped[str] = mapped_column(
         String(20), nullable=False, comment="同步协议：rrdp/rsync"
     )
@@ -153,9 +143,7 @@ class RPKIObject(Base, TimestampMixin):
         nullable=False,
         comment="对象类型：certificate/roa/manifest/crl/ghostbusters",
     )
-    uri: Mapped[str] = mapped_column(
-        String(1024), nullable=False, comment="对象 URI"
-    )
+    uri: Mapped[str] = mapped_column(String(1024), nullable=False, comment="对象 URI")
     serial_number: Mapped[str | None] = mapped_column(
         String(255), nullable=True, comment="证书序列号"
     )
@@ -183,9 +171,7 @@ class RPKIObject(Base, TimestampMixin):
 
     # 关联
     repository: Mapped[RPKIRepository] = relationship(back_populates="objects")
-    roas: Mapped[list[ROA]] = relationship(
-        back_populates="object", cascade="all, delete-orphan"
-    )
+    roas: Mapped[list[ROA]] = relationship(back_populates="object", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<RPKIObject(id={self.id}, type={self.object_type}, uri={self.uri})>"
@@ -211,18 +197,10 @@ class ROA(Base, TimestampMixin):
     prefix: Mapped[str] = mapped_column(
         String(64), nullable=False, comment="网络前缀（含前缀长度）"
     )
-    prefix_family: Mapped[int] = mapped_column(
-        Integer, nullable=False, comment="前缀族：4/6"
-    )
-    prefix_length: Mapped[int] = mapped_column(
-        Integer, nullable=False, comment="前缀长度"
-    )
-    origin_as: Mapped[int] = mapped_column(
-        Integer, nullable=False, comment="授权的起源 AS 号"
-    )
-    max_length: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="最大前缀长度"
-    )
+    prefix_family: Mapped[int] = mapped_column(Integer, nullable=False, comment="前缀族：4/6")
+    prefix_length: Mapped[int] = mapped_column(Integer, nullable=False, comment="前缀长度")
+    origin_as: Mapped[int] = mapped_column(Integer, nullable=False, comment="授权的起源 AS 号")
+    max_length: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="最大前缀长度")
     tal_id: Mapped[int | None] = mapped_column(
         ForeignKey("tals.id", ondelete="SET NULL"),
         nullable=True,
@@ -243,9 +221,7 @@ class ROA(Base, TimestampMixin):
 
     # 关联
     object: Mapped[RPKIObject] = relationship(back_populates="roas")
-    vrps: Mapped[list[VRP]] = relationship(
-        back_populates="roa", cascade="all, delete-orphan"
-    )
+    vrps: Mapped[list[VRP]] = relationship(back_populates="roa", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<ROA(id={self.id}, prefix={self.prefix}, origin_as={self.origin_as})>"
@@ -267,18 +243,10 @@ class VRP(Base, TimestampMixin):
     prefix: Mapped[str] = mapped_column(
         String(64), nullable=False, comment="网络前缀（含前缀长度）"
     )
-    prefix_family: Mapped[int] = mapped_column(
-        Integer, nullable=False, comment="前缀族：4/6"
-    )
-    prefix_length: Mapped[int] = mapped_column(
-        Integer, nullable=False, comment="前缀长度"
-    )
-    origin_as: Mapped[int] = mapped_column(
-        Integer, nullable=False, comment="授权的起源 AS 号"
-    )
-    max_length: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="最大前缀长度"
-    )
+    prefix_family: Mapped[int] = mapped_column(Integer, nullable=False, comment="前缀族：4/6")
+    prefix_length: Mapped[int] = mapped_column(Integer, nullable=False, comment="前缀长度")
+    origin_as: Mapped[int] = mapped_column(Integer, nullable=False, comment="授权的起源 AS 号")
+    max_length: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="最大前缀长度")
     tal_id: Mapped[int | None] = mapped_column(
         ForeignKey("tals.id", ondelete="SET NULL"),
         nullable=True,
@@ -303,19 +271,14 @@ class VRP(Base, TimestampMixin):
     roa: Mapped[ROA | None] = relationship(back_populates="vrps")
 
     def __repr__(self) -> str:
-        return (
-            f"<VRP(id={self.id}, prefix={self.prefix}, "
-            f"origin_as={self.origin_as})>"
-        )
+        return f"<VRP(id={self.id}, prefix={self.prefix}, origin_as={self.origin_as})>"
 
 
 class RPKISnapshot(Base, TimestampMixin):
     """RPKI 快照模型，记录某一时刻的 VRP/ROA/对象数量与元数据。"""
 
     __tablename__ = "rpki_snapshots"
-    __table_args__ = (
-        Index("ix_rpki_snapshots_snapshot_time", "snapshot_time"),
-    )
+    __table_args__ = (Index("ix_rpki_snapshots_snapshot_time", "snapshot_time"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     snapshot_time: Mapped[datetime] = mapped_column(
@@ -323,12 +286,8 @@ class RPKISnapshot(Base, TimestampMixin):
         nullable=False,
         comment="快照时间",
     )
-    vrp_count: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0, comment="VRP 数量"
-    )
-    roa_count: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0, comment="ROA 数量"
-    )
+    vrp_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, comment="VRP 数量")
+    roa_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, comment="ROA 数量")
     object_count: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, comment="RPKI 对象数量"
     )
@@ -353,15 +312,9 @@ class RPKICache(Base, TimestampMixin):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="缓存名称"
-    )
-    version: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, comment="缓存版本"
-    )
-    vrp_count: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0, comment="VRP 数量"
-    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="缓存名称")
+    version: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="缓存版本")
+    vrp_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, comment="VRP 数量")
     last_updated: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="最后更新时间"
     )

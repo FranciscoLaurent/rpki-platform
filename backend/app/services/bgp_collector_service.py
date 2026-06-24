@@ -508,13 +508,10 @@ async def get_bgp_stats(db: AsyncSession) -> BGPStatsResponse:
     total_adapters = (await db.execute(total_adapters_stmt)).scalar_one()
 
     # 按 RPKI 验证状态分组统计公告
-    rpki_stmt = (
-        select(
-            BGPAnnouncement.rpki_validation_status,
-            func.count(BGPAnnouncement.id),
-        )
-        .group_by(BGPAnnouncement.rpki_validation_status)
-    )
+    rpki_stmt = select(
+        BGPAnnouncement.rpki_validation_status,
+        func.count(BGPAnnouncement.id),
+    ).group_by(BGPAnnouncement.rpki_validation_status)
     rpki_result = await db.execute(rpki_stmt)
     announcements_by_rpki_status: dict[str, int] = {}
     for status_value, count in rpki_result.all():

@@ -7,7 +7,6 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-
 # ──────────────────────────────────────────────
 # 集成配置
 # ──────────────────────────────────────────────
@@ -58,15 +57,9 @@ class IntegrationConfigBase(BaseModel):
     description: str | None = Field(None, description="集成描述")
     integration_type: str = Field(..., description="集成类型")
     subtype: str | None = Field(None, description="集成子类型")
-    connection_params: dict[str, Any] | None = Field(
-        None, description="连接参数（非敏感）"
-    )
-    auth_config: dict[str, Any] | None = Field(
-        None, description="认证信息（加密存储占位）"
-    )
-    extra_config: dict[str, Any] | None = Field(
-        None, description="额外配置"
-    )
+    connection_params: dict[str, Any] | None = Field(None, description="连接参数（非敏感）")
+    auth_config: dict[str, Any] | None = Field(None, description="认证信息（加密存储占位）")
+    extra_config: dict[str, Any] | None = Field(None, description="额外配置")
     enabled: bool = Field(default=True, description="是否启用")
 
     @field_validator("integration_type")
@@ -91,15 +84,9 @@ class IntegrationConfigUpdate(BaseModel):
     description: str | None = Field(None, description="集成描述")
     integration_type: str | None = Field(None, description="集成类型")
     subtype: str | None = Field(None, description="集成子类型")
-    connection_params: dict[str, Any] | None = Field(
-        None, description="连接参数"
-    )
-    auth_config: dict[str, Any] | None = Field(
-        None, description="认证信息"
-    )
-    extra_config: dict[str, Any] | None = Field(
-        None, description="额外配置"
-    )
+    connection_params: dict[str, Any] | None = Field(None, description="连接参数")
+    auth_config: dict[str, Any] | None = Field(None, description="认证信息")
+    extra_config: dict[str, Any] | None = Field(None, description="额外配置")
     enabled: bool | None = Field(None, description="是否启用")
 
     @field_validator("integration_type")
@@ -130,9 +117,7 @@ class IntegrationConfigResponse(IntegrationConfigBase):
 class IntegrationConfigListResponse(BaseModel):
     """集成配置列表响应。"""
 
-    items: list[IntegrationConfigResponse] = Field(
-        default_factory=list, description="集成配置列表"
-    )
+    items: list[IntegrationConfigResponse] = Field(default_factory=list, description="集成配置列表")
     total: int = Field(default=0, description="总记录数")
 
 
@@ -144,12 +129,8 @@ class IntegrationTestRequest(BaseModel):
     """集成连接测试请求。"""
 
     # 可选覆盖配置参数，便于在保存前测试
-    connection_params: dict[str, Any] | None = Field(
-        None, description="覆盖连接参数（可选）"
-    )
-    auth_config: dict[str, Any] | None = Field(
-        None, description="覆盖认证信息（可选）"
-    )
+    connection_params: dict[str, Any] | None = Field(None, description="覆盖连接参数（可选）")
+    auth_config: dict[str, Any] | None = Field(None, description="覆盖认证信息（可选）")
 
 
 class IntegrationTestResult(BaseModel):
@@ -171,15 +152,9 @@ class WebhookConfig(BaseModel):
 
     url: str = Field(..., description="Webhook 目标 URL")
     secret: str | None = Field(None, description="HMAC 签名密钥")
-    sign_algorithm: str = Field(
-        default="sha256", description="HMAC 算法：sha256/sha1/sha512"
-    )
-    sign_field: str = Field(
-        default="X-Signature", description="签名字段名"
-    )
-    headers: dict[str, str] | None = Field(
-        None, description="自定义请求头"
-    )
+    sign_algorithm: str = Field(default="sha256", description="HMAC 算法：sha256/sha1/sha512")
+    sign_field: str = Field(default="X-Signature", description="签名字段名")
+    headers: dict[str, str] | None = Field(None, description="自定义请求头")
     timeout: int = Field(default=10, description="超时（秒）")
     verify_tls: bool = Field(default=True, description="是否校验 TLS")
 
@@ -189,22 +164,16 @@ class SyslogConfig(BaseModel):
 
     host: str = Field(..., description="Syslog 服务器地址")
     port: int = Field(default=514, description="Syslog 端口")
-    protocol: str = Field(
-        default="udp", description="协议：udp/tcp"
-    )
+    protocol: str = Field(default="udp", description="协议：udp/tcp")
     facility: int = Field(default=16, description="Syslog facility")
     severity: int = Field(default=6, description="Syslog severity")
-    app_name: str = Field(
-        default="rpki-platform", description="应用名"
-    )
+    app_name: str = Field(default="rpki-platform", description="应用名")
 
 
 class KafkaConfig(BaseModel):
     """Kafka 集成配置。"""
 
-    bootstrap_servers: str = Field(
-        ..., description="Kafka bootstrap servers"
-    )
+    bootstrap_servers: str = Field(..., description="Kafka bootstrap servers")
     topic: str = Field(..., description="目标主题")
     acks: str = Field(default="all", description="确认级别")
     retries: int = Field(default=3, description="重试次数")
@@ -222,15 +191,9 @@ class NetBoxConfig(BaseModel):
 class PrometheusConfig(BaseModel):
     """Prometheus 指标集成配置。"""
 
-    pushgateway_url: str | None = Field(
-        None, description="Pushgateway URL（可选，用于推送模式）"
-    )
-    job_name: str = Field(
-        default="rpki-platform", description="任务名"
-    )
-    instance_label: str | None = Field(
-        None, description="实例标签"
-    )
+    pushgateway_url: str | None = Field(None, description="Pushgateway URL（可选，用于推送模式）")
+    job_name: str = Field(default="rpki-platform", description="任务名")
+    instance_label: str | None = Field(None, description="实例标签")
 
 
 class PeeringDBConfig(BaseModel):
@@ -255,35 +218,19 @@ class NotificationConfig(BaseModel):
     smtp_use_tls: bool = Field(default=True, description="是否启用 TLS")
     mail_from: str | None = Field(None, description="发件人地址")
     # 短信/电话
-    sms_provider: str | None = Field(
-        None, description="短信服务商：aliyun/tencent/twilio"
-    )
+    sms_provider: str | None = Field(None, description="短信服务商：aliyun/tencent/twilio")
     sms_api_key: str | None = Field(None, description="短信 API Key")
-    sms_api_secret: str | None = Field(
-        None, description="短信 API Secret"
-    )
-    voice_provider: str | None = Field(
-        None, description="电话服务商：aliyun/twilio"
-    )
+    sms_api_secret: str | None = Field(None, description="短信 API Secret")
+    voice_provider: str | None = Field(None, description="电话服务商：aliyun/twilio")
     # 企业微信
-    wechat_work_webhook: str | None = Field(
-        None, description="企业微信机器人 Webhook URL"
-    )
+    wechat_work_webhook: str | None = Field(None, description="企业微信机器人 Webhook URL")
     # 钉钉
-    dingtalk_webhook: str | None = Field(
-        None, description="钉钉机器人 Webhook URL"
-    )
-    dingtalk_secret: str | None = Field(
-        None, description="钉钉加签密钥"
-    )
+    dingtalk_webhook: str | None = Field(None, description="钉钉机器人 Webhook URL")
+    dingtalk_secret: str | None = Field(None, description="钉钉加签密钥")
     # Slack
-    slack_webhook: str | None = Field(
-        None, description="Slack Incoming Webhook URL"
-    )
+    slack_webhook: str | None = Field(None, description="Slack Incoming Webhook URL")
     # Microsoft Teams
-    teams_webhook: str | None = Field(
-        None, description="Teams Workflows Webhook URL"
-    )
+    teams_webhook: str | None = Field(None, description="Teams Workflows Webhook URL")
     # PagerDuty
     pagerduty_integration_key: str | None = Field(
         None, description="PagerDuty Events API v2 Integration Key"
@@ -293,37 +240,23 @@ class NotificationConfig(BaseModel):
 class SIEMConfig(BaseModel):
     """SIEM/SOC 集成配置。"""
 
-    siem_type: str = Field(
-        ..., description="SIEM 类型：splunk/elastic/qradar"
-    )
-    hec_url: str | None = Field(
-        None, description="Splunk HEC URL"
-    )
-    hec_token: str | None = Field(
-        None, description="Splunk HEC Token"
-    )
-    elastic_url: str | None = Field(
-        None, description="Elasticsearch URL"
-    )
-    elastic_index: str | None = Field(
-        None, description="Elasticsearch 索引名"
-    )
+    siem_type: str = Field(..., description="SIEM 类型：splunk/elastic/qradar")
+    hec_url: str | None = Field(None, description="Splunk HEC URL")
+    hec_token: str | None = Field(None, description="Splunk HEC Token")
+    elastic_url: str | None = Field(None, description="Elasticsearch URL")
+    elastic_index: str | None = Field(None, description="Elasticsearch 索引名")
     timeout: int = Field(default=15, description="超时（秒）")
 
 
 class ITSMConfig(BaseModel):
     """ITSM 工单系统集成配置。"""
 
-    itsm_type: str = Field(
-        ..., description="ITSM 类型：servicenow/jira/freshservice"
-    )
+    itsm_type: str = Field(..., description="ITSM 类型：servicenow/jira/freshservice")
     base_url: str = Field(..., description="基础 URL")
     api_token: str | None = Field(None, description="API Token")
     username: str | None = Field(None, description="用户名")
     password: str | None = Field(None, description="密码")
-    default_project: str | None = Field(
-        None, description="默认项目/工作空间"
-    )
+    default_project: str | None = Field(None, description="默认项目/工作空间")
 
 
 class GrafanaConfig(BaseModel):
@@ -331,9 +264,7 @@ class GrafanaConfig(BaseModel):
 
     base_url: str = Field(..., description="Grafana 基础 URL")
     api_key: str | None = Field(None, description="API Key")
-    dashboard_uid: str | None = Field(
-        None, description="默认仪表盘 UID"
-    )
+    dashboard_uid: str | None = Field(None, description="默认仪表盘 UID")
     timeout: int = Field(default=10, description="超时（秒）")
 
 
@@ -348,22 +279,14 @@ class EventSubscriptionBase(BaseModel):
     name: str = Field(..., max_length=255, description="订阅名称")
     integration_id: int = Field(..., description="关联的集成配置 ID")
     event_type: str = Field(..., description="订阅的事件类型")
-    filter_conditions: dict[str, Any] | None = Field(
-        None, description="事件过滤条件"
-    )
+    filter_conditions: dict[str, Any] | None = Field(None, description="事件过滤条件")
     target: str | None = Field(None, description="投递目标")
     channel: str = Field(default="webhook", description="投递通道类型")
-    message_template: dict[str, Any] | None = Field(
-        None, description="消息模板配置"
-    )
+    message_template: dict[str, Any] | None = Field(None, description="消息模板配置")
     enabled: bool = Field(default=True, description="是否启用")
     max_retries: int = Field(default=3, ge=0, description="最大重试次数")
-    retry_interval: int = Field(
-        default=60, ge=1, description="重试间隔（秒）"
-    )
-    retry_backoff: str = Field(
-        default="exponential", description="退避策略：fixed/exponential"
-    )
+    retry_interval: int = Field(default=60, ge=1, description="重试间隔（秒）")
+    retry_backoff: str = Field(default="exponential", description="退避策略：fixed/exponential")
 
     @field_validator("channel")
     @classmethod
@@ -393,19 +316,13 @@ class EventSubscriptionUpdate(BaseModel):
 
     name: str | None = Field(None, max_length=255, description="订阅名称")
     event_type: str | None = Field(None, description="订阅的事件类型")
-    filter_conditions: dict[str, Any] | None = Field(
-        None, description="事件过滤条件"
-    )
+    filter_conditions: dict[str, Any] | None = Field(None, description="事件过滤条件")
     target: str | None = Field(None, description="投递目标")
     channel: str | None = Field(None, description="投递通道类型")
-    message_template: dict[str, Any] | None = Field(
-        None, description="消息模板配置"
-    )
+    message_template: dict[str, Any] | None = Field(None, description="消息模板配置")
     enabled: bool | None = Field(None, description="是否启用")
     max_retries: int | None = Field(None, ge=0, description="最大重试次数")
-    retry_interval: int | None = Field(
-        None, ge=1, description="重试间隔（秒）"
-    )
+    retry_interval: int | None = Field(None, ge=1, description="重试间隔（秒）")
     retry_backoff: str | None = Field(None, description="退避策略")
 
     @field_validator("channel")
@@ -526,16 +443,12 @@ class IntegrationLogQueryParams(BaseModel):
     """集成日志查询参数。"""
 
     config_id: int | None = Field(None, description="按集成配置过滤")
-    direction: str | None = Field(
-        None, description="按方向过滤：inbound/outbound"
-    )
+    direction: str | None = Field(None, description="按方向过滤：inbound/outbound")
     status: str | None = Field(None, description="按状态过滤")
     start_time: datetime | None = Field(None, description="起始时间")
     end_time: datetime | None = Field(None, description="截止时间")
     skip: int = Field(default=0, ge=0, description="跳过记录数")
-    limit: int = Field(
-        default=50, ge=1, le=500, description="返回记录数上限"
-    )
+    limit: int = Field(default=50, ge=1, le=500, description="返回记录数上限")
 
 
 # ──────────────────────────────────────────────
@@ -552,9 +465,7 @@ class EventDispatchRequest(BaseModel):
     event_type: str = Field(..., description="事件类型")
     resource_type: str | None = Field(None, description="资源类型")
     resource_id: str | None = Field(None, description="资源 ID")
-    payload: dict[str, Any] = Field(
-        default_factory=dict, description="事件 payload"
-    )
+    payload: dict[str, Any] = Field(default_factory=dict, description="事件 payload")
     tenant_id: int | None = Field(None, description="租户 ID")
 
 
@@ -562,15 +473,9 @@ class EventDispatchResult(BaseModel):
     """事件分发结果。"""
 
     event_type: str = Field(..., description="事件类型")
-    matched_subscriptions: int = Field(
-        0, description="匹配的订阅数"
-    )
-    deliveries_created: int = Field(
-        0, description="创建的投递记录数"
-    )
-    delivery_ids: list[int] = Field(
-        default_factory=list, description="投递记录 ID 列表"
-    )
+    matched_subscriptions: int = Field(0, description="匹配的订阅数")
+    deliveries_created: int = Field(0, description="创建的投递记录数")
+    delivery_ids: list[int] = Field(default_factory=list, description="投递记录 ID 列表")
 
 
 # ──────────────────────────────────────────────
@@ -646,9 +551,7 @@ class EventPublishRequest(BaseModel):
     """事件推送请求。"""
 
     event_type: str = Field(..., description="事件类型")
-    event_data: dict[str, Any] = Field(
-        default_factory=dict, description="事件数据"
-    )
+    event_data: dict[str, Any] = Field(default_factory=dict, description="事件数据")
     channels: list[str] = Field(
         default_factory=lambda: ["webhook"],
         description="推送通道列表：webhook/syslog/kafka",
@@ -670,9 +573,7 @@ class ChannelPublishResult(BaseModel):
     success: bool = Field(..., description="通道整体是否成功")
     success_count: int = Field(default=0, description="成功投递数")
     failure_count: int = Field(default=0, description="失败投递数")
-    deliveries: list[ChannelDeliveryResult] = Field(
-        default_factory=list, description="投递详情"
-    )
+    deliveries: list[ChannelDeliveryResult] = Field(default_factory=list, description="投递详情")
     message: str | None = Field(None, description="消息")
 
 
@@ -703,9 +604,7 @@ class PushChannelInfo(BaseModel):
 class PushChannelListResponse(BaseModel):
     """推送通道列表响应。"""
 
-    items: list[PushChannelInfo] = Field(
-        default_factory=list, description="通道列表"
-    )
+    items: list[PushChannelInfo] = Field(default_factory=list, description="通道列表")
     total: int = Field(default=0, description="总数")
 
 
@@ -732,13 +631,9 @@ class ChannelTestResult(BaseModel):
 class ExternalInfoQuery(BaseModel):
     """外部信息查询请求。"""
 
-    source: str = Field(
-        ..., description="数据源：rir/irr/peeringdb"
-    )
+    source: str = Field(..., description="数据源：rir/irr/peeringdb")
     query: str = Field(..., description="查询条件（前缀或 ASN）")
-    config: dict[str, Any] = Field(
-        default_factory=dict, description="数据源配置（可选）"
-    )
+    config: dict[str, Any] = Field(default_factory=dict, description="数据源配置（可选）")
 
 
 class ExternalInfoResult(BaseModel):
@@ -781,9 +676,7 @@ class MetricExport(BaseModel):
 
     name: str = Field(..., description="指标名称")
     value: float = Field(..., description="指标值")
-    labels: dict[str, str] = Field(
-        default_factory=dict, description="标签"
-    )
+    labels: dict[str, str] = Field(default_factory=dict, description="标签")
     help: str | None = Field(None, description="指标说明")
     type: str = Field(default="gauge", description="指标类型")
 
@@ -791,9 +684,7 @@ class MetricExport(BaseModel):
 class MetricExportResponse(BaseModel):
     """指标导出响应。"""
 
-    metrics: list[MetricExport] = Field(
-        default_factory=list, description="指标列表"
-    )
+    metrics: list[MetricExport] = Field(default_factory=list, description="指标列表")
     total: int = Field(default=0, description="指标总数")
     exported_at: datetime = Field(..., description="导出时间")
 
@@ -818,12 +709,8 @@ class GrafanaDashboard(BaseModel):
     version: int = Field(default=1, description="版本号")
     refresh: str = Field(default="30s", description="刷新间隔")
     time: dict[str, str] = Field(..., description="时间范围")
-    panels: list[dict[str, Any]] = Field(
-        default_factory=list, description="面板列表"
-    )
-    templating: dict[str, Any] | None = Field(
-        None, description="模板变量"
-    )
+    panels: list[dict[str, Any]] = Field(default_factory=list, description="面板列表")
+    templating: dict[str, Any] | None = Field(None, description="模板变量")
 
 
 __all__ = [

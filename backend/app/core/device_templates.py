@@ -20,7 +20,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 # ──────────────────────────────────────────────
 # 厂商元数据
 # ──────────────────────────────────────────────
@@ -1262,9 +1261,7 @@ allow to any
 }
 
 
-def get_default_template(
-    vendor: str, template_type: str
-) -> str | None:
+def get_default_template(vendor: str, template_type: str) -> str | None:
     """获取指定厂商与类型的默认模板内容。
 
     Args:

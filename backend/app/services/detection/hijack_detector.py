@@ -7,16 +7,14 @@
 from __future__ import annotations
 
 import ipaddress
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import get_logger
-from app.models.asn import ASN
 from app.models.bgp import BGPAnnouncement
-from app.models.prefix import Prefix
 from app.models.rpki import VRP
 from app.schemas.detection import (
     HijackDetectionResult,
@@ -98,8 +96,7 @@ async def detect_origin_as_hijack(
         is_hijack = True
         severity = "P0"
         description = (
-            f"RPKI 验证失败（{rpki_invalid_reason}），"
-            f"前缀 {prefix} 由 AS{origin_as} 异常宣告"
+            f"RPKI 验证失败（{rpki_invalid_reason}），前缀 {prefix} 由 AS{origin_as} 异常宣告"
         )
     # 资产台账中存在授权 origin_as，但公告 origin_as 不在授权列表
     elif (
@@ -114,10 +111,7 @@ async def detect_origin_as_hijack(
             f"但公告由 AS{origin_as} 宣告"
         )
     # 历史上从未由该 AS 宣告，且传播范围广
-    elif (
-        origin_as not in historical_origin_asns
-        and propagation_scope >= 3
-    ):
+    elif origin_as not in historical_origin_asns and propagation_scope >= 3:
         is_hijack = True
         severity = "P1"
         description = (
@@ -144,9 +138,7 @@ async def detect_origin_as_hijack(
     )
 
 
-async def _get_authorized_origin_as(
-    db: AsyncSession, prefix: str
-) -> int | None:
+async def _get_authorized_origin_as(db: AsyncSession, prefix: str) -> int | None:
     """从资产台账查询前缀的授权 origin AS。
 
     通过 Prefix 表的 customer_id 关联与 VRP 表查询授权 origin AS。
@@ -186,7 +178,7 @@ async def _get_historical_origin_asns(
     Returns:
         历史 origin AS 列表
     """
-    since = datetime.now(timezone.utc) - timedelta(days=lookback_days)
+    since = datetime.now(UTC) - timedelta(days=lookback_days)
     stmt = (
         select(BGPAnnouncement.origin_as)
         .where(BGPAnnouncement.prefix == prefix)
@@ -198,9 +190,7 @@ async def _get_historical_origin_asns(
     return [row[0] for row in result.all() if row[0] is not None]
 
 
-async def _count_propagation_scope(
-    db: AsyncSession, prefix: str, origin_as: int
-) -> int:
+async def _count_propagation_scope(db: AsyncSession, prefix: str, origin_as: int) -> int:
     """统计多少观察点收到该前缀+origin_as 的公告。"""
     stmt = (
         select(func.count(func.distinct(BGPAnnouncement.observation_point_id)))
@@ -330,9 +320,7 @@ async def detect_subprefix_hijack(
     )
 
 
-async def _find_covering_vrps(
-    db: AsyncSession, prefix: str
-) -> list[VRP]:
+async def _find_covering_vrps(db: AsyncSession, prefix: str) -> list[VRP]:
     """查询覆盖指定前缀的所有有效 VRP。
 
     通过逐级构建祖先前缀列表进行精确匹配查询。

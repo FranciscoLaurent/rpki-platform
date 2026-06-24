@@ -230,9 +230,7 @@ class RIPEstatClient:
 
             # HTTP 4xx：直接抛出，不重试
             if 400 <= response.status_code < 500:
-                raise ValueError(
-                    f"RIPEstat 请求失败 {endpoint}：HTTP {response.status_code}"
-                )
+                raise ValueError(f"RIPEstat 请求失败 {endpoint}：HTTP {response.status_code}")
 
             # HTTP 5xx：重试
             if response.status_code >= 500:
@@ -246,17 +244,14 @@ class RIPEstatClient:
             try:
                 payload = response.json()
             except Exception as e:
-                raise ValueError(
-                    f"RIPEstat 响应 JSON 解析失败 {endpoint}：{e}"
-                ) from e
+                raise ValueError(f"RIPEstat 响应 JSON 解析失败 {endpoint}：{e}") from e
 
             # 检查状态
             status = payload.get("status")
             if status != "ok":
                 messages = payload.get("messages") or []
                 raise ValueError(
-                    f"RIPEstat 响应状态非 ok {endpoint}："
-                    f"status={status}, messages={messages}"
+                    f"RIPEstat 响应状态非 ok {endpoint}：status={status}, messages={messages}"
                 )
 
             data = payload.get("data") or {}
@@ -268,15 +263,12 @@ class RIPEstatClient:
             return data
 
         raise ValueError(
-            f"RIPEstat 请求失败 {endpoint}："
-            f"重试 {self._max_retries} 次后仍失败：{last_error}"
+            f"RIPEstat 请求失败 {endpoint}：重试 {self._max_retries} 次后仍失败：{last_error}"
         )
 
-    async def _sleep_backoff(
-        self, attempt: int, endpoint: str, error: Exception
-    ) -> None:
+    async def _sleep_backoff(self, attempt: int, endpoint: str, error: Exception) -> None:
         """指数退避等待。"""
-        backoff = 2 ** attempt  # 1s, 2s, 4s
+        backoff = 2**attempt  # 1s, 2s, 4s
         logger.warning(
             "RIPEstat 请求失败，准备重试",
             endpoint=endpoint,

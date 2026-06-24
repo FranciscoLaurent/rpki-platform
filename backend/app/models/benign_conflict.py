@@ -28,7 +28,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TenantMixin, TimestampMixin
 
-
 # ──────────────────────────────────────────────
 # 良性冲突记录
 # ──────────────────────────────────────────────
@@ -51,9 +50,7 @@ class BenignConflictRecord(Base, TimestampMixin, TenantMixin):
         Index("ix_benign_conflict_records_status", "status"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     alert_id: Mapped[int | None] = mapped_column(
         ForeignKey("alerts.id", ondelete="SET NULL"),
         nullable=True,
@@ -67,9 +64,7 @@ class BenignConflictRecord(Base, TimestampMixin, TenantMixin):
             "resource_transfer/data_source_delay/customer_misconfig"
         ),
     )
-    prefix: Mapped[str] = mapped_column(
-        String(64), nullable=False, comment="关联的网络前缀"
-    )
+    prefix: Mapped[str] = mapped_column(String(64), nullable=False, comment="关联的网络前缀")
     origin_as: Mapped[int | None] = mapped_column(
         Integer, nullable=True, comment="观测到的起源 AS 号"
     )
@@ -82,12 +77,8 @@ class BenignConflictRecord(Base, TimestampMixin, TenantMixin):
         default=0.0,
         comment="置信度（0-1）",
     )
-    evidence: Mapped[dict[str, Any] | None] = mapped_column(
-        JSON, nullable=True, comment="证据数据"
-    )
-    recommendation: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="处理建议"
-    )
+    evidence: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True, comment="证据数据")
+    recommendation: Mapped[str | None] = mapped_column(Text, nullable=True, comment="处理建议")
     status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
@@ -105,8 +96,7 @@ class BenignConflictRecord(Base, TimestampMixin, TenantMixin):
 
     def __repr__(self) -> str:
         return (
-            f"<BenignConflictRecord(id={self.id}, "
-            f"type={self.conflict_type}, prefix={self.prefix})>"
+            f"<BenignConflictRecord(id={self.id}, type={self.conflict_type}, prefix={self.prefix})>"
         )
 
 
@@ -130,15 +120,9 @@ class MaintenanceWindow(Base, TimestampMixin, TenantMixin):
         Index("ix_maintenance_windows_work_order_id", "work_order_id"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="维护窗口名称"
-    )
-    description: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="维护描述"
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="维护窗口名称")
+    description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="维护描述")
     start_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, comment="开始时间"
     )
@@ -148,12 +132,8 @@ class MaintenanceWindow(Base, TimestampMixin, TenantMixin):
     prefixes: Mapped[list[str] | None] = mapped_column(
         JSON, nullable=True, comment="受影响前缀列表"
     )
-    asns: Mapped[list[int] | None] = mapped_column(
-        JSON, nullable=True, comment="受影响 ASN 列表"
-    )
-    approved_by: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="审批人用户 ID"
-    )
+    asns: Mapped[list[int] | None] = mapped_column(JSON, nullable=True, comment="受影响 ASN 列表")
+    approved_by: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="审批人用户 ID")
     status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
@@ -165,10 +145,7 @@ class MaintenanceWindow(Base, TimestampMixin, TenantMixin):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<MaintenanceWindow(id={self.id}, name={self.name}, "
-            f"status={self.status})>"
-        )
+        return f"<MaintenanceWindow(id={self.id}, name={self.name}, status={self.status})>"
 
 
 # ──────────────────────────────────────────────
@@ -201,18 +178,12 @@ class ScrubberAuthorization(Base, TimestampMixin, TenantMixin):
         Index("ix_scrubber_authorizations_expires_at", "expires_at"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    scrubber_asn: Mapped[int] = mapped_column(
-        Integer, nullable=False, comment="清洗商 AS 号"
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    scrubber_asn: Mapped[int] = mapped_column(Integer, nullable=False, comment="清洗商 AS 号")
     customer_prefix: Mapped[str] = mapped_column(
         String(64), nullable=False, comment="客户前缀（CIDR）"
     )
-    customer_asn: Mapped[int] = mapped_column(
-        Integer, nullable=False, comment="客户 AS 号"
-    )
+    customer_asn: Mapped[int] = mapped_column(Integer, nullable=False, comment="客户 AS 号")
     authorized_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, comment="授权时间"
     )
@@ -260,24 +231,12 @@ class AnycastNode(Base, TimestampMixin, TenantMixin):
         Index("ix_anycast_nodes_region", "region"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    node_asn: Mapped[int] = mapped_column(
-        Integer, nullable=False, comment="Anycast 节点 AS 号"
-    )
-    prefix: Mapped[str] = mapped_column(
-        String(64), nullable=False, comment="Anycast 前缀（CIDR）"
-    )
-    region: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, comment="地域"
-    )
-    site: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, comment="机房"
-    )
-    business_tag: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, comment="业务标签"
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    node_asn: Mapped[int] = mapped_column(Integer, nullable=False, comment="Anycast 节点 AS 号")
+    prefix: Mapped[str] = mapped_column(String(64), nullable=False, comment="Anycast 前缀（CIDR）")
+    region: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="地域")
+    site: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="机房")
+    business_tag: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="业务标签")
     registered_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, comment="登记时间"
     )
@@ -289,10 +248,7 @@ class AnycastNode(Base, TimestampMixin, TenantMixin):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<AnycastNode(id={self.id}, node_asn={self.node_asn}, "
-            f"prefix={self.prefix})>"
-        )
+        return f"<AnycastNode(id={self.id}, node_asn={self.node_asn}, prefix={self.prefix})>"
 
 
 __all__ = [

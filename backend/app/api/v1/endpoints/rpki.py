@@ -17,11 +17,11 @@ from app.schemas.rpki import (
     BatchValidationResponse,
     BGPAnnouncementValidation,
     BGPAnnouncementValidationRequest,
+    ROAListResponse,
+    ROAResponse,
     RPKIHealthResponse,
     RPKIRepositoryListResponse,
     RPKIRepositoryResponse,
-    ROAListResponse,
-    ROAResponse,
     SnapshotDiffResponse,
     SnapshotListResponse,
     SnapshotResponse,
@@ -177,9 +177,7 @@ async def sync_all_repositories(
     """
     result = await rpki_sync_service.sync_all_repositories(db)
     return SyncTriggerResponse(
-        message=(
-            f"同步完成：成功 {result['success']}，失败 {result['failed']}"
-        ),
+        message=(f"同步完成：成功 {result['success']}，失败 {result['failed']}"),
         tal_id=None,
         status="success" if result["failed"] == 0 else "partial",
     )
@@ -367,9 +365,7 @@ async def validate_bgp_announcement(
 
     需要 ``rpki:read`` 权限。返回 Valid/Invalid/NotFound 及 Invalid 原因。
     """
-    return await vrp_service.validate_bgp_announcement(
-        db, request.prefix, request.origin_as
-    )
+    return await vrp_service.validate_bgp_announcement(db, request.prefix, request.origin_as)
 
 
 @router.post("/validate-batch", response_model=BatchValidationResponse)
@@ -385,16 +381,19 @@ async def validate_bgp_announcements_batch(
     results = await vrp_service.validate_bgp_announcements(db, request.announcements)
 
     valid_count = sum(
-        1 for r in results if r.validation_result
-        and r.validation_result.validation_status == "valid"
+        1
+        for r in results
+        if r.validation_result and r.validation_result.validation_status == "valid"
     )
     invalid_count = sum(
-        1 for r in results if r.validation_result
-        and r.validation_result.validation_status == "invalid"
+        1
+        for r in results
+        if r.validation_result and r.validation_result.validation_status == "invalid"
     )
     not_found_count = sum(
-        1 for r in results if r.validation_result
-        and r.validation_result.validation_status == "not_found"
+        1
+        for r in results
+        if r.validation_result and r.validation_result.validation_status == "not_found"
     )
 
     return BatchValidationResponse(
@@ -483,7 +482,7 @@ async def get_snapshot_diff(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
-        )
+        ) from e
 
 
 @router.post(
@@ -505,4 +504,4 @@ async def rollback_to_snapshot(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
-        )
+        ) from e

@@ -26,26 +26,20 @@ class BGPPeer(Base, TimestampMixin, TenantMixin):
 
     __tablename__ = "bgp_peers"
     __table_args__ = (
-        UniqueConstraint(
-            "peer_ip", "remote_asn", name="uq_bgp_peers_peer_ip_remote_asn"
-        ),
+        UniqueConstraint("peer_ip", "remote_asn", name="uq_bgp_peers_peer_ip_remote_asn"),
         Index("ix_bgp_peers_peer_ip", "peer_ip"),
         Index("ix_bgp_peers_remote_asn", "remote_asn"),
         Index("ix_bgp_peers_session_state", "session_state"),
         Index("ix_bgp_peers_router_id", "router_id"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     peer_ip: Mapped[str] = mapped_column(
         String(64),
         nullable=False,
         comment="邻居 IP 地址（IPv4 或 IPv6）",
     )
-    remote_asn: Mapped[int] = mapped_column(
-        Integer, nullable=False, comment="远端 ASN"
-    )
+    remote_asn: Mapped[int] = mapped_column(Integer, nullable=False, comment="远端 ASN")
     address_family: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
@@ -61,9 +55,7 @@ class BGPPeer(Base, TimestampMixin, TenantMixin):
     routing_policy: Mapped[str | None] = mapped_column(
         String(500), nullable=True, comment="路由策略描述"
     )
-    max_prefixes: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="最大前缀数"
-    )
+    max_prefixes: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="最大前缀数")
     session_state: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
@@ -76,12 +68,7 @@ class BGPPeer(Base, TimestampMixin, TenantMixin):
         nullable=True,
         comment="关联路由器 ID",
     )
-    description: Mapped[str | None] = mapped_column(
-        String(500), nullable=True, comment="描述"
-    )
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="描述")
 
     def __repr__(self) -> str:
-        return (
-            f"<BGPPeer(id={self.id}, peer_ip={self.peer_ip}, "
-            f"remote_asn={self.remote_asn})>"
-        )
+        return f"<BGPPeer(id={self.id}, peer_ip={self.peer_ip}, remote_asn={self.remote_asn})>"

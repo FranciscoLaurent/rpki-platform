@@ -13,14 +13,13 @@ from sqlalchemy import (
     Integer,
     String,
     Table,
-    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
-    from app.models.tenant import Tenant
+    pass
 
 
 # ──────────────────────────────────────────────
@@ -72,12 +71,8 @@ class User(Base, TimestampMixin):
     username: Mapped[str] = mapped_column(
         String(100), unique=True, nullable=False, index=True, comment="用户名"
     )
-    full_name: Mapped[str | None] = mapped_column(
-        String(255), nullable=True, comment="姓名"
-    )
-    hashed_password: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="密码哈希"
-    )
+    full_name: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="姓名")
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False, comment="密码哈希")
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, comment="是否启用"
     )
@@ -96,9 +91,7 @@ class User(Base, TimestampMixin):
     locked_until: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="锁定截止时间"
     )
-    mfa_secret: Mapped[str | None] = mapped_column(
-        String(255), nullable=True, comment="MFA 密钥"
-    )
+    mfa_secret: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="MFA 密钥")
     must_change_password: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
@@ -107,7 +100,7 @@ class User(Base, TimestampMixin):
     )
 
     # 关联角色
-    roles: Mapped[list["Role"]] = relationship(
+    roles: Mapped[list[Role]] = relationship(
         secondary=user_roles, back_populates="users", lazy="selectin"
     )
 
@@ -125,9 +118,7 @@ class Role(Base, TimestampMixin):
     code: Mapped[str] = mapped_column(
         String(100), unique=True, nullable=False, index=True, comment="角色编码"
     )
-    description: Mapped[str | None] = mapped_column(
-        String(500), nullable=True, comment="角色描述"
-    )
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="角色描述")
     is_system: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
@@ -136,12 +127,10 @@ class Role(Base, TimestampMixin):
     )
 
     # 关联
-    permissions: Mapped[list["Permission"]] = relationship(
+    permissions: Mapped[list[Permission]] = relationship(
         secondary=role_permissions, back_populates="roles", lazy="selectin"
     )
-    users: Mapped[list["User"]] = relationship(
-        secondary=user_roles, back_populates="roles"
-    )
+    users: Mapped[list[User]] = relationship(secondary=user_roles, back_populates="roles")
 
     def __repr__(self) -> str:
         return f"<Role(id={self.id}, code={self.code})>"
@@ -157,18 +146,12 @@ class Permission(Base, TimestampMixin):
     code: Mapped[str] = mapped_column(
         String(100), unique=True, nullable=False, index=True, comment="权限编码"
     )
-    resource: Mapped[str] = mapped_column(
-        String(100), nullable=False, comment="资源类型"
-    )
-    action: Mapped[str] = mapped_column(
-        String(50), nullable=False, comment="动作类型"
-    )
-    description: Mapped[str | None] = mapped_column(
-        String(500), nullable=True, comment="权限描述"
-    )
+    resource: Mapped[str] = mapped_column(String(100), nullable=False, comment="资源类型")
+    action: Mapped[str] = mapped_column(String(50), nullable=False, comment="动作类型")
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="权限描述")
 
     # 关联
-    roles: Mapped[list["Role"]] = relationship(
+    roles: Mapped[list[Role]] = relationship(
         secondary=role_permissions, back_populates="permissions"
     )
 

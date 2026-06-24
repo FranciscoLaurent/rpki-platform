@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import func, select
@@ -15,7 +15,6 @@ from app.core.logging import get_logger
 from app.models.detection import Alert, Incident
 from app.schemas.detection import (
     AlertQueryParams,
-    IncidentCreate,
 )
 
 logger = get_logger("app.alert_service")
@@ -31,7 +30,7 @@ async def create_alert(db: AsyncSession, alert_data: dict[str, Any]) -> Alert:
     Returns:
         创建的告警对象（已持久化）
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     alert = Alert(
         rule_id=alert_data.get("rule_id"),
         alert_type=alert_data["alert_type"],
@@ -111,9 +110,7 @@ async def get_alerts(
     return list(result.scalars().all())
 
 
-async def count_alerts(
-    db: AsyncSession, query_params: AlertQueryParams
-) -> int:
+async def count_alerts(db: AsyncSession, query_params: AlertQueryParams) -> int:
     """统计告警数量。"""
     stmt = select(func.count(Alert.id))
 
@@ -172,9 +169,7 @@ async def update_alert_status(
     return alert
 
 
-async def deduplicate_alerts(
-    db: AsyncSession, alerts: list[Alert]
-) -> list[Alert]:
+async def deduplicate_alerts(db: AsyncSession, alerts: list[Alert]) -> list[Alert]:
     """告警去重。
 
     对同一前缀、同一 origin AS、同一告警类型的告警进行去重，
@@ -199,9 +194,7 @@ async def deduplicate_alerts(
     return list(seen.values())
 
 
-async def aggregate_alerts(
-    db: AsyncSession, alerts: list[Alert]
-) -> list[dict[str, Any]]:
+async def aggregate_alerts(db: AsyncSession, alerts: list[Alert]) -> list[dict[str, Any]]:
     """告警聚合与同源事件归并。
 
     将同源告警（相同前缀、相同 origin AS、相同告警类型）归并到同一事件。
@@ -222,25 +215,27 @@ async def aggregate_alerts(
     for (prefix, origin_as, alert_type), group_alerts in groups.items():
         max_severity = _max_severity([a.severity for a in group_alerts])
         max_risk = max(a.risk_score for a in group_alerts)
-        aggregated.append({
-            "prefix": prefix,
-            "origin_as": origin_as,
-            "alert_type": alert_type,
-            "alert_count": len(group_alerts),
-            "alert_ids": [a.id for a in group_alerts],
-            "max_severity": max_severity,
-            "max_risk_score": max_risk,
-            "first_seen_at": min(
-                a.first_seen_at or a.created_at for a in group_alerts
-            ).isoformat()
-            if group_alerts
-            else None,
-            "last_seen_at": max(
-                a.last_seen_at or a.created_at for a in group_alerts
-            ).isoformat()
-            if group_alerts
-            else None,
-        })
+        aggregated.append(
+            {
+                "prefix": prefix,
+                "origin_as": origin_as,
+                "alert_type": alert_type,
+                "alert_count": len(group_alerts),
+                "alert_ids": [a.id for a in group_alerts],
+                "max_severity": max_severity,
+                "max_risk_score": max_risk,
+                "first_seen_at": (
+                    min(a.first_seen_at or a.created_at for a in group_alerts).isoformat()
+                    if group_alerts
+                    else None
+                ),
+                "last_seen_at": (
+                    max(a.last_seen_at or a.created_at for a in group_alerts).isoformat()
+                    if group_alerts
+                    else None
+                ),
+            }
+        )
 
     return aggregated
 

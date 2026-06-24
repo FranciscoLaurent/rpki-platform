@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -85,9 +85,7 @@ async def list_templates(
         enabled=enabled,
     )
     return DeviceConfigTemplateListResponse(
-        items=[
-            DeviceConfigTemplateResponse.model_validate(t) for t in templates
-        ],
+        items=[DeviceConfigTemplateResponse.model_validate(t) for t in templates],
         total=total,
         skip=skip,
         limit=limit,
@@ -124,9 +122,7 @@ async def update_template(
     current_user: User = Depends(require_permissions(RTR_WRITE)),
 ) -> DeviceConfigTemplateResponse:
     """更新设备配置模板（需要 ``rtr:write`` 权限）。"""
-    template = await device_config_service.update_template(
-        db, template_id, payload
-    )
+    template = await device_config_service.update_template(db, template_id, payload)
     if template is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -169,9 +165,7 @@ async def generate_config(
     根据厂商与模板类型选择模板，填充变量后返回生成的配置文本。
     """
     try:
-        return await device_config_service.generate_config_from_request(
-            db, request
-        )
+        return await device_config_service.generate_config_from_request(db, request)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -207,12 +201,10 @@ async def get_default_templates(
             detail=f"不支持的厂商: {vendor}",
         )
 
-    templates_data = (
-        device_config_service.get_default_templates_for_vendor(vendor)
-    )
+    templates_data = device_config_service.get_default_templates_for_vendor(vendor)
 
     # 将字典列表转换为响应模型
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     items: list[DeviceConfigTemplateResponse] = []
     for item in templates_data:
         items.append(

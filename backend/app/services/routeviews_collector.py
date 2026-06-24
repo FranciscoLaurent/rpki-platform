@@ -12,7 +12,7 @@ BGP RIB 快照与 UPDATE 文件。
 from __future__ import annotations
 
 import os
-from datetime import datetime, date
+from datetime import date
 from typing import Any
 
 from structlog.stdlib import BoundLogger
@@ -70,15 +70,9 @@ class RouteViewsCollector:
                 - ``parse_lib``: 解析库（``mrtpython`` 或 ``bgpkit``）
         """
         self._config = config or {}
-        self._base_url: str = self._config.get(
-            "base_url", DEFAULT_ROUTEVIEWS_BASE_URL
-        )
-        self._download_dir: str = self._config.get(
-            "download_dir", "/tmp/routeviews"
-        )
-        self._collectors: list[str] = self._config.get(
-            "collectors", ["route-views2"]
-        )
+        self._base_url: str = self._config.get("base_url", DEFAULT_ROUTEVIEWS_BASE_URL)
+        self._download_dir: str = self._config.get("download_dir", "/tmp/routeviews")
+        self._collectors: list[str] = self._config.get("collectors", ["route-views2"])
         self._parse_lib: str = self._config.get("parse_lib", "mrtpython")
 
     def list_mrt_files(
@@ -104,7 +98,6 @@ class RouteViewsCollector:
         # TODO: 实际实现需访问 RouteViews FTP/HTTP 服务器获取文件列表
         # 可使用 httpx 或 ftplib 列出目录内容
         date_str = target_date.strftime("%Y.%m.%d")
-        prefix = "rib" if file_type == "rib" else "updates"
 
         # 构造预期 URL（RIB 每小时一个，UPDATE 每 15 分钟一个）
         url_path = f"{self._base_url}/{collector}/{file_type}s/{date_str}"
@@ -182,9 +175,7 @@ class RouteViewsCollector:
         #     return [self._parse_bgpkit_entry(e) for e in parser.parse()]
 
         logger.info("解析 MRT 文件", file_path=file_path, parse_lib=self._parse_lib)
-        raise NotImplementedError(
-            f"MRT 文件解析尚未实现（解析库: {self._parse_lib}）"
-        )
+        raise NotImplementedError(f"MRT 文件解析尚未实现（解析库: {self._parse_lib}）")
 
     def _parse_mrt_entry(self, entry: Any) -> dict[str, Any] | None:
         """解析单条 MRT 记录。

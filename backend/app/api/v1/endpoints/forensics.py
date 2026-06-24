@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -70,9 +70,7 @@ async def collect_incident_evidence(
             detail=f"事件 ID {incident_id} 不存在",
         )
 
-    evidence = await collect_evidence(
-        db, incident_id, collected_by=current_user.id
-    )
+    evidence = await collect_evidence(db, incident_id, collected_by=current_user.id)
     await db.commit()
     return EvidenceCollection.model_validate(evidence)
 
@@ -209,7 +207,7 @@ async def close_incident(
         root_cause=close_request.root_cause,
         resolution=close_request.resolution,
         reviewer_id=close_request.reviewer_id,
-        reviewed_at=datetime.now(timezone.utc),
+        reviewed_at=datetime.now(UTC),
         evidence_preserved=True,
         operation_chain=updated_incident.timeline or [],
         rule_updates=[],
@@ -263,9 +261,7 @@ async def notify_incident_endpoint(
 # ──────────────────────────────────────────────
 
 
-async def _get_incident(
-    db: AsyncSession, incident_id: int
-) -> Incident | None:
+async def _get_incident(db: AsyncSession, incident_id: int) -> Incident | None:
     """获取事件。"""
     stmt = select(Incident).where(Incident.id == incident_id)
     result = await db.execute(stmt)

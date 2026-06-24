@@ -5,8 +5,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 from fastapi import Depends, Header, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
@@ -73,7 +72,7 @@ async def get_current_user(
     try:
         user_id = int(user_id_str)
     except (ValueError, TypeError):
-        raise credentials_exception
+        raise credentials_exception from None
 
     # 查询用户并预加载角色与权限
     stmt = (
@@ -327,13 +326,12 @@ async def rate_limit(
         key_suffix = f":{x_api_key.split('.', 1)[0]}"
     rate_key = f"rl:{client_ip}{key_suffix}"
 
-    now = datetime.now(timezone.utc).timestamp()
+    now = datetime.now(UTC).timestamp()
 
     # 尝试使用 Redis
     try:
         redis = get_redis()
         # 使用 Redis 有序集合实现滑动窗口限流
-        import json
 
         # 移除窗口外的记录
         await redis.zremrangebyscore(rate_key, 0, now - window)
@@ -360,9 +358,7 @@ async def rate_limit(
     if rate_key not in _memory_rate_limit:
         _memory_rate_limit[rate_key] = []
     # 清理窗口外的记录
-    _memory_rate_limit[rate_key] = [
-        ts for ts in _memory_rate_limit[rate_key] if ts > window_start
-    ]
+    _memory_rate_limit[rate_key] = [ts for ts in _memory_rate_limit[rate_key] if ts > window_start]
     if len(_memory_rate_limit[rate_key]) >= limit:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,

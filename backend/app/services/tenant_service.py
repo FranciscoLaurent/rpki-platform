@@ -110,9 +110,7 @@ async def get_tenants(
     return list(result.scalars().all())
 
 
-async def count_tenants(
-    db: AsyncSession, filters: dict[str, Any] | None = None
-) -> int:
+async def count_tenants(db: AsyncSession, filters: dict[str, Any] | None = None) -> int:
     """统计租户数量。"""
     stmt = select(func.count(Tenant.id))
     if filters:
@@ -125,9 +123,7 @@ async def count_tenants(
     return result.scalar_one()
 
 
-async def update_tenant(
-    db: AsyncSession, tenant: Tenant, tenant_update: TenantUpdate
-) -> Tenant:
+async def update_tenant(db: AsyncSession, tenant: Tenant, tenant_update: TenantUpdate) -> Tenant:
     """更新租户信息。
 
     Args:
@@ -234,16 +230,12 @@ async def add_member(
     # 检查是否已是成员
     existing = await get_member(db, tenant_id, member_create.user_id)
     if existing is not None:
-        raise ValueError(
-            f"用户 {member_create.user_id} 已是租户 {tenant_id} 的成员"
-        )
+        raise ValueError(f"用户 {member_create.user_id} 已是租户 {tenant_id} 的成员")
 
     # 检查最大用户数限制
     current_count = await count_members(db, tenant_id)
     if current_count >= tenant.max_users:
-        raise ValueError(
-            f"租户 {tenant_id} 已达最大用户数限制 {tenant.max_users}"
-        )
+        raise ValueError(f"租户 {tenant_id} 已达最大用户数限制 {tenant.max_users}")
 
     member = TenantMember(
         user_id=member_create.user_id,
@@ -264,9 +256,7 @@ async def add_member(
     return member
 
 
-async def get_member(
-    db: AsyncSession, tenant_id: int, user_id: int
-) -> TenantMember | None:
+async def get_member(db: AsyncSession, tenant_id: int, user_id: int) -> TenantMember | None:
     """获取租户成员关系。"""
     stmt = select(TenantMember).where(
         TenantMember.tenant_id == tenant_id,
@@ -276,31 +266,23 @@ async def get_member(
     return result.scalar_one_or_none()
 
 
-async def get_member_by_id(
-    db: AsyncSession, member_id: int
-) -> TenantMember | None:
+async def get_member_by_id(db: AsyncSession, member_id: int) -> TenantMember | None:
     """根据成员记录 ID 获取成员关系。"""
     stmt = select(TenantMember).where(TenantMember.id == member_id)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
 
-async def list_members(
-    db: AsyncSession, tenant_id: int
-) -> list[TenantMember]:
+async def list_members(db: AsyncSession, tenant_id: int) -> list[TenantMember]:
     """获取租户全部成员列表。"""
-    stmt = select(TenantMember).where(
-        TenantMember.tenant_id == tenant_id
-    ).order_by(TenantMember.id)
+    stmt = select(TenantMember).where(TenantMember.tenant_id == tenant_id).order_by(TenantMember.id)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
 
 async def count_members(db: AsyncSession, tenant_id: int) -> int:
     """统计租户成员数量。"""
-    stmt = select(func.count(TenantMember.id)).where(
-        TenantMember.tenant_id == tenant_id
-    )
+    stmt = select(func.count(TenantMember.id)).where(TenantMember.tenant_id == tenant_id)
     result = await db.execute(stmt)
     return result.scalar_one()
 

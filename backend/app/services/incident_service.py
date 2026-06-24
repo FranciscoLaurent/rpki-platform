@@ -5,8 +5,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,9 +26,7 @@ logger = get_logger("app.incident_service")
 SEVERITY_ORDER = {"P0": 0, "P1": 1, "P2": 2, "P3": 3, "P4": 4}
 
 
-async def create_incident(
-    db: AsyncSession, incident_create: IncidentCreate
-) -> Incident:
+async def create_incident(db: AsyncSession, incident_create: IncidentCreate) -> Incident:
     """创建事件。
 
     Args:
@@ -39,7 +36,7 @@ async def create_incident(
     Returns:
         创建的事件对象（已持久化）
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     incident = Incident(
         title=incident_create.title,
         description=incident_create.description,
@@ -110,21 +107,19 @@ async def get_incidents(
     # 内存过滤前缀与 ASN
     if filters.prefix:
         incidents = [
-            inc for inc in incidents
+            inc
+            for inc in incidents
             if inc.affected_prefixes and filters.prefix in inc.affected_prefixes
         ]
     if filters.asn is not None:
         incidents = [
-            inc for inc in incidents
-            if inc.affected_asns and filters.asn in inc.affected_asns
+            inc for inc in incidents if inc.affected_asns and filters.asn in inc.affected_asns
         ]
 
     return incidents
 
 
-async def count_incidents(
-    db: AsyncSession, filters: IncidentQueryParams
-) -> int:
+async def count_incidents(db: AsyncSession, filters: IncidentQueryParams) -> int:
     """统计事件数量。"""
     stmt = select(func.count(Incident.id))
 
@@ -163,15 +158,17 @@ async def update_incident(
         setattr(incident, field, value)
 
     # 添加时间线条目
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     timeline = incident.timeline or []
     changed_fields = list(update_data.keys())
-    timeline.append({
-        "timestamp": now.isoformat(),
-        "event_type": "updated",
-        "description": f"更新字段：{', '.join(changed_fields)}",
-        "operator": None,
-    })
+    timeline.append(
+        {
+            "timestamp": now.isoformat(),
+            "event_type": "updated",
+            "description": f"更新字段：{', '.join(changed_fields)}",
+            "operator": None,
+        }
+    )
     incident.timeline = timeline
     incident.last_seen_at = now
 
@@ -184,9 +181,7 @@ async def update_incident(
     return incident
 
 
-async def assign_incident(
-    db: AsyncSession, incident_id: int, user_id: int
-) -> Incident | None:
+async def assign_incident(db: AsyncSession, incident_id: int, user_id: int) -> Incident | None:
     """分派事件给指定用户。
 
     Args:
@@ -206,14 +201,16 @@ async def assign_incident(
         incident.status = "investigating"
 
     # 添加时间线条目
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     timeline = incident.timeline or []
-    timeline.append({
-        "timestamp": now.isoformat(),
-        "event_type": "assigned",
-        "description": f"事件分派给用户 {user_id}",
-        "operator": None,
-    })
+    timeline.append(
+        {
+            "timestamp": now.isoformat(),
+            "event_type": "assigned",
+            "description": f"事件分派给用户 {user_id}",
+            "operator": None,
+        }
+    )
     incident.timeline = timeline
     incident.last_seen_at = now
 
@@ -226,9 +223,7 @@ async def assign_incident(
     return incident
 
 
-async def escalate_incident(
-    db: AsyncSession, incident_id: int
-) -> Incident | None:
+async def escalate_incident(db: AsyncSession, incident_id: int) -> Incident | None:
     """升级事件严重等级。
 
     将事件严重等级提升一级（如 P3 → P2）。
@@ -253,14 +248,16 @@ async def escalate_incident(
                 break
 
     # 添加时间线条目
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     timeline = incident.timeline or []
-    timeline.append({
-        "timestamp": now.isoformat(),
-        "event_type": "escalated",
-        "description": f"事件升级为 {incident.severity}",
-        "operator": None,
-    })
+    timeline.append(
+        {
+            "timestamp": now.isoformat(),
+            "event_type": "escalated",
+            "description": f"事件升级为 {incident.severity}",
+            "operator": None,
+        }
+    )
     incident.timeline = timeline
     incident.last_seen_at = now
 
@@ -273,9 +270,7 @@ async def escalate_incident(
     return incident
 
 
-async def close_incident(
-    db: AsyncSession, incident_id: int, resolution: str
-) -> Incident | None:
+async def close_incident(db: AsyncSession, incident_id: int, resolution: str) -> Incident | None:
     """关闭事件。
 
     Args:
@@ -290,19 +285,21 @@ async def close_incident(
     if incident is None:
         return None
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     incident.status = "closed"
     incident.resolution = resolution
     incident.closed_at = now
 
     # 添加时间线条目
     timeline = incident.timeline or []
-    timeline.append({
-        "timestamp": now.isoformat(),
-        "event_type": "closed",
-        "description": f"事件已关闭：{resolution}",
-        "operator": None,
-    })
+    timeline.append(
+        {
+            "timestamp": now.isoformat(),
+            "event_type": "closed",
+            "description": f"事件已关闭：{resolution}",
+            "operator": None,
+        }
+    )
     incident.timeline = timeline
     incident.last_seen_at = now
 
@@ -334,14 +331,16 @@ async def add_timeline_event(
         return None
 
     timeline = incident.timeline or []
-    timeline.append({
-        "timestamp": event.timestamp.isoformat(),
-        "event_type": event.event_type,
-        "description": event.description,
-        "operator": event.operator,
-    })
+    timeline.append(
+        {
+            "timestamp": event.timestamp.isoformat(),
+            "event_type": event.event_type,
+            "description": event.description,
+            "operator": event.operator,
+        }
+    )
     incident.timeline = timeline
-    incident.last_seen_at = datetime.now(timezone.utc)
+    incident.last_seen_at = datetime.now(UTC)
 
     await db.flush()
     logger.info(

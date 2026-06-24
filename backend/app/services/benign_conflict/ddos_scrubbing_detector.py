@@ -13,7 +13,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -28,9 +28,7 @@ from app.schemas.benign_conflict import BenignConflictAnalysisResult
 logger = get_logger("app.benign_conflict.ddos_scrubbing")
 
 
-async def detect_ddos_scrubbing(
-    db: AsyncSession, alert: Alert
-) -> BenignConflictAnalysisResult:
+async def detect_ddos_scrubbing(db: AsyncSession, alert: Alert) -> BenignConflictAnalysisResult:
     """识别 DDoS 清洗临时宣告。
 
     Args:
@@ -78,19 +76,19 @@ async def detect_ddos_scrubbing(
             "scrubber_asn": authorization.scrubber_asn,
             "customer_prefix": authorization.customer_prefix,
             "customer_asn": authorization.customer_asn,
-            "authorized_at": authorization.authorized_at.isoformat()
-            if authorization.authorized_at
-            else None,
-            "expires_at": authorization.expires_at.isoformat()
-            if authorization.expires_at
-            else None,
+            "authorized_at": (
+                authorization.authorized_at.isoformat() if authorization.authorized_at else None
+            ),
+            "expires_at": (
+                authorization.expires_at.isoformat() if authorization.expires_at else None
+            ),
             "status": authorization.status,
             "work_order_id": authorization.work_order_id,
         }
         confidence += 0.4
 
         # 3. 检查是否在授权时间窗内
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         in_window = authorization.authorized_at <= now <= authorization.expires_at
         evidence["checks"]["in_authorization_window"] = in_window
         if in_window:
@@ -180,9 +178,7 @@ async def _check_scrubber_authorization(
     return result.scalar_one_or_none()
 
 
-def _check_as_path_pattern(
-    as_path: list[int] | None, origin_as: int
-) -> str:
+def _check_as_path_pattern(as_path: list[int] | None, origin_as: int) -> str:
     """检查 AS_PATH 模式是否符合清洗特征。
 
     清洗特征：

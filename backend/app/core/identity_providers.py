@@ -137,9 +137,7 @@ class IdentityProviderFactory:
     }
 
     @classmethod
-    def create(
-        cls, provider_type: str, config: dict[str, Any]
-    ) -> IdentityProvider:
+    def create(cls, provider_type: str, config: dict[str, Any]) -> IdentityProvider:
         """根据类型创建身份提供商实例。
 
         Args:
@@ -155,14 +153,11 @@ class IdentityProviderFactory:
         provider_class = cls._registry.get(provider_type.lower())
         if provider_class is None:
             raise ValueError(
-                f"不支持的身份提供商类型: {provider_type}，"
-                f"可选: {', '.join(cls._registry.keys())}"
+                f"不支持的身份提供商类型: {provider_type}，可选: {', '.join(cls._registry.keys())}"
             )
         return provider_class(config)
 
     @classmethod
-    def register(
-        cls, provider_type: str, provider_class: type[IdentityProvider]
-    ) -> None:
+    def register(cls, provider_type: str, provider_class: type[IdentityProvider]) -> None:
         """注册自定义身份提供商。"""
         cls._registry[provider_type.lower()] = provider_class

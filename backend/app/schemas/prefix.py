@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import ipaddress
 from datetime import datetime
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -143,17 +142,13 @@ class PrefixResponse(BaseModel):
 class PrefixTreeNode(PrefixResponse):
     """前缀树节点，递归包含子前缀。"""
 
-    children: list["PrefixTreeNode"] = Field(
-        default_factory=list, description="子前缀列表"
-    )
+    children: list[PrefixTreeNode] = Field(default_factory=list, description="子前缀列表")
 
 
 class PrefixBatchImport(BaseModel):
     """批量导入前缀请求。"""
 
-    prefixes: list[PrefixCreate] = Field(
-        ..., description="待导入的前缀列表"
-    )
+    prefixes: list[PrefixCreate] = Field(..., description="待导入的前缀列表")
 
 
 class PrefixBatchImportError(BaseModel):
@@ -170,9 +165,7 @@ class PrefixBatchImportResult(BaseModel):
     total: int = Field(..., description="总数")
     success: int = Field(..., description="成功数")
     failed: int = Field(..., description="失败数")
-    errors: list[PrefixBatchImportError] = Field(
-        default_factory=list, description="失败明细列表"
-    )
+    errors: list[PrefixBatchImportError] = Field(default_factory=list, description="失败明细列表")
 
 
 class PrefixListResponse(BaseModel):

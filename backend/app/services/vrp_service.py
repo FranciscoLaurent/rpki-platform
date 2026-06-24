@@ -8,7 +8,7 @@ Valid/Invalid/NotFound 三态及 Invalid 原因细分。
 from __future__ import annotations
 
 import ipaddress
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import delete, func, select
@@ -19,10 +19,10 @@ from app.core.prefix_tree import PrefixTree
 from app.core.rpki_validator import parse_prefix
 from app.models.rpki import (
     ROA,
-    RPKIObject,
-    RPKISnapshot,
     TAL,
     VRP,
+    RPKIObject,
+    RPKISnapshot,
 )
 from app.schemas.rpki import (
     BGPAnnouncementValidation,
@@ -30,8 +30,8 @@ from app.schemas.rpki import (
     SnapshotDiff,
     SnapshotDiffResponse,
     SnapshotRollbackResponse,
-    VRPResponse,
     ValidationResult,
+    VRPResponse,
 )
 
 logger = get_logger("app.vrp_service")
@@ -216,9 +216,7 @@ def _get_covering_prefixes(prefix: str) -> list[str]:
             if length == 0:
                 mask = 0
             else:
-                mask = (
-                    (1 << 128) - (1 << (128 - length))
-                )
+                mask = (1 << 128) - (1 << (128 - length))
             parent_addr = addr_int & mask
             parent = ipaddress.IPv6Network((parent_addr, length), strict=True)
         covering.append(str(parent))
@@ -466,11 +464,11 @@ async def create_snapshot(db: AsyncSession) -> RPKISnapshot:
         "vrp_count": vrp_total,
         "roa_count": roa_total,
         "object_count": object_total,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
     }
 
     snapshot = RPKISnapshot(
-        snapshot_time=datetime.now(timezone.utc),
+        snapshot_time=datetime.now(UTC),
         vrp_count=vrp_total,
         roa_count=roa_total,
         object_count=object_total,
@@ -490,15 +488,10 @@ async def create_snapshot(db: AsyncSession) -> RPKISnapshot:
     return snapshot
 
 
-async def list_snapshots(
-    db: AsyncSession, skip: int = 0, limit: int = 50
-) -> list[RPKISnapshot]:
+async def list_snapshots(db: AsyncSession, skip: int = 0, limit: int = 50) -> list[RPKISnapshot]:
     """获取快照列表。"""
     stmt = (
-        select(RPKISnapshot)
-        .order_by(RPKISnapshot.snapshot_time.desc())
-        .offset(skip)
-        .limit(limit)
+        select(RPKISnapshot).order_by(RPKISnapshot.snapshot_time.desc()).offset(skip).limit(limit)
     )
     result = await db.execute(stmt)
     return list(result.scalars().all())
@@ -511,9 +504,7 @@ async def count_snapshots(db: AsyncSession) -> int:
     return result.scalar_one()
 
 
-async def get_snapshot_by_id(
-    db: AsyncSession, snapshot_id: int
-) -> RPKISnapshot | None:
+async def get_snapshot_by_id(db: AsyncSession, snapshot_id: int) -> RPKISnapshot | None:
     """根据 ID 获取快照。"""
     stmt = select(RPKISnapshot).where(RPKISnapshot.id == snapshot_id)
     result = await db.execute(stmt)
@@ -569,9 +560,7 @@ async def get_snapshot_diff(
     )
 
 
-async def rollback_to_snapshot(
-    db: AsyncSession, snapshot_id: int
-) -> SnapshotRollbackResponse:
+async def rollback_to_snapshot(db: AsyncSession, snapshot_id: int) -> SnapshotRollbackResponse:
     """回滚到指定快照。
 
     Note:

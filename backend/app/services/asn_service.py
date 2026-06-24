@@ -95,9 +95,7 @@ async def get_asns(
     return list(result.scalars().all())
 
 
-async def count_asns(
-    db: AsyncSession, filters: dict[str, Any] | None = None
-) -> int:
+async def count_asns(db: AsyncSession, filters: dict[str, Any] | None = None) -> int:
     """统计 ASN 数量。"""
     stmt = select(func.count(ASN.id))
     if filters:
@@ -114,9 +112,7 @@ async def count_asns(
     return result.scalar_one()
 
 
-async def update_asn(
-    db: AsyncSession, asn: ASN, asn_update: ASNUpdate
-) -> ASN:
+async def update_asn(db: AsyncSession, asn: ASN, asn_update: ASNUpdate) -> ASN:
     """更新 ASN。
 
     Args:

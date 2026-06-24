@@ -23,7 +23,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TenantMixin, TimestampMixin
 
-
 # ──────────────────────────────────────────────
 # RTR 服务实例
 # ──────────────────────────────────────────────
@@ -42,12 +41,8 @@ class RTRServer(Base, TimestampMixin, TenantMixin):
         Index("ix_rtr_servers_listen_host_port", "listen_host", "listen_port"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="RTR 服务名称"
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="RTR 服务名称")
     listen_host: Mapped[str] = mapped_column(
         String(64),
         nullable=False,
@@ -101,9 +96,7 @@ class RTRServer(Base, TimestampMixin, TenantMixin):
     last_started_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="最近一次启动时间"
     )
-    last_error: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="最近一次错误信息"
-    )
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True, comment="最近一次错误信息")
 
     # 关联
     sessions: Mapped[list[RTRSession]] = relationship(
@@ -143,20 +136,14 @@ class RTRSession(Base, TimestampMixin):
         Index("ix_rtr_sessions_session_state", "session_state"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     server_id: Mapped[int] = mapped_column(
         ForeignKey("rtr_servers.id", ondelete="CASCADE"),
         nullable=False,
         comment="所属 RTR 服务 ID",
     )
-    client_ip: Mapped[str] = mapped_column(
-        String(64), nullable=False, comment="客户端 IP 地址"
-    )
-    client_port: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="客户端端口"
-    )
+    client_ip: Mapped[str] = mapped_column(String(64), nullable=False, comment="客户端 IP 地址")
+    client_port: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="客户端端口")
     client_version: Mapped[int | None] = mapped_column(
         Integer, nullable=True, comment="RTR 协议版本：0 或 1"
     )
@@ -214,17 +201,13 @@ class RTRSerialHistory(Base, TimestampMixin):
         Index("ix_rtr_serial_history_created_at", "created_at"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     server_id: Mapped[int] = mapped_column(
         ForeignKey("rtr_servers.id", ondelete="CASCADE"),
         nullable=False,
         comment="所属 RTR 服务 ID",
     )
-    serial_number: Mapped[int] = mapped_column(
-        Integer, nullable=False, comment="序列号"
-    )
+    serial_number: Mapped[int] = mapped_column(Integer, nullable=False, comment="序列号")
     change_type: Mapped[str] = mapped_column(
         String(30),
         nullable=False,
@@ -244,14 +227,10 @@ class RTRSerialHistory(Base, TimestampMixin):
         nullable=True,
         comment="关联的 RPKI 快照 ID",
     )
-    note: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="备注"
-    )
+    note: Mapped[str | None] = mapped_column(Text, nullable=True, comment="备注")
 
     # 关联
-    server: Mapped[RTRServer] = relationship(
-        back_populates="serial_histories"
-    )
+    server: Mapped[RTRServer] = relationship(back_populates="serial_histories")
 
     def __repr__(self) -> str:
         return (
@@ -279,12 +258,8 @@ class DeviceConfigTemplate(Base, TimestampMixin, TenantMixin):
         Index("ix_device_config_templates_enabled", "enabled"),
     )
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="模板名称"
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="模板名称")
     vendor: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
@@ -296,9 +271,7 @@ class DeviceConfigTemplate(Base, TimestampMixin, TenantMixin):
     template_type: Mapped[str] = mapped_column(
         String(30),
         nullable=False,
-        comment=(
-            "模板类型：rtr_client/rov_policy/rollback/risk_notice"
-        ),
+        comment=("模板类型：rtr_client/rov_policy/rollback/risk_notice"),
     )
     content: Mapped[str] = mapped_column(
         Text,
@@ -310,12 +283,8 @@ class DeviceConfigTemplate(Base, TimestampMixin, TenantMixin):
         nullable=True,
         comment="变量定义（变量名、描述、是否必填、默认值等）",
     )
-    description: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="模板描述"
-    )
-    enabled: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True, comment="是否启用"
-    )
+    description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="模板描述")
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, comment="是否启用")
 
     def __repr__(self) -> str:
         return (

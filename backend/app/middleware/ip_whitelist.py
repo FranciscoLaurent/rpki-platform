@@ -50,9 +50,7 @@ class IPWhitelistMiddleware(BaseHTTPMiddleware):
         self._networks: list[Any] = []
         self._parse_whitelist(settings.IP_WHITELIST)
         # 预解析生效路径前缀
-        self._scoped_paths: list[str] = [
-            p for p in settings.IP_WHITELIST_PATHS if p
-        ]
+        self._scoped_paths: list[str] = [p for p in settings.IP_WHITELIST_PATHS if p]
 
     def _parse_whitelist(self, whitelist: list[str]) -> None:
         """解析白名单配置，区分单 IP 与 CIDR 网络。"""
@@ -70,14 +68,10 @@ class IPWhitelistMiddleware(BaseHTTPMiddleware):
             except ValueError:
                 logger.warning("IP 白名单条目格式无效，已忽略", entry=entry)
 
-    async def dispatch(
-        self, request: Request, call_next: Any
-    ) -> Any:
+    async def dispatch(self, request: Request, call_next: Any) -> Any:
         """IP 白名单检查。"""
         # 判断是否启用白名单
-        whitelist_enabled = settings.IP_WHITELIST_ENABLED or bool(
-            self._exact_ips or self._networks
-        )
+        whitelist_enabled = settings.IP_WHITELIST_ENABLED or bool(self._exact_ips or self._networks)
         if not whitelist_enabled:
             return await call_next(request)
 
@@ -87,9 +81,7 @@ class IPWhitelistMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         # 若配置了生效路径前缀，则仅对匹配路径启用白名单
-        if self._scoped_paths and not any(
-            path.startswith(prefix) for prefix in self._scoped_paths
-        ):
+        if self._scoped_paths and not any(path.startswith(prefix) for prefix in self._scoped_paths):
             return await call_next(request)
 
         client_ip = self._get_client_ip(request)

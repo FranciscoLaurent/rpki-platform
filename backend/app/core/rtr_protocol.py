@@ -130,9 +130,7 @@ class RTRProtocol:
         )
         payload = data[RTRProtocol.HEADER_LENGTH : length]
         if len(payload) < length - RTRProtocol.HEADER_LENGTH:
-            raise ValueError(
-                f"PDU 长度字段声明 {length} 字节，但实际数据不足"
-            )
+            raise ValueError(f"PDU 长度字段声明 {length} 字节，但实际数据不足")
         return {
             "version": version,
             "pdu_type": pdu_type,
@@ -177,27 +175,18 @@ class RTRProtocol:
         if max_length is None:
             max_length = prefix_length
         if not (0 <= prefix_length <= 32):
-            raise ValueError(
-                f"IPv4 前缀长度应在 0-32 之间，实际 {prefix_length}"
-            )
+            raise ValueError(f"IPv4 前缀长度应在 0-32 之间，实际 {prefix_length}")
         if not (0 <= max_length <= 32):
-            raise ValueError(
-                f"IPv4 maxLength 应在 0-32 之间，实际 {max_length}"
-            )
+            raise ValueError(f"IPv4 maxLength 应在 0-32 之间，实际 {max_length}")
         if max_length < prefix_length:
-            raise ValueError(
-                f"maxLength ({max_length}) 不能小于 prefix_length "
-                f"({prefix_length})"
-            )
+            raise ValueError(f"maxLength ({max_length}) 不能小于 prefix_length ({prefix_length})")
 
         addr = ipaddress.IPv4Address(prefix)
         prefix_bytes = int(addr).to_bytes(4, byteorder="big")
         # PDU 负载：Flags(1) + Prefix Length(1) + Max Length(1) + Reserved(1) +
         #          IPv4 Prefix(4) + Origin AS(4) = 12 字节
         body = (
-            struct.pack(
-                "!BBB", flags & 0xFF, prefix_length & 0xFF, max_length & 0xFF
-            )
+            struct.pack("!BBB", flags & 0xFF, prefix_length & 0xFF, max_length & 0xFF)
             + b"\x00"  # reserved
             + prefix_bytes
             + struct.pack("!I", origin_as & 0xFFFFFFFF)
@@ -241,18 +230,11 @@ class RTRProtocol:
         if max_length is None:
             max_length = prefix_length
         if not (0 <= prefix_length <= 128):
-            raise ValueError(
-                f"IPv6 前缀长度应在 0-128 之间，实际 {prefix_length}"
-            )
+            raise ValueError(f"IPv6 前缀长度应在 0-128 之间，实际 {prefix_length}")
         if not (0 <= max_length <= 128):
-            raise ValueError(
-                f"IPv6 maxLength 应在 0-128 之间，实际 {max_length}"
-            )
+            raise ValueError(f"IPv6 maxLength 应在 0-128 之间，实际 {max_length}")
         if max_length < prefix_length:
-            raise ValueError(
-                f"maxLength ({max_length}) 不能小于 prefix_length "
-                f"({prefix_length})"
-            )
+            raise ValueError(f"maxLength ({max_length}) 不能小于 prefix_length ({prefix_length})")
 
         addr = ipaddress.IPv6Address(prefix)
         prefix_bytes = int(addr).to_bytes(16, byteorder="big")
@@ -299,9 +281,7 @@ class RTRProtocol:
             prefix = str(ipaddress.IPv6Address(int.from_bytes(prefix_bytes, "big")))
             family = 6
         else:
-            raise ValueError(
-                f"前缀 PDU 负载长度异常：{len(payload)}（应为 12 或 36）"
-            )
+            raise ValueError(f"前缀 PDU 负载长度异常：{len(payload)}（应为 12 或 36）")
 
         return {
             "flags": flags,
@@ -389,9 +369,7 @@ class RTRProtocol:
         )
 
     @staticmethod
-    def encode_cache_response(
-        session_id: int, version: int = DEFAULT_VERSION
-    ) -> bytes:
+    def encode_cache_response(session_id: int, version: int = DEFAULT_VERSION) -> bytes:
         """编码 Cache Response PDU（PDU type 3）。
 
         服务端响应 Serial Query 或 Reset Query，表示后续将发送 VRP 数据。
@@ -532,9 +510,7 @@ class RTRProtocol:
         return {"serial_number": serial_number}
 
     @staticmethod
-    def decode_end_of_data_pdu(
-        payload: bytes, version: int = VERSION_1
-    ) -> dict[str, Any]:
+    def decode_end_of_data_pdu(payload: bytes, version: int = VERSION_1) -> dict[str, Any]:
         """解码 End of Data PDU 负载。
 
         Args:
@@ -584,9 +560,7 @@ class RTRProtocol:
             raise ValueError("Error Report PDU 负载长度与字段声明不一致")
         erroneous_pdu = payload[8 : 8 + erroneous_pdu_len]
         text_len_offset = 8 + erroneous_pdu_len
-        text_len = struct.unpack(
-            "!I", payload[text_len_offset : text_len_offset + 4]
-        )[0]
+        text_len = struct.unpack("!I", payload[text_len_offset : text_len_offset + 4])[0]
         text_start = text_len_offset + 4
         message_bytes = payload[text_start : text_start + text_len]
         return {
@@ -628,9 +602,7 @@ class RTRProtocol:
         """
         flags = 1 if is_withdrawal else 0
         try:
-            network = ipaddress.ip_network(
-                f"{prefix}/{prefix_length}", strict=False
-            )
+            network = ipaddress.ip_network(f"{prefix}/{prefix_length}", strict=False)
         except ValueError as e:
             raise ValueError(f"无效的前缀 {prefix}/{prefix_length}: {e}") from e
 

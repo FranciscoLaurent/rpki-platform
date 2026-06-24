@@ -29,19 +29,19 @@ from app.models.detection import Alert, DetectionRule, Incident, RiskScore
 from app.models.prefix import Prefix
 from app.models.roa_change import ROAApprovalRule, ROAChangeRequest
 from app.models.rpki import (
+    ROA,
+    TAL,
+    VRP,
     RPKICache,
     RPKIObject,
     RPKIRepository,
     RPKISnapshot,
-    ROA,
-    TAL,
-    VRP,
 )
 from app.models.rtr import (
     DeviceConfigTemplate,
+    RTRSerialHistory,
     RTRServer,
     RTRSession,
-    RTRSerialHistory,
 )
 from app.models.tenant import Tenant, TenantMember
 from app.models.user import (

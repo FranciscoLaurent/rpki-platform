@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import time
-from datetime import datetime, timezone
 from typing import Any
 
 import httpx
@@ -63,9 +62,7 @@ class SIEMAdapter(BaseAdapter):
                         headers=headers,
                     )
                 else:
-                    response = await client.get(
-                        f"{base_url}/api/help", headers=headers
-                    )
+                    response = await client.get(f"{base_url}/api/help", headers=headers)
             latency_ms = int((time.monotonic() - start) * 1000)
             success = response.status_code < 400
             return AdapterResult(
@@ -76,9 +73,7 @@ class SIEMAdapter(BaseAdapter):
             )
         except Exception as e:
             latency_ms = int((time.monotonic() - start) * 1000)
-            return AdapterResult(
-                success=False, error_message=str(e), latency_ms=latency_ms
-            )
+            return AdapterResult(success=False, error_message=str(e), latency_ms=latency_ms)
 
     async def forward_event(self, incident: dict[str, Any]) -> AdapterResult:
         """转发事件到 SIEM。"""
@@ -140,9 +135,7 @@ class SIEMAdapter(BaseAdapter):
             )
         except Exception as e:
             latency_ms = int((time.monotonic() - start) * 1000)
-            return AdapterResult(
-                success=False, error_message=str(e), latency_ms=latency_ms
-            )
+            return AdapterResult(success=False, error_message=str(e), latency_ms=latency_ms)
 
 
 class ITSMAdapter(BaseAdapter):
@@ -182,9 +175,7 @@ class ITSMAdapter(BaseAdapter):
                         params={"sysparm_limit": "1"},
                     )
                 elif subtype == "jira":
-                    response = await client.get(
-                        f"{base_url}/rest/api/3/myself", headers=headers
-                    )
+                    response = await client.get(f"{base_url}/rest/api/3/myself", headers=headers)
                 else:
                     response = await client.get(
                         f"{base_url}/api/v2/tickets",
@@ -201,9 +192,7 @@ class ITSMAdapter(BaseAdapter):
             )
         except Exception as e:
             latency_ms = int((time.monotonic() - start) * 1000)
-            return AdapterResult(
-                success=False, error_message=str(e), latency_ms=latency_ms
-            )
+            return AdapterResult(success=False, error_message=str(e), latency_ms=latency_ms)
 
     async def create_ticket(self, incident: dict[str, Any]) -> AdapterResult:
         """在 ITSM 创建工单。"""
@@ -226,9 +215,7 @@ class ITSMAdapter(BaseAdapter):
                     payload = {
                         "short_description": incident.get("title", "RPKI 事件"),
                         "description": incident.get("description", ""),
-                        "urgency": _severity_to_urgency(
-                            incident.get("severity", "P3")
-                        ),
+                        "urgency": _severity_to_urgency(incident.get("severity", "P3")),
                         "category": "network",
                         "subcategory": "rpki_security",
                     }
@@ -238,9 +225,7 @@ class ITSMAdapter(BaseAdapter):
                         content=json.dumps(payload, ensure_ascii=False, default=str),
                     )
                 elif subtype == "jira":
-                    project = self.connection_params.get(
-                        "project", incident.get("project", "RPKI")
-                    )
+                    project = self.connection_params.get("project", incident.get("project", "RPKI"))
                     payload = {
                         "fields": {
                             "project": {"key": project},
@@ -248,9 +233,7 @@ class ITSMAdapter(BaseAdapter):
                             "description": incident.get("description", ""),
                             "issuetype": {"name": "Incident"},
                             "priority": {
-                                "name": _severity_to_jira_priority(
-                                    incident.get("severity", "P3")
-                                )
+                                "name": _severity_to_jira_priority(incident.get("severity", "P3"))
                             },
                             "labels": ["rpki", "security"],
                         }
@@ -287,13 +270,9 @@ class ITSMAdapter(BaseAdapter):
             )
         except Exception as e:
             latency_ms = int((time.monotonic() - start) * 1000)
-            return AdapterResult(
-                success=False, error_message=str(e), latency_ms=latency_ms
-            )
+            return AdapterResult(success=False, error_message=str(e), latency_ms=latency_ms)
 
-    async def update_ticket(
-        self, ticket_id: str, update: dict[str, Any]
-    ) -> AdapterResult:
+    async def update_ticket(self, ticket_id: str, update: dict[str, Any]) -> AdapterResult:
         """更新 ITSM 工单。"""
         base_url = self._get_base_url()
         if not base_url:
@@ -339,9 +318,7 @@ class ITSMAdapter(BaseAdapter):
             )
         except Exception as e:
             latency_ms = int((time.monotonic() - start) * 1000)
-            return AdapterResult(
-                success=False, error_message=str(e), latency_ms=latency_ms
-            )
+            return AdapterResult(success=False, error_message=str(e), latency_ms=latency_ms)
 
 
 # ──────────────────────────────────────────────
@@ -368,16 +345,18 @@ async def forward_to_siem(config: dict[str, Any], incident: dict[str, Any]) -> b
             "verify_tls": config.get("verify_tls", True),
             "index": config.get("index"),
         },
-        auth_config={
-            "type": "bearer",
-            "token": config.get("token", ""),
-        }
-        if config.get("token")
-        else {
-            "type": "basic",
-            "username": config.get("username", ""),
-            "password": config.get("password", ""),
-        },
+        auth_config=(
+            {
+                "type": "bearer",
+                "token": config.get("token", ""),
+            }
+            if config.get("token")
+            else {
+                "type": "basic",
+                "username": config.get("username", ""),
+                "password": config.get("password", ""),
+            }
+        ),
     )
     result = await adapter.forward_event(incident)
     if not result.success:
@@ -389,9 +368,7 @@ async def forward_to_siem(config: dict[str, Any], incident: dict[str, Any]) -> b
     return result.success
 
 
-async def create_itsm_ticket(
-    config: dict[str, Any], incident: dict[str, Any]
-) -> dict[str, Any]:
+async def create_itsm_ticket(config: dict[str, Any], incident: dict[str, Any]) -> dict[str, Any]:
     """在 ITSM 创建工单（ServiceNow/Jira/Freshservice）。
 
     Args:
@@ -410,16 +387,18 @@ async def create_itsm_ticket(
             "verify_tls": config.get("verify_tls", True),
             "project": config.get("project"),
         },
-        auth_config={
-            "type": "bearer",
-            "token": config.get("token", ""),
-        }
-        if config.get("token")
-        else {
-            "type": "basic",
-            "username": config.get("username", ""),
-            "password": config.get("password", ""),
-        },
+        auth_config=(
+            {
+                "type": "bearer",
+                "token": config.get("token", ""),
+            }
+            if config.get("token")
+            else {
+                "type": "basic",
+                "username": config.get("username", ""),
+                "password": config.get("password", ""),
+            }
+        ),
     )
     result = await adapter.create_ticket(incident)
     if not result.success:
@@ -473,16 +452,18 @@ async def update_itsm_ticket(
             "timeout": config.get("timeout", 15),
             "verify_tls": config.get("verify_tls", True),
         },
-        auth_config={
-            "type": "bearer",
-            "token": config.get("token", ""),
-        }
-        if config.get("token")
-        else {
-            "type": "basic",
-            "username": config.get("username", ""),
-            "password": config.get("password", ""),
-        },
+        auth_config=(
+            {
+                "type": "bearer",
+                "token": config.get("token", ""),
+            }
+            if config.get("token")
+            else {
+                "type": "basic",
+                "username": config.get("username", ""),
+                "password": config.get("password", ""),
+            }
+        ),
     )
     result = await adapter.update_ticket(ticket_id, update)
     if not result.success:
@@ -494,9 +475,7 @@ async def update_itsm_ticket(
     return result.success
 
 
-async def query_siem_events(
-    config: dict[str, Any], query: dict[str, Any]
-) -> list[dict[str, Any]]:
+async def query_siem_events(config: dict[str, Any], query: dict[str, Any]) -> list[dict[str, Any]]:
     """查询 SIEM 历史事件。
 
     Args:
@@ -522,9 +501,7 @@ async def query_siem_events(
 
         username = config.get("username", "")
         password = config.get("password", "")
-        credentials = base64.b64encode(
-            f"{username}:{password}".encode("utf-8")
-        ).decode("ascii")
+        credentials = base64.b64encode(f"{username}:{password}".encode()).decode("ascii")
         headers["Authorization"] = f"Basic {credentials}"
 
     timeout = float(config.get("timeout", 15))
@@ -535,9 +512,7 @@ async def query_siem_events(
     end_time = query.get("end_time")
 
     try:
-        async with httpx.AsyncClient(
-            timeout=timeout, verify=verify_tls
-        ) as client:
+        async with httpx.AsyncClient(timeout=timeout, verify=verify_tls) as client:
             if subtype == "splunk":
                 # Splunk 搜索 API
                 params = {
@@ -581,9 +556,7 @@ async def query_siem_events(
                     body["query"] = {
                         "bool": {
                             "must": [body["query"]],
-                            "filter": [
-                                {"range": {"@timestamp": range_filter}}
-                            ],
+                            "filter": [{"range": {"@timestamp": range_filter}}],
                         }
                     }
                 response = await client.post(
@@ -603,9 +576,9 @@ async def query_siem_events(
                     params=params,
                 )
                 if response.status_code < 400:
-                    return response.json() if isinstance(
-                        response.json(), list
-                    ) else [response.json()]
+                    return (
+                        response.json() if isinstance(response.json(), list) else [response.json()]
+                    )
 
             logger.error(
                 "查询 SIEM 事件失败",

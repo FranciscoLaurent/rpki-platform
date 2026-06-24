@@ -14,9 +14,7 @@ class ASNBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255, description="AS 名称")
     asn_type: str = Field(
         default="provider",
-        description=(
-            "AS 关系类型：own/customer/provider/peer/ixp/route_server/scrubber"
-        ),
+        description=("AS 关系类型：own/customer/provider/peer/ixp/route_server/scrubber"),
     )
     status: str = Field(default="active", description="状态：active/inactive")
     risk_profile: str | None = Field(None, description="风险画像描述")
@@ -24,9 +22,7 @@ class ASNBase(BaseModel):
     contact_email: str | None = Field(None, description="联系人邮箱")
     noc_phone: str | None = Field(None, description="NOC 联系电话")
     emergency_contact: str | None = Field(None, description="紧急联系方式")
-    relationship_tags: list[str] = Field(
-        default_factory=list, description="关系标签列表"
-    )
+    relationship_tags: list[str] = Field(default_factory=list, description="关系标签列表")
     description: str | None = Field(None, description="描述")
 
     @field_validator("asn_type")

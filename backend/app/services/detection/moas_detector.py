@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func, select
@@ -20,9 +20,7 @@ from app.schemas.detection import MOASDetectionResult
 logger = get_logger("app.detection.moas")
 
 
-async def detect_moas(
-    db: AsyncSession, announcement: BGPAnnouncement
-) -> MOASDetectionResult:
+async def detect_moas(db: AsyncSession, announcement: BGPAnnouncement) -> MOASDetectionResult:
     """MOAS 异常检测。
 
     检测流程：
@@ -69,17 +67,12 @@ async def detect_moas(
     historical_moas = await _get_historical_moas(db, prefix)
 
     # 分类 MOAS 类型
-    moas_type, severity, description = _classify_moas(
-        recent_origin_asns, asn_meta, historical_moas
-    )
+    moas_type, severity, description = _classify_moas(recent_origin_asns, asn_meta, historical_moas)
 
     is_anomaly = moas_type == "unknown"
     if is_anomaly:
         severity = "P2"
-        description = (
-            f"前缀 {prefix} 被多个未知关系 AS 宣告："
-            f"{recent_origin_asns}"
-        )
+        description = f"前缀 {prefix} 被多个未知关系 AS 宣告：{recent_origin_asns}"
 
     evidence: dict[str, Any] = {
         "prefix": prefix,
@@ -109,7 +102,7 @@ async def _get_recent_origin_asns(
     lookback_minutes: int = 60,
 ) -> list[int]:
     """查询近期该前缀的所有 origin AS。"""
-    since = datetime.now(timezone.utc) - timedelta(minutes=lookback_minutes)
+    since = datetime.now(UTC) - timedelta(minutes=lookback_minutes)
     stmt = (
         select(BGPAnnouncement.origin_as)
         .where(BGPAnnouncement.prefix == prefix)
@@ -121,9 +114,7 @@ async def _get_recent_origin_asns(
     return [row[0] for row in result.all() if row[0] is not None]
 
 
-async def _get_asn_metadata(
-    db: AsyncSession, asn_list: list[int]
-) -> dict[int, dict[str, Any]]:
+async def _get_asn_metadata(db: AsyncSession, asn_list: list[int]) -> dict[int, dict[str, Any]]:
     """查询 ASN 元信息（类型、关系标签等）。"""
     if not asn_list:
         return {}
@@ -148,7 +139,7 @@ async def _get_historical_moas(
     lookback_days: int = 30,
 ) -> dict[str, Any]:
     """查询历史 MOAS 模式。"""
-    since = datetime.now(timezone.utc) - timedelta(days=lookback_days)
+    since = datetime.now(UTC) - timedelta(days=lookback_days)
     stmt = (
         select(
             BGPAnnouncement.origin_as,

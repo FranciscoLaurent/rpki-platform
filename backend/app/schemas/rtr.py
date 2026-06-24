@@ -11,7 +11,6 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-
 # ──────────────────────────────────────────────
 # RTR 服务 CRUD
 # ──────────────────────────────────────────────
@@ -22,21 +21,11 @@ class RTRServerBase(BaseModel):
 
     name: str = Field(..., description="RTR 服务名称")
     listen_host: str = Field(default="0.0.0.0", description="监听地址")
-    listen_port: int = Field(
-        default=8282, ge=1, le=65535, description="监听端口"
-    )
-    session_id: int = Field(
-        default=1, ge=0, le=65535, description="RTR Session ID"
-    )
-    mtls_enabled: bool = Field(
-        default=False, description="是否启用 mTLS 双向认证"
-    )
-    whitelist: list[str] | None = Field(
-        None, description="允许连接的客户端 IP 列表"
-    )
-    config: dict[str, Any] | None = Field(
-        None, description="其他配置（如刷新间隔、超时等）"
-    )
+    listen_port: int = Field(default=8282, ge=1, le=65535, description="监听端口")
+    session_id: int = Field(default=1, ge=0, le=65535, description="RTR Session ID")
+    mtls_enabled: bool = Field(default=False, description="是否启用 mTLS 双向认证")
+    whitelist: list[str] | None = Field(None, description="允许连接的客户端 IP 列表")
+    config: dict[str, Any] | None = Field(None, description="其他配置（如刷新间隔、超时等）")
 
 
 class RTRServerCreate(RTRServerBase):
@@ -48,21 +37,11 @@ class RTRServerUpdate(BaseModel):
 
     name: str | None = Field(None, description="RTR 服务名称")
     listen_host: str | None = Field(None, description="监听地址")
-    listen_port: int | None = Field(
-        None, ge=1, le=65535, description="监听端口"
-    )
-    session_id: int | None = Field(
-        None, ge=0, le=65535, description="RTR Session ID"
-    )
-    mtls_enabled: bool | None = Field(
-        None, description="是否启用 mTLS 双向认证"
-    )
-    whitelist: list[str] | None = Field(
-        None, description="允许连接的客户端 IP 列表"
-    )
-    config: dict[str, Any] | None = Field(
-        None, description="其他配置（如刷新间隔、超时等）"
-    )
+    listen_port: int | None = Field(None, ge=1, le=65535, description="监听端口")
+    session_id: int | None = Field(None, ge=0, le=65535, description="RTR Session ID")
+    mtls_enabled: bool | None = Field(None, description="是否启用 mTLS 双向认证")
+    whitelist: list[str] | None = Field(None, description="允许连接的客户端 IP 列表")
+    config: dict[str, Any] | None = Field(None, description="其他配置（如刷新间隔、超时等）")
 
 
 class RTRServerResponse(BaseModel):
@@ -169,9 +148,7 @@ class RTRServerStatus(BaseModel):
     server_id: int = Field(..., description="RTR 服务 ID")
     status: str = Field(..., description="服务状态：running/stopped/error")
     vrps_count: int = Field(0, description="当前 VRP 数量")
-    connected_clients: int = Field(
-        0, description="当前连接客户端数"
-    )
+    connected_clients: int = Field(0, description="当前连接客户端数")
     uptime: int = Field(0, description="运行时长（秒）")
     current_serial: int = Field(0, description="当前序列号")
     session_id: int = Field(..., description="RTR Session ID")
@@ -184,9 +161,7 @@ class RTRServerActionResponse(BaseModel):
     server_id: int
     status: str = Field(..., description="操作后的服务状态")
     message: str = Field(..., description="操作结果消息")
-    serial_number: int | None = Field(
-        None, description="操作涉及的序列号（如有）"
-    )
+    serial_number: int | None = Field(None, description="操作涉及的序列号（如有）")
 
 
 class RTRConsistencyDifference(BaseModel):
@@ -201,12 +176,8 @@ class RTRConsistencyDifference(BaseModel):
             "only_in_db（仅数据库有）、max_length_mismatch（maxLength 不一致）"
         ),
     )
-    server_max_length: int | None = Field(
-        None, description="服务端的 maxLength"
-    )
-    db_max_length: int | None = Field(
-        None, description="数据库的 maxLength"
-    )
+    server_max_length: int | None = Field(None, description="服务端的 maxLength")
+    db_max_length: int | None = Field(None, description="数据库的 maxLength")
 
 
 class RTRConsistencyCheckResult(BaseModel):
@@ -224,9 +195,7 @@ class RTRConsistencyCheckResult(BaseModel):
 class RTRRollbackRequest(BaseModel):
     """RTR 序列号回滚请求。"""
 
-    target_serial: int = Field(
-        ..., ge=0, description="目标序列号"
-    )
+    target_serial: int = Field(..., ge=0, description="目标序列号")
 
 
 # ──────────────────────────────────────────────
@@ -250,9 +219,7 @@ class DeviceConfigTemplateBase(BaseModel):
         description="模板类型：rtr_client/rov_policy/rollback/risk_notice",
     )
     content: str = Field(..., description="模板内容，含变量占位符")
-    variables: dict[str, Any] | None = Field(
-        None, description="变量定义"
-    )
+    variables: dict[str, Any] | None = Field(None, description="变量定义")
     description: str | None = Field(None, description="模板描述")
     enabled: bool = Field(True, description="是否启用")
 
@@ -371,12 +338,8 @@ class DeviceConfigRequest(BaseModel):
     """设备配置生成请求。"""
 
     vendor: str = Field(..., description="厂商")
-    template_type: str = Field(
-        default="rtr_client", description="模板类型"
-    )
-    variables: dict[str, Any] = Field(
-        default_factory=dict, description="变量字典"
-    )
+    template_type: str = Field(default="rtr_client", description="模板类型")
+    variables: dict[str, Any] = Field(default_factory=dict, description="变量字典")
 
     @field_validator("vendor")
     @classmethod
@@ -403,14 +366,10 @@ class DeviceConfigResult(BaseModel):
     """设备配置生成结果。"""
 
     generated_config: str = Field(..., description="生成的配置文本")
-    warnings: list[str] = Field(
-        default_factory=list, description="警告信息列表"
-    )
+    warnings: list[str] = Field(default_factory=list, description="警告信息列表")
     vendor: str = Field(..., description="厂商")
     template_type: str = Field(..., description="模板类型")
-    template_id: int | None = Field(
-        None, description="使用的模板 ID（如为默认模板则为 None）"
-    )
+    template_id: int | None = Field(None, description="使用的模板 ID（如为默认模板则为 None）")
 
 
 class VendorInfo(BaseModel):
@@ -418,9 +377,7 @@ class VendorInfo(BaseModel):
 
     vendor: str = Field(..., description="厂商代码")
     name: str = Field(..., description="厂商显示名称")
-    template_types: list[str] = Field(
-        default_factory=list, description="支持的模板类型"
-    )
+    template_types: list[str] = Field(default_factory=list, description="支持的模板类型")
 
 
 class VendorListResponse(BaseModel):
@@ -469,9 +426,7 @@ class PolicyTemplateListResponse(BaseModel):
     """厂商策略模板列表响应。"""
 
     vendor: str = Field(..., description="厂商代码")
-    policies: list[PolicyTemplateInfo] = Field(
-        default_factory=list, description="策略模板列表"
-    )
+    policies: list[PolicyTemplateInfo] = Field(default_factory=list, description="策略模板列表")
 
 
 # ──────────────────────────────────────────────
@@ -485,13 +440,9 @@ class DeviceConfigPolicyRequest(BaseModel):
     vendor: str = Field(..., description="厂商")
     policy: str = Field(
         ...,
-        description=(
-            "ROV 策略：drop_invalid/de_preference_invalid/monitor_only"
-        ),
+        description=("ROV 策略：drop_invalid/de_preference_invalid/monitor_only"),
     )
-    variables: dict[str, Any] = Field(
-        default_factory=dict, description="变量字典"
-    )
+    variables: dict[str, Any] = Field(default_factory=dict, description="变量字典")
 
     @field_validator("vendor")
     @classmethod
@@ -527,9 +478,7 @@ class DeviceConfigPolicyResult(BaseModel):
     """按策略生成配置结果。"""
 
     generated_config: str = Field(..., description="生成的配置文本")
-    warnings: list[str] = Field(
-        default_factory=list, description="警告信息列表"
-    )
+    warnings: list[str] = Field(default_factory=list, description="警告信息列表")
     vendor: str = Field(..., description="厂商")
     policy: str = Field(..., description="使用的 ROV 策略")
 
@@ -544,12 +493,8 @@ class DeviceConfigBatchItem(BaseModel):
 
     device_name: str = Field(..., description="设备名称（用于标识）")
     vendor: str = Field(..., description="厂商")
-    template_type: str = Field(
-        default="rtr_client", description="模板类型"
-    )
-    variables: dict[str, Any] = Field(
-        default_factory=dict, description="变量字典"
-    )
+    template_type: str = Field(default="rtr_client", description="模板类型")
+    variables: dict[str, Any] = Field(default_factory=dict, description="变量字典")
 
     @field_validator("vendor")
     @classmethod
@@ -585,15 +530,9 @@ class DeviceConfigBatchResultItem(BaseModel):
 
     device_name: str = Field(..., description="设备名称")
     success: bool = Field(..., description="是否生成成功")
-    generated_config: str | None = Field(
-        None, description="生成的配置文本（失败时为 None）"
-    )
-    warnings: list[str] = Field(
-        default_factory=list, description="警告信息列表"
-    )
-    error: str | None = Field(
-        None, description="错误信息（失败时存在）"
-    )
+    generated_config: str | None = Field(None, description="生成的配置文本（失败时为 None）")
+    warnings: list[str] = Field(default_factory=list, description="警告信息列表")
+    error: str | None = Field(None, description="错误信息（失败时存在）")
     vendor: str = Field(..., description="厂商")
     template_type: str = Field(..., description="模板类型")
 
@@ -619,30 +558,20 @@ class DeviceConfigDiffRequest(BaseModel):
 
     config_a: str = Field(..., description="配置文本 A")
     config_b: str = Field(..., description="配置文本 B")
-    context_lines: int = Field(
-        default=3, ge=0, le=20, description="差异上下文行数"
-    )
+    context_lines: int = Field(default=3, ge=0, le=20, description="差异上下文行数")
 
 
 class DeviceConfigDiffEntry(BaseModel):
     """配置差异条目。"""
 
-    line_number_a: int | None = Field(
-        None, description="配置 A 中的行号（仅新增行时为 None）"
-    )
-    line_number_b: int | None = Field(
-        None, description="配置 B 中的行号（仅删除行时为 None）"
-    )
+    line_number_a: int | None = Field(None, description="配置 A 中的行号（仅新增行时为 None）")
+    line_number_b: int | None = Field(None, description="配置 B 中的行号（仅删除行时为 None）")
     change_type: str = Field(
         ...,
         description="变更类型：added（新增）/removed（删除）/modified（修改）",
     )
-    content_a: str | None = Field(
-        None, description="配置 A 中的行内容"
-    )
-    content_b: str | None = Field(
-        None, description="配置 B 中的行内容"
-    )
+    content_a: str | None = Field(None, description="配置 A 中的行内容")
+    content_b: str | None = Field(None, description="配置 B 中的行内容")
 
 
 class DeviceConfigDiffResult(BaseModel):
@@ -653,9 +582,7 @@ class DeviceConfigDiffResult(BaseModel):
     removed_count: int = Field(0, description="删除行数")
     modified_count: int = Field(0, description="修改行数")
     diff_text: str = Field(..., description="统一 diff 格式文本")
-    entries: list[DeviceConfigDiffEntry] = Field(
-        default_factory=list, description="差异条目列表"
-    )
+    entries: list[DeviceConfigDiffEntry] = Field(default_factory=list, description="差异条目列表")
 
 
 # ──────────────────────────────────────────────
@@ -693,16 +620,10 @@ class DeviceConfigValidationRequest(BaseModel):
 class DeviceConfigValidationIssue(BaseModel):
     """配置验证问题。"""
 
-    line_number: int | None = Field(
-        None, description="问题所在行号"
-    )
-    severity: str = Field(
-        ..., description="严重级别：error/warning/info"
-    )
+    line_number: int | None = Field(None, description="问题所在行号")
+    severity: str = Field(..., description="严重级别：error/warning/info")
     message: str = Field(..., description="问题描述")
-    line_content: str | None = Field(
-        None, description="问题行内容"
-    )
+    line_content: str | None = Field(None, description="问题行内容")
 
 
 class DeviceConfigValidationResult(BaseModel):
@@ -713,9 +634,7 @@ class DeviceConfigValidationResult(BaseModel):
     issues: list[DeviceConfigValidationIssue] = Field(
         default_factory=list, description="验证问题列表"
     )
-    checked_at: datetime = Field(
-        ..., description="验证时间"
-    )
+    checked_at: datetime = Field(..., description="验证时间")
 
 
 __all__ = [

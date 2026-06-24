@@ -5,14 +5,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import get_logger
-from app.models.bgp import BGPAnnouncement, ObservationPoint
+from app.models.bgp import BGPAnnouncement
 from app.schemas.detection import RPKIInvalidResult
 
 logger = get_logger("app.detection.rpki_invalid")
@@ -38,7 +38,7 @@ async def detect_rpki_invalid_propagation(
     Returns:
         RPKI Invalid 传播检测结果
     """
-    since = datetime.now(timezone.utc) - timedelta(hours=lookback_hours)
+    since = datetime.now(UTC) - timedelta(hours=lookback_hours)
 
     # 查询该前缀的所有 Invalid 公告
     stmt = (
@@ -83,11 +83,7 @@ async def detect_rpki_invalid_propagation(
     propagation_count = len(unique_points)
 
     # 主要 Invalid 原因
-    primary_reason = (
-        max(invalid_reasons, key=invalid_reasons.get)
-        if invalid_reasons
-        else None
-    )
+    primary_reason = max(invalid_reasons, key=invalid_reasons.get) if invalid_reasons else None
 
     # 判定严重等级
     is_anomaly = propagation_count > 0

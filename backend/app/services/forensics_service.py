@@ -11,7 +11,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func, select
@@ -64,7 +64,7 @@ async def collect_evidence(
     Returns:
         取证结果字典，结构同 ``EvidenceCollection`` 模式
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # 查询事件
     incident = await _get_incident(db, incident_id)
@@ -118,9 +118,7 @@ async def collect_evidence(
 
     # 2. 采集 BGP 公告样本
     try:
-        bgp_samples = await _collect_bgp_samples(
-            db, prefixes, window_start, window_end
-        )
+        bgp_samples = await _collect_bgp_samples(db, prefixes, window_start, window_end)
         evidence_by_type["bgp_sample"] = len(bgp_samples)
     except Exception as e:
         bgp_samples = []
@@ -129,9 +127,7 @@ async def collect_evidence(
 
     # 3. 采集 AS_PATH 路径
     try:
-        as_paths = await _collect_as_paths(
-            db, prefixes, window_start, window_end
-        )
+        as_paths = await _collect_as_paths(db, prefixes, window_start, window_end)
         evidence_by_type["as_path"] = len(as_paths)
     except Exception as e:
         as_paths = []
@@ -140,12 +136,8 @@ async def collect_evidence(
 
     # 4. 采集传播范围
     try:
-        propagation_scope = await _collect_propagation_scope(
-            db, prefixes, window_start, window_end
-        )
-        evidence_by_type["propagation_scope"] = len(
-            propagation_scope.get("observation_points", [])
-        )
+        propagation_scope = await _collect_propagation_scope(db, prefixes, window_start, window_end)
+        evidence_by_type["propagation_scope"] = len(propagation_scope.get("observation_points", []))
     except Exception as e:
         propagation_scope = {}
         errors.append(f"采集传播范围证据失败：{e}")
@@ -162,9 +154,7 @@ async def collect_evidence(
 
     # 6. 采集资产关系
     try:
-        asset_relations = await _collect_asset_relations(
-            db, prefixes, asns
-        )
+        asset_relations = await _collect_asset_relations(db, prefixes, asns)
         evidence_by_type["asset_relation"] = len(asset_relations)
     except Exception as e:
         asset_relations = []
@@ -177,9 +167,7 @@ async def collect_evidence(
 
     # 8. 采集历史基线
     try:
-        historical_baseline = await _collect_historical_baseline(
-            db, prefixes, now
-        )
+        historical_baseline = await _collect_historical_baseline(db, prefixes, now)
         evidence_by_type["historical_baseline"] = len(historical_baseline)
     except Exception as e:
         historical_baseline = []
@@ -213,9 +201,7 @@ async def collect_evidence(
         {
             "timestamp": now.isoformat(),
             "event_type": "evidence_collected",
-            "description": (
-                f"自动取证完成，共采集 {evidence['evidence_count']} 条证据"
-            ),
+            "description": (f"自动取证完成，共采集 {evidence['evidence_count']} 条证据"),
             "operator": collected_by,
         }
     )
@@ -238,9 +224,7 @@ async def collect_evidence(
 # ──────────────────────────────────────────────
 
 
-async def _collect_roa_vrp(
-    db: AsyncSession, prefixes: list[str]
-) -> list[dict[str, Any]]:
+async def _collect_roa_vrp(db: AsyncSession, prefixes: list[str]) -> list[dict[str, Any]]:
     """采集 ROA/VRP 授权快照。"""
     results: list[dict[str, Any]] = []
     for prefix in prefixes:
@@ -266,9 +250,7 @@ async def _collect_roa_vrp(
                         "prefix": v.prefix,
                         "origin_as": v.origin_as,
                         "max_length": v.max_length,
-                        "validation_status": getattr(
-                            v, "validation_status", None
-                        ),
+                        "validation_status": getattr(v, "validation_status", None),
                     }
                     for v in vrps
                 ],
@@ -337,9 +319,7 @@ async def _collect_bgp_samples(
                         "as_path": a.as_path,
                         "observation_point_id": a.observation_point_id,
                         "rpki_validation_status": a.rpki_validation_status,
-                        "timestamp": a.timestamp.isoformat()
-                        if a.timestamp
-                        else None,
+                        "timestamp": a.timestamp.isoformat() if a.timestamp else None,
                     }
                     for a in announcements[:20]
                 ],
@@ -347,9 +327,7 @@ async def _collect_bgp_samples(
                     {
                         "id": w.id,
                         "observation_point_id": w.observation_point_id,
-                        "timestamp": w.timestamp.isoformat()
-                        if w.timestamp
-                        else None,
+                        "timestamp": w.timestamp.isoformat() if w.timestamp else None,
                     }
                     for w in withdraws[:20]
                 ],
@@ -368,9 +346,7 @@ async def _collect_as_paths(
     results: list[dict[str, Any]] = []
     for prefix in prefixes:
         ann_stmt = (
-            select(
-                BGPAnnouncement.as_path, BGPAnnouncement.origin_as
-            )
+            select(BGPAnnouncement.as_path, BGPAnnouncement.origin_as)
             .where(BGPAnnouncement.prefix == prefix)
             .where(BGPAnnouncement.timestamp >= window_start)
             .where(BGPAnnouncement.timestamp <= window_end)
@@ -456,9 +432,7 @@ async def _collect_observation_points(
     db: AsyncSession,
 ) -> list[dict[str, Any]]:
     """采集活跃观察点信息。"""
-    stmt = select(ObservationPoint).where(
-        ObservationPoint.status == "active"
-    )
+    stmt = select(ObservationPoint).where(ObservationPoint.status == "active")
     result = await db.execute(stmt)
     observation_points = list(result.scalars().all())
 
@@ -501,9 +475,7 @@ async def _collect_asset_relations(
 
         # 关联客户
         if prefix_obj.customer_id is not None:
-            cust_stmt = select(Customer).where(
-                Customer.id == prefix_obj.customer_id
-            )
+            cust_stmt = select(Customer).where(Customer.id == prefix_obj.customer_id)
             cust_result = await db.execute(cust_stmt)
             customer = cust_result.scalar_one_or_none()
             if customer:
@@ -609,24 +581,16 @@ async def _collect_historical_baseline(
 # ──────────────────────────────────────────────
 
 
-async def _get_incident(
-    db: AsyncSession, incident_id: int
-) -> Incident | None:
+async def _get_incident(db: AsyncSession, incident_id: int) -> Incident | None:
     """获取事件。"""
     stmt = select(Incident).where(Incident.id == incident_id)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
 
-async def _get_incident_alerts(
-    db: AsyncSession, incident_id: int
-) -> list[Alert]:
+async def _get_incident_alerts(db: AsyncSession, incident_id: int) -> list[Alert]:
     """获取事件关联的告警。"""
-    stmt = (
-        select(Alert)
-        .where(Alert.incident_id == incident_id)
-        .order_by(Alert.created_at.desc())
-    )
+    stmt = select(Alert).where(Alert.incident_id == incident_id).order_by(Alert.created_at.desc())
     result = await db.execute(stmt)
     return list(result.scalars().all())
 

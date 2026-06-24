@@ -66,9 +66,7 @@ async def detect_route_leak(
     asn_meta = await _get_asn_metadata(db, as_path)
 
     # 分析 AS_PATH 模式
-    leak_type, severity, description, leak_path = _analyze_path_pattern(
-        as_path, asn_meta
-    )
+    leak_type, severity, description, leak_path = _analyze_path_pattern(as_path, asn_meta)
 
     is_leak = leak_type is not None
 
@@ -78,9 +76,7 @@ async def detect_route_leak(
         is_leak = True
         leak_type = leak_type or "aspa_violation"
         severity = "P1"
-        description = (
-            f"ASPA 关系检查发现违规：{aspa_result.get('description')}"
-        )
+        description = f"ASPA 关系检查发现违规：{aspa_result.get('description')}"
 
     evidence: dict[str, Any] = {
         "prefix": announcement.prefix,
@@ -104,9 +100,7 @@ async def detect_route_leak(
     )
 
 
-async def _get_asn_metadata(
-    db: AsyncSession, asn_list: list[int]
-) -> dict[int, dict[str, Any]]:
+async def _get_asn_metadata(db: AsyncSession, asn_list: list[int]) -> dict[int, dict[str, Any]]:
     """查询 ASN 元信息。"""
     if not asn_list:
         return {}
@@ -147,10 +141,7 @@ def _analyze_path_pattern(
 
         # 客户向提供商泄露：客户 AS 向其提供商传播了不该传播的路由
         # 表现为：客户类型 AS 出现在路径中，且其后跟随 provider 类型 AS
-        if (
-            left_type == AS_TYPE_CUSTOMER
-            and right_type == AS_TYPE_PROVIDER
-        ):
+        if left_type == AS_TYPE_CUSTOMER and right_type == AS_TYPE_PROVIDER:
             return (
                 "customer_to_provider",
                 "P1",
@@ -172,10 +163,7 @@ def _analyze_path_pattern(
             )
 
         # 对等间泄露：peer 关系的 AS 间互相传播路由
-        if (
-            left_type == AS_TYPE_PEER
-            and right_type == AS_TYPE_PEER
-        ):
+        if left_type == AS_TYPE_PEER and right_type == AS_TYPE_PEER:
             return (
                 "peer_to_peer",
                 "P2",
@@ -191,9 +179,7 @@ def _analyze_path_pattern(
     )
 
 
-async def _check_aspa_relationship(
-    db: AsyncSession, as_path: list[int]
-) -> dict[str, Any]:
+async def _check_aspa_relationship(db: AsyncSession, as_path: list[int]) -> dict[str, Any]:
     """ASPA（Autonomous System Provider Authorization）关系检查。
 
     ASPA 是 RPKI 中用于验证 AS_PATH 上游/下游关系的扩展。

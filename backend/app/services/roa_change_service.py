@@ -12,7 +12,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import func, select
@@ -22,7 +22,7 @@ from app.core.logging import get_logger
 from app.models.bgp import BGPAnnouncement
 from app.models.prefix import Prefix
 from app.models.roa_change import ROAChangeRequest
-from app.models.rpki import ROA, RPKIObject, VRP
+from app.models.rpki import ROA, VRP, RPKIObject
 from app.models.user import User
 from app.schemas.roa import ROAChangeParams
 from app.schemas.roa_change import (
@@ -80,9 +80,7 @@ async def _get_prefix_importance(db: AsyncSession, prefix: str) -> str | None:
 
 async def _get_user_brief(db: AsyncSession, user_id: int) -> dict[str, Any] | None:
     """获取用户简要信息。"""
-    stmt = select(User.id, User.username, User.full_name).where(
-        User.id == user_id
-    )
+    stmt = select(User.id, User.username, User.full_name).where(User.id == user_id)
     result = await db.execute(stmt)
     row = result.first()
     if row is None:
@@ -128,9 +126,7 @@ async def create_change_request(
     # 参数校验
     if request_create.change_type in ("modify", "revoke"):
         if request_create.roa_id is None:
-            raise ValueError(
-                f"变更类型 {request_create.change_type} 需要指定 roa_id"
-            )
+            raise ValueError(f"变更类型 {request_create.change_type} 需要指定 roa_id")
     if request_create.change_type == "create":
         if request_create.prefix is None or request_create.origin_as is None:
             raise ValueError("创建 ROA 需要指定 prefix 和 origin_as")
@@ -138,20 +134,14 @@ async def create_change_request(
     # 获取现有 ROA 信息（modify/revoke 时）
     current_roa: ROA | None = None
     if request_create.roa_id is not None:
-        current_roa = await roa_service.get_roa_detail(
-            db, request_create.roa_id
-        )
+        current_roa = await roa_service.get_roa_detail(db, request_create.roa_id)
         if current_roa is None:
-            raise ValueError(
-                f"ROA ID {request_create.roa_id} 不存在"
-            )
+            raise ValueError(f"ROA ID {request_create.roa_id} 不存在")
 
     # 记录变更前的值
     current_prefix = current_roa.prefix if current_roa else None
     current_origin_as = current_roa.origin_as if current_roa else None
-    current_max_length = (
-        current_roa.max_length if current_roa else None
-    )
+    current_max_length = current_roa.max_length if current_roa else None
 
     # 执行影响评估
     impact_summary: dict[str, Any] = {}
@@ -167,9 +157,7 @@ async def create_change_request(
             new_max_length=request_create.max_length,
             revoke=(request_create.change_type == "revoke"),
         )
-        impact = await roa_service.assess_roa_change_impact(
-            db, current_roa.id, change_params
-        )
+        impact = await roa_service.assess_roa_change_impact(db, current_roa.id, change_params)
         if impact is not None:
             is_high_risk = impact.is_high_risk
             affected_count = len(impact.affected_announcements)
@@ -184,14 +172,10 @@ async def create_change_request(
             # 从受影响公告中提取前缀重要性
             if impact.affected_announcements:
                 first_prefix = impact.affected_announcements[0].prefix
-                prefix_importance = await _get_prefix_importance(
-                    db, first_prefix
-                )
+                prefix_importance = await _get_prefix_importance(db, first_prefix)
     elif request_create.change_type == "create" and request_create.prefix:
         # 创建场景：检查前缀重要性与现有公告
-        prefix_importance = await _get_prefix_importance(
-            db, request_create.prefix
-        )
+        prefix_importance = await _get_prefix_importance(db, request_create.prefix)
         # 查询该前缀的现有 BGP 公告数
         bgp_stmt = select(func.count(BGPAnnouncement.id)).where(
             BGPAnnouncement.prefix == request_create.prefix
@@ -209,9 +193,7 @@ async def create_change_request(
         impact_summary["prefix_importance"] = prefix_importance
 
     # 确定风险等级
-    risk_level = _determine_risk_level(
-        is_high_risk, affected_count, prefix_importance
-    )
+    risk_level = _determine_risk_level(is_high_risk, affected_count, prefix_importance)
 
     # 创建变更请求
     change_request = ROAChangeRequest(
@@ -232,9 +214,7 @@ async def create_change_request(
     )
 
     # 匹配审批规则
-    flow_match = await roa_approval_service.match_approval_rule(
-        db, change_request
-    )
+    flow_match = await roa_approval_service.match_approval_rule(db, change_request)
     change_request.approval_rule_id = flow_match.rule_id
     change_request.required_approvals = flow_match.required_approvals
     change_request.approvals = []
@@ -278,9 +258,7 @@ async def create_change_request(
     return change_request
 
 
-async def get_change_request(
-    db: AsyncSession, request_id: int
-) -> ROAChangeRequest | None:
+async def get_change_request(db: AsyncSession, request_id: int) -> ROAChangeRequest | None:
     """获取变更请求详情。"""
     stmt = select(ROAChangeRequest).where(ROAChangeRequest.id == request_id)
     result = await db.execute(stmt)
@@ -310,36 +288,20 @@ async def get_change_requests(
 
     if filters:
         if filters.get("change_type"):
-            stmt = stmt.where(
-                ROAChangeRequest.change_type == filters["change_type"]
-            )
-            count_stmt = count_stmt.where(
-                ROAChangeRequest.change_type == filters["change_type"]
-            )
+            stmt = stmt.where(ROAChangeRequest.change_type == filters["change_type"])
+            count_stmt = count_stmt.where(ROAChangeRequest.change_type == filters["change_type"])
         if filters.get("status"):
             stmt = stmt.where(ROAChangeRequest.status == filters["status"])
-            count_stmt = count_stmt.where(
-                ROAChangeRequest.status == filters["status"]
-            )
+            count_stmt = count_stmt.where(ROAChangeRequest.status == filters["status"])
         if filters.get("risk_level"):
-            stmt = stmt.where(
-                ROAChangeRequest.risk_level == filters["risk_level"]
-            )
-            count_stmt = count_stmt.where(
-                ROAChangeRequest.risk_level == filters["risk_level"]
-            )
+            stmt = stmt.where(ROAChangeRequest.risk_level == filters["risk_level"])
+            count_stmt = count_stmt.where(ROAChangeRequest.risk_level == filters["risk_level"])
         if filters.get("requested_by") is not None:
-            stmt = stmt.where(
-                ROAChangeRequest.requested_by == filters["requested_by"]
-            )
-            count_stmt = count_stmt.where(
-                ROAChangeRequest.requested_by == filters["requested_by"]
-            )
+            stmt = stmt.where(ROAChangeRequest.requested_by == filters["requested_by"])
+            count_stmt = count_stmt.where(ROAChangeRequest.requested_by == filters["requested_by"])
         if filters.get("roa_id") is not None:
             stmt = stmt.where(ROAChangeRequest.roa_id == filters["roa_id"])
-            count_stmt = count_stmt.where(
-                ROAChangeRequest.roa_id == filters["roa_id"]
-            )
+            count_stmt = count_stmt.where(ROAChangeRequest.roa_id == filters["roa_id"])
 
     stmt = stmt.order_by(ROAChangeRequest.id.desc()).offset(skip).limit(limit)
 
@@ -391,9 +353,7 @@ async def approve_change_request(
         raise ValueError(f"变更请求 ID {request_id} 不存在")
 
     if change_request.status != "pending_approval":
-        raise ValueError(
-            f"变更请求当前状态为 {change_request.status}，无法审批"
-        )
+        raise ValueError(f"变更请求当前状态为 {change_request.status}，无法审批")
 
     if action not in ("approve", "reject"):
         raise ValueError(f"无效的审批动作：{action}，应为 approve 或 reject")
@@ -404,7 +364,7 @@ async def approve_change_request(
         "username": approver.username,
         "action": action,
         "comments": comments,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     approvals = change_request.approvals or []
@@ -418,9 +378,7 @@ async def approve_change_request(
         change_request.approval_comments = comments
     else:
         # 批准：检查是否达到所需审批人数
-        approve_count = sum(
-            1 for a in approvals if a.get("action") == "approve"
-        )
+        approve_count = sum(1 for a in approvals if a.get("action") == "approve")
         if approve_count >= change_request.required_approvals:
             change_request.status = "approved"
             change_request.approved_by = approver.id
@@ -442,9 +400,7 @@ async def approve_change_request(
             "action": action,
             "comments": comments,
             "new_status": change_request.status,
-            "approve_count": sum(
-                1 for a in approvals if a.get("action") == "approve"
-            ),
+            "approve_count": sum(1 for a in approvals if a.get("action") == "approve"),
             "required_approvals": change_request.required_approvals,
         },
     )
@@ -497,10 +453,7 @@ async def execute_change_request(
         raise ValueError(f"变更请求 ID {request_id} 不存在")
 
     if change_request.status != "approved":
-        raise ValueError(
-            f"变更请求当前状态为 {change_request.status}，"
-            f"仅 approved 状态可执行"
-        )
+        raise ValueError(f"变更请求当前状态为 {change_request.status}，仅 approved 状态可执行")
 
     execution_result = ROAChangeExecutionResult(
         success=False,
@@ -517,19 +470,15 @@ async def execute_change_request(
 
         elif change_request.change_type == "modify":
             await _execute_modify(db, change_request)
-            execution_result.message = (
-                f"ROA {change_request.roa_id} 修改成功"
-            )
+            execution_result.message = f"ROA {change_request.roa_id} 修改成功"
 
         elif change_request.change_type == "revoke":
             await _execute_revoke(db, change_request)
-            execution_result.message = (
-                f"ROA {change_request.roa_id} 撤销成功"
-            )
+            execution_result.message = f"ROA {change_request.roa_id} 撤销成功"
 
         execution_result.success = True
         change_request.status = "executed"
-        change_request.executed_at = datetime.now(timezone.utc)
+        change_request.executed_at = datetime.now(UTC)
 
     except Exception as e:
         execution_result.success = False
@@ -583,9 +532,7 @@ async def execute_change_request(
     return execution_result
 
 
-async def _execute_create(
-    db: AsyncSession, change_request: ROAChangeRequest
-) -> int:
+async def _execute_create(db: AsyncSession, change_request: ROAChangeRequest) -> int:
     """执行创建 ROA 变更。
 
     创建流程：
@@ -609,12 +556,14 @@ async def _execute_create(
 
     # 解析前缀
     import ipaddress
+
     network = ipaddress.ip_network(change_request.prefix, strict=False)
     prefix_family = network.version
     prefix_length = network.prefixlen
 
     # 查找一个可用的 RPKI 仓库
     from app.models.rpki import RPKIRepository
+
     repo_stmt = select(RPKIRepository).limit(1)
     repo_result = await db.execute(repo_stmt)
     repository = repo_result.scalar_one_or_none()
@@ -667,9 +616,7 @@ async def _execute_create(
     return roa.id
 
 
-async def _execute_modify(
-    db: AsyncSession, change_request: ROAChangeRequest
-) -> None:
+async def _execute_modify(db: AsyncSession, change_request: ROAChangeRequest) -> None:
     """执行修改 ROA 变更。
 
     修改流程：
@@ -694,6 +641,7 @@ async def _execute_modify(
     # 更新 ROA 字段
     if change_request.prefix is not None:
         import ipaddress
+
         network = ipaddress.ip_network(change_request.prefix, strict=False)
         roa.prefix = change_request.prefix
         roa.prefix_family = network.version
@@ -725,9 +673,7 @@ async def _execute_modify(
     await db.flush()
 
 
-async def _execute_revoke(
-    db: AsyncSession, change_request: ROAChangeRequest
-) -> None:
+async def _execute_revoke(db: AsyncSession, change_request: ROAChangeRequest) -> None:
     """执行撤销 ROA 变更。
 
     撤销流程：
@@ -801,14 +747,11 @@ async def rollback_change(
         raise ValueError(f"变更请求 ID {request_id} 不存在")
 
     if change_request.status != "executed":
-        raise ValueError(
-            f"变更请求当前状态为 {change_request.status}，"
-            f"仅 executed 状态可回滚"
-        )
+        raise ValueError(f"变更请求当前状态为 {change_request.status}，仅 executed 状态可回滚")
 
     rollback_info: dict[str, Any] = {
         "rolled_back_by": user.id,
-        "rolled_back_at": datetime.now(timezone.utc).isoformat(),
+        "rolled_back_at": datetime.now(UTC).isoformat(),
         "change_type": change_request.change_type,
     }
 
@@ -816,9 +759,7 @@ async def rollback_change(
         if change_request.change_type == "create":
             # 回滚创建：删除 ROA
             if change_request.roa_id is not None:
-                roa = await roa_service.get_roa_detail(
-                    db, change_request.roa_id
-                )
+                roa = await roa_service.get_roa_detail(db, change_request.roa_id)
                 if roa is not None:
                     # 删除关联的 VRP
                     vrp_stmt = select(VRP).where(VRP.roa_id == roa.id)
@@ -835,15 +776,12 @@ async def rollback_change(
         elif change_request.change_type == "modify":
             # 回滚修改：恢复原始字段
             if change_request.roa_id is not None:
-                roa = await roa_service.get_roa_detail(
-                    db, change_request.roa_id
-                )
+                roa = await roa_service.get_roa_detail(db, change_request.roa_id)
                 if roa is not None:
                     if change_request.current_prefix is not None:
                         import ipaddress
-                        network = ipaddress.ip_network(
-                            change_request.current_prefix, strict=False
-                        )
+
+                        network = ipaddress.ip_network(change_request.current_prefix, strict=False)
                         roa.prefix = change_request.current_prefix
                         roa.prefix_family = network.version
                         roa.prefix_length = network.prefixlen
@@ -873,9 +811,7 @@ async def rollback_change(
         elif change_request.change_type == "revoke":
             # 回滚撤销：恢复 ROA 状态
             if change_request.roa_id is not None:
-                roa = await roa_service.get_roa_detail(
-                    db, change_request.roa_id
-                )
+                roa = await roa_service.get_roa_detail(db, change_request.roa_id)
                 if roa is not None:
                     roa.status = "valid"
                     await db.flush()
@@ -934,9 +870,7 @@ async def rollback_change(
 # ──────────────────────────────────────────────
 
 
-async def verify_change_result(
-    db: AsyncSession, request_id: int
-) -> ROAChangeVerificationResult:
+async def verify_change_result(db: AsyncSession, request_id: int) -> ROAChangeVerificationResult:
     """变更后验证。
 
     验证内容：
@@ -978,9 +912,7 @@ async def verify_change_result(
         else:
             result.roa_status = roa.status
             if roa.status != "valid":
-                issues.append(
-                    f"创建的 ROA 状态为 {roa.status}，预期为 valid"
-                )
+                issues.append(f"创建的 ROA 状态为 {roa.status}，预期为 valid")
             validation_details["roa_prefix"] = roa.prefix
             validation_details["roa_origin_as"] = roa.origin_as
 
@@ -990,21 +922,11 @@ async def verify_change_result(
         else:
             result.roa_status = roa.status
             # 检查字段是否已更新
-            if (
-                change_request.prefix is not None
-                and roa.prefix != change_request.prefix
-            ):
+            if change_request.prefix is not None and roa.prefix != change_request.prefix:
+                issues.append(f"ROA prefix 未更新：期望 {change_request.prefix}，实际 {roa.prefix}")
+            if change_request.origin_as is not None and roa.origin_as != change_request.origin_as:
                 issues.append(
-                    f"ROA prefix 未更新：期望 {change_request.prefix}，"
-                    f"实际 {roa.prefix}"
-                )
-            if (
-                change_request.origin_as is not None
-                and roa.origin_as != change_request.origin_as
-            ):
-                issues.append(
-                    f"ROA origin_as 未更新：期望 {change_request.origin_as}，"
-                    f"实际 {roa.origin_as}"
+                    f"ROA origin_as 未更新：期望 {change_request.origin_as}，实际 {roa.origin_as}"
                 )
             validation_details["roa_prefix"] = roa.prefix
             validation_details["roa_origin_as"] = roa.origin_as
@@ -1015,9 +937,7 @@ async def verify_change_result(
         else:
             result.roa_status = roa.status
             if roa.status != "revoked":
-                issues.append(
-                    f"ROA 状态为 {roa.status}，预期为 revoked"
-                )
+                issues.append(f"ROA 状态为 {roa.status}，预期为 revoked")
 
     # 2. 验证 VRP 变化
     if roa is not None:
@@ -1028,9 +948,7 @@ async def verify_change_result(
 
         if change_request.change_type == "revoke":
             # 撤销后 VRP 状态应为 revoked
-            revoked_vrps = [
-                v for v in vrps if v.validation_status == "revoked"
-            ]
+            revoked_vrps = [v for v in vrps if v.validation_status == "revoked"]
             result.vrp_updated = len(revoked_vrps) == len(vrps)
             if not result.vrp_updated and vrps:
                 issues.append("部分 VRP 状态未更新为 revoked")
@@ -1045,9 +963,7 @@ async def verify_change_result(
             for vrp in vrps:
                 if vrp.prefix != roa.prefix or vrp.origin_as != roa.origin_as:
                     result.vrp_updated = False
-                    issues.append(
-                        f"VRP {vrp.id} 字段与 ROA 不一致"
-                    )
+                    issues.append(f"VRP {vrp.id} 字段与 ROA 不一致")
                     break
 
         validation_details["vrp_count"] = len(vrps)
@@ -1056,9 +972,7 @@ async def verify_change_result(
 
     # 3. 验证 BGP 状态
     if roa is not None:
-        related_announcements = await roa_service.get_related_bgp_announcements(
-            db, roa
-        )
+        related_announcements = await roa_service.get_related_bgp_announcements(db, roa)
         result.affected_announcements = len(related_announcements)
 
         # 验证每个受影响公告的 RPKI 状态
@@ -1084,9 +998,7 @@ async def verify_change_result(
         # 判定 BGP 验证是否通过
         if change_request.change_type == "revoke":
             # 撤销后受影响公告应为 not_found
-            result.bgp_validation_passed = (
-                bgp_invalid_count == 0 or bgp_not_found_count > 0
-            )
+            result.bgp_validation_passed = bgp_invalid_count == 0 or bgp_not_found_count > 0
         elif change_request.change_type == "create":
             # 创建后受影响公告应为 valid
             result.bgp_validation_passed = bgp_valid_count > 0
@@ -1095,9 +1007,7 @@ async def verify_change_result(
             result.bgp_validation_passed = bgp_invalid_count == 0
 
         if not result.bgp_validation_passed:
-            issues.append(
-                f"BGP 验证未通过：{bgp_invalid_count} 个公告为 invalid"
-            )
+            issues.append(f"BGP 验证未通过：{bgp_invalid_count} 个公告为 invalid")
     else:
         result.bgp_validation_passed = change_request.change_type == "revoke"
 

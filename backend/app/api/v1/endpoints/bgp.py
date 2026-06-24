@@ -100,9 +100,7 @@ async def update_data_source(
     current_user: User = Depends(require_permissions(Permissions.BGP_WRITE)),
 ) -> BGPDataSourceResponse:
     """更新数据源（需要 ``bgp:write`` 权限）。"""
-    data_source = await bgp_collector_service.update_data_source(
-        db, source_id, source_update
-    )
+    data_source = await bgp_collector_service.update_data_source(db, source_id, source_update)
     if data_source is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -168,9 +166,7 @@ async def get_data_source_health(
     current_user: User = Depends(require_permissions(Permissions.BGP_READ)),
 ) -> DataSourceHealthResponse:
     """获取数据源健康状态（需要 ``bgp:read`` 权限）。"""
-    health = await bgp_collector_service.check_single_data_source_health(
-        db, source_id
-    )
+    health = await bgp_collector_service.check_single_data_source_health(db, source_id)
     if health is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -239,9 +235,7 @@ async def update_observation_point(
     current_user: User = Depends(require_permissions(Permissions.BGP_WRITE)),
 ) -> ObservationPointResponse:
     """更新观察点（需要 ``bgp:write`` 权限）。"""
-    point = await bgp_collector_service.update_observation_point(
-        db, point_id, point_update
-    )
+    point = await bgp_collector_service.update_observation_point(db, point_id, point_update)
     if point is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -263,9 +257,7 @@ async def list_announcements(
     data_source_id: int | None = Query(None, description="按数据源过滤"),
     start_time: datetime | None = Query(None, description="起始时间"),
     end_time: datetime | None = Query(None, description="截止时间"),
-    rpki_validation_status: str | None = Query(
-        None, description="按 RPKI 验证状态过滤"
-    ),
+    rpki_validation_status: str | None = Query(None, description="按 RPKI 验证状态过滤"),
     skip: int = Query(0, ge=0, description="跳过记录数"),
     limit: int = Query(100, ge=1, le=1000, description="返回记录数上限"),
     db: AsyncSession = Depends(get_db),
@@ -297,9 +289,7 @@ async def get_announcement(
     current_user: User = Depends(require_permissions(Permissions.BGP_READ)),
 ) -> BGPAnnouncementResponse:
     """获取 BGP 公告详情（需要 ``bgp:read`` 权限）。"""
-    announcement = await bgp_storage_service.get_announcement_by_id(
-        db, announcement_id
-    )
+    announcement = await bgp_storage_service.get_announcement_by_id(db, announcement_id)
     if announcement is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

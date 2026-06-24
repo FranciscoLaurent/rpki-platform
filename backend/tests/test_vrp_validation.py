@@ -10,19 +10,18 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from app.schemas.rpki import BGPAnnouncementValidationRequest
 from app.services.vrp_service import (
     _get_covering_prefixes,
     validate_bgp_announcement,
     validate_bgp_announcements,
 )
-from app.schemas.rpki import BGPAnnouncementValidationRequest
-
 
 # ──────────────────────────────────────────────
 # 辅助函数
@@ -50,8 +49,8 @@ def _make_vrp(
     vrp.roa_id = 1
     vrp.trust_anchor = "test-tal"
     vrp.validation_status = validation_status
-    vrp.created_at = datetime.now(timezone.utc)
-    vrp.updated_at = datetime.now(timezone.utc)
+    vrp.created_at = datetime.now(UTC)
+    vrp.updated_at = datetime.now(UTC)
     return vrp
 
 

@@ -26,15 +26,13 @@ class Tenant(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="active", comment="租户状态"
     )
-    settings: Mapped[dict] = mapped_column(
-        JSON, nullable=False, default=dict, comment="租户配置"
-    )
+    settings: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict, comment="租户配置")
     max_users: Mapped[int] = mapped_column(
         Integer, nullable=False, default=100, comment="最大用户数"
     )
 
     # 关联成员
-    members: Mapped[list["TenantMember"]] = relationship(
+    members: Mapped[list[TenantMember]] = relationship(
         back_populates="tenant", cascade="all, delete-orphan"
     )
 
@@ -46,9 +44,7 @@ class TenantMember(Base, TimestampMixin):
     """租户成员关联模型，记录用户在租户内的角色。"""
 
     __tablename__ = "tenant_members"
-    __table_args__ = (
-        UniqueConstraint("user_id", "tenant_id", name="uq_tenant_member"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "tenant_id", name="uq_tenant_member"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
@@ -62,8 +58,10 @@ class TenantMember(Base, TimestampMixin):
     )
 
     # 关联关系
-    tenant: Mapped["Tenant"] = relationship(back_populates="members")
-    user: Mapped["User"] = relationship()
+    tenant: Mapped[Tenant] = relationship(back_populates="members")
+    user: Mapped[User] = relationship()
 
     def __repr__(self) -> str:
-        return f"<TenantMember(user_id={self.user_id}, tenant_id={self.tenant_id}, role={self.role})>"
+        return (
+            f"<TenantMember(user_id={self.user_id}, tenant_id={self.tenant_id}, role={self.role})>"
+        )

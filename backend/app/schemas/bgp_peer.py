@@ -13,16 +13,10 @@ class BGPPeerBase(BaseModel):
 
     peer_ip: str = Field(..., description="邻居 IP 地址")
     remote_asn: int = Field(..., ge=1, le=4294967295, description="远端 ASN")
-    address_family: str = Field(
-        default="ipv4", description="地址族：ipv4/ipv6/dual"
-    )
-    session_type: str = Field(
-        default="ebgp", description="会话类型：ebgp/ibgp"
-    )
+    address_family: str = Field(default="ipv4", description="地址族：ipv4/ipv6/dual")
+    session_type: str = Field(default="ebgp", description="会话类型：ebgp/ibgp")
     routing_policy: str | None = Field(None, description="路由策略描述")
-    max_prefixes: int | None = Field(
-        None, ge=0, description="最大前缀数"
-    )
+    max_prefixes: int | None = Field(None, ge=0, description="最大前缀数")
     router_id: int | None = Field(None, description="关联路由器 ID")
     description: str | None = Field(None, description="描述")
 

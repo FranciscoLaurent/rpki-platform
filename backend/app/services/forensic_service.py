@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func, select
@@ -117,7 +117,7 @@ async def collect_forensic_evidence(
     elif alert is not None:
         center_time = alert.first_seen_at or alert.created_at
     else:
-        center_time = datetime.now(timezone.utc)
+        center_time = datetime.now(UTC)
 
     window_start = center_time - EVIDENCE_WINDOW_BEFORE
     window_end = center_time + EVIDENCE_WINDOW_AFTER
@@ -235,9 +235,7 @@ async def collect_forensic_evidence(
                 evidence_type=evidence_type,
                 error=str(e),
             )
-            result.errors.append(
-                f"采集 {evidence_type} 证据失败：{e}"
-            )
+            result.errors.append(f"采集 {evidence_type} 证据失败：{e}")
 
     logger.info(
         "自动取证完成",
@@ -282,9 +280,7 @@ async def create_evidence(
     return evidence
 
 
-async def get_evidence(
-    db: AsyncSession, evidence_id: int
-) -> ForensicEvidence | None:
+async def get_evidence(db: AsyncSession, evidence_id: int) -> ForensicEvidence | None:
     """根据 ID 获取取证证据。"""
     stmt = select(ForensicEvidence).where(ForensicEvidence.id == evidence_id)
     result = await db.execute(stmt)
@@ -301,63 +297,41 @@ async def get_evidences(
     stmt = select(ForensicEvidence)
 
     if query_params.incident_id is not None:
-        stmt = stmt.where(
-            ForensicEvidence.incident_id == query_params.incident_id
-        )
+        stmt = stmt.where(ForensicEvidence.incident_id == query_params.incident_id)
     if query_params.alert_id is not None:
         stmt = stmt.where(ForensicEvidence.alert_id == query_params.alert_id)
     if query_params.evidence_type:
-        stmt = stmt.where(
-            ForensicEvidence.evidence_type == query_params.evidence_type
-        )
+        stmt = stmt.where(ForensicEvidence.evidence_type == query_params.evidence_type)
     if query_params.start_time:
-        stmt = stmt.where(
-            ForensicEvidence.collected_at >= query_params.start_time
-        )
+        stmt = stmt.where(ForensicEvidence.collected_at >= query_params.start_time)
     if query_params.end_time:
-        stmt = stmt.where(
-            ForensicEvidence.collected_at <= query_params.end_time
-        )
+        stmt = stmt.where(ForensicEvidence.collected_at <= query_params.end_time)
 
-    stmt = stmt.order_by(
-        ForensicEvidence.collected_at.desc()
-    ).offset(skip).limit(limit)
+    stmt = stmt.order_by(ForensicEvidence.collected_at.desc()).offset(skip).limit(limit)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
 
-async def count_evidences(
-    db: AsyncSession, query_params: ForensicEvidenceQueryParams
-) -> int:
+async def count_evidences(db: AsyncSession, query_params: ForensicEvidenceQueryParams) -> int:
     """统计取证证据数量。"""
     stmt = select(func.count(ForensicEvidence.id))
 
     if query_params.incident_id is not None:
-        stmt = stmt.where(
-            ForensicEvidence.incident_id == query_params.incident_id
-        )
+        stmt = stmt.where(ForensicEvidence.incident_id == query_params.incident_id)
     if query_params.alert_id is not None:
         stmt = stmt.where(ForensicEvidence.alert_id == query_params.alert_id)
     if query_params.evidence_type:
-        stmt = stmt.where(
-            ForensicEvidence.evidence_type == query_params.evidence_type
-        )
+        stmt = stmt.where(ForensicEvidence.evidence_type == query_params.evidence_type)
     if query_params.start_time:
-        stmt = stmt.where(
-            ForensicEvidence.collected_at >= query_params.start_time
-        )
+        stmt = stmt.where(ForensicEvidence.collected_at >= query_params.start_time)
     if query_params.end_time:
-        stmt = stmt.where(
-            ForensicEvidence.collected_at <= query_params.end_time
-        )
+        stmt = stmt.where(ForensicEvidence.collected_at <= query_params.end_time)
 
     result = await db.execute(stmt)
     return int(result.scalar_one() or 0)
 
 
-async def get_evidences_by_incident(
-    db: AsyncSession, incident_id: int
-) -> list[ForensicEvidence]:
+async def get_evidences_by_incident(db: AsyncSession, incident_id: int) -> list[ForensicEvidence]:
     """获取事件关联的全部取证证据。"""
     stmt = (
         select(ForensicEvidence)
@@ -406,9 +380,7 @@ async def _collect_roa_vrp_evidence(
                     "prefix": v.prefix,
                     "origin_as": v.origin_as,
                     "max_length": v.max_length,
-                    "validation_status": getattr(
-                        v, "validation_status", None
-                    ),
+                    "validation_status": getattr(v, "validation_status", None),
                 }
                 for v in vrps
             ],
@@ -423,7 +395,7 @@ async def _collect_roa_vrp_evidence(
             ],
         }
 
-        evidence = await create_evidence(
+        await create_evidence(
             db,
             ForensicEvidenceCreate(
                 incident_id=incident_id,
@@ -496,9 +468,7 @@ async def _collect_bgp_sample_evidence(
                     "origin_as": a.origin_as,
                     "as_path": a.as_path,
                     "observation_point_id": a.observation_point_id,
-                    "timestamp": a.timestamp.isoformat()
-                    if a.timestamp
-                    else None,
+                    "timestamp": a.timestamp.isoformat() if a.timestamp else None,
                 }
                 for a in announcements[:20]
             ],
@@ -506,24 +476,20 @@ async def _collect_bgp_sample_evidence(
                 {
                     "id": w.id,
                     "observation_point_id": w.observation_point_id,
-                    "timestamp": w.timestamp.isoformat()
-                    if w.timestamp
-                    else None,
+                    "timestamp": w.timestamp.isoformat() if w.timestamp else None,
                 }
                 for w in withdraws[:20]
             ],
         }
 
-        evidence = await create_evidence(
+        await create_evidence(
             db,
             ForensicEvidenceCreate(
                 incident_id=incident_id,
                 alert_id=alert_id,
                 evidence_type="bgp_sample",
                 title=f"BGP 样本证据 - {prefix}",
-                description=(
-                    f"前缀 {prefix} 在事件时间窗口内的 BGP 公告与撤路样本"
-                ),
+                description=(f"前缀 {prefix} 在事件时间窗口内的 BGP 公告与撤路样本"),
                 content=content,
                 source="local_bgp_cache",
                 collected_at=collected_at,
@@ -588,7 +554,7 @@ async def _collect_as_path_evidence(
             "paths": paths[:50],
         }
 
-        evidence = await create_evidence(
+        await create_evidence(
             db,
             ForensicEvidenceCreate(
                 incident_id=incident_id,
@@ -655,16 +621,14 @@ async def _collect_propagation_scope_evidence(
             "observation_points": observation_points,
         }
 
-        evidence = await create_evidence(
+        await create_evidence(
             db,
             ForensicEvidenceCreate(
                 incident_id=incident_id,
                 alert_id=alert_id,
                 evidence_type="propagation_scope",
                 title=f"传播范围证据 - {prefix}",
-                description=(
-                    f"前缀 {prefix} 在 {len(observation_points)} 个观察点被观察到"
-                ),
+                description=(f"前缀 {prefix} 在 {len(observation_points)} 个观察点被观察到"),
                 content=content,
                 source="local_bgp_cache",
                 collected_at=collected_at,
@@ -690,9 +654,7 @@ async def _collect_observation_point_evidence(
 ) -> int:
     """采集观察点信息证据。"""
     # 查询所有观察点
-    op_stmt = select(ObservationPoint).where(
-        ObservationPoint.status == "active"
-    )
+    op_stmt = select(ObservationPoint).where(ObservationPoint.status == "active")
     op_result = await db.execute(op_stmt)
     observation_points = list(op_result.scalars().all())
 
@@ -713,7 +675,7 @@ async def _collect_observation_point_evidence(
         "total_count": len(observation_points),
     }
 
-    evidence = await create_evidence(
+    await create_evidence(
         db,
         ForensicEvidenceCreate(
             incident_id=incident_id,
@@ -763,9 +725,7 @@ async def _collect_asset_relation_evidence(
 
         # 关联客户
         if prefix_obj.customer_id is not None:
-            cust_stmt = select(Customer).where(
-                Customer.id == prefix_obj.customer_id
-            )
+            cust_stmt = select(Customer).where(Customer.id == prefix_obj.customer_id)
             cust_result = await db.execute(cust_stmt)
             customer = cust_result.scalar_one_or_none()
             if customer:
@@ -796,7 +756,7 @@ async def _collect_asset_relation_evidence(
             "prefixes": prefix_assets,
             "prefix_count": len(prefix_assets),
         }
-        evidence = await create_evidence(
+        await create_evidence(
             db,
             ForensicEvidenceCreate(
                 incident_id=incident_id,
@@ -836,7 +796,7 @@ async def _collect_asset_relation_evidence(
             "asns": asn_assets,
             "asn_count": len(asn_assets),
         }
-        evidence = await create_evidence(
+        await create_evidence(
             db,
             ForensicEvidenceCreate(
                 incident_id=incident_id,
@@ -878,7 +838,7 @@ async def _collect_change_record_evidence(
         "change_records": [],
     }
 
-    evidence = await create_evidence(
+    await create_evidence(
         db,
         ForensicEvidenceCreate(
             incident_id=incident_id,
@@ -950,16 +910,14 @@ async def _collect_historical_baseline_evidence(
             "is_moas": len(historical_origins) >= 2,
         }
 
-        evidence = await create_evidence(
+        await create_evidence(
             db,
             ForensicEvidenceCreate(
                 incident_id=incident_id,
                 alert_id=alert_id,
                 evidence_type="historical_baseline",
                 title=f"历史基线证据 - {prefix}",
-                description=(
-                    f"前缀 {prefix} 近 30 天的 origin AS 基线"
-                ),
+                description=(f"前缀 {prefix} 近 30 天的 origin AS 基线"),
                 content=content,
                 source="local_bgp_cache",
                 collected_at=collected_at,
@@ -978,9 +936,7 @@ async def _collect_historical_baseline_evidence(
 # ──────────────────────────────────────────────
 
 
-async def _get_incident(
-    db: AsyncSession, incident_id: int
-) -> Incident | None:
+async def _get_incident(db: AsyncSession, incident_id: int) -> Incident | None:
     """获取事件。"""
     stmt = select(Incident).where(Incident.id == incident_id)
     result = await db.execute(stmt)

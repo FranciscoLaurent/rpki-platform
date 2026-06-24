@@ -242,21 +242,16 @@ async def get_announcements(
     if query_params.origin_as is not None:
         stmt = stmt.where(BGPAnnouncement.origin_as == query_params.origin_as)
     if query_params.observation_point_id is not None:
-        stmt = stmt.where(
-            BGPAnnouncement.observation_point_id == query_params.observation_point_id
-        )
+        stmt = stmt.where(BGPAnnouncement.observation_point_id == query_params.observation_point_id)
     if query_params.data_source_id is not None:
-        stmt = stmt.where(
-            BGPAnnouncement.data_source_id == query_params.data_source_id
-        )
+        stmt = stmt.where(BGPAnnouncement.data_source_id == query_params.data_source_id)
     if query_params.start_time is not None:
         stmt = stmt.where(BGPAnnouncement.timestamp >= query_params.start_time)
     if query_params.end_time is not None:
         stmt = stmt.where(BGPAnnouncement.timestamp <= query_params.end_time)
     if query_params.rpki_validation_status is not None:
         stmt = stmt.where(
-            BGPAnnouncement.rpki_validation_status
-            == query_params.rpki_validation_status
+            BGPAnnouncement.rpki_validation_status == query_params.rpki_validation_status
         )
 
     stmt = (
@@ -309,21 +304,17 @@ async def count_announcements(
             stmt = stmt.where(BGPAnnouncement.origin_as == query_params.origin_as)
         if query_params.observation_point_id is not None:
             stmt = stmt.where(
-                BGPAnnouncement.observation_point_id
-                == query_params.observation_point_id
+                BGPAnnouncement.observation_point_id == query_params.observation_point_id
             )
         if query_params.data_source_id is not None:
-            stmt = stmt.where(
-                BGPAnnouncement.data_source_id == query_params.data_source_id
-            )
+            stmt = stmt.where(BGPAnnouncement.data_source_id == query_params.data_source_id)
         if query_params.start_time is not None:
             stmt = stmt.where(BGPAnnouncement.timestamp >= query_params.start_time)
         if query_params.end_time is not None:
             stmt = stmt.where(BGPAnnouncement.timestamp <= query_params.end_time)
         if query_params.rpki_validation_status is not None:
             stmt = stmt.where(
-                BGPAnnouncement.rpki_validation_status
-                == query_params.rpki_validation_status
+                BGPAnnouncement.rpki_validation_status == query_params.rpki_validation_status
             )
 
     result = await db.execute(stmt)
@@ -353,9 +344,7 @@ async def get_withdraws(
     if query_params.prefix is not None:
         stmt = stmt.where(BGPWithdraw.prefix == query_params.prefix)
     if query_params.observation_point_id is not None:
-        stmt = stmt.where(
-            BGPWithdraw.observation_point_id == query_params.observation_point_id
-        )
+        stmt = stmt.where(BGPWithdraw.observation_point_id == query_params.observation_point_id)
     if query_params.data_source_id is not None:
         stmt = stmt.where(BGPWithdraw.data_source_id == query_params.data_source_id)
     if query_params.start_time is not None:
@@ -421,9 +410,7 @@ def deduplicate_announcements(
             # 保留时间戳更新的记录
             existing_ts = existing.get("timestamp")
             current_ts = ann.get("timestamp")
-            if existing_ts is None or (
-                current_ts is not None and current_ts > existing_ts
-            ):
+            if existing_ts is None or (current_ts is not None and current_ts > existing_ts):
                 seen[key] = ann
 
     return list(seen.values())

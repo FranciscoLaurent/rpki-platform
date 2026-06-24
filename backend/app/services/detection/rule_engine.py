@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 import ipaddress
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -72,9 +72,7 @@ class RuleEngine:
         )
         result = await self.db.execute(stmt)
         self.rules = list(result.scalars().all())
-        logger.info(
-            "规则引擎加载规则完成", count=len(self.rules)
-        )
+        logger.info("规则引擎加载规则完成", count=len(self.rules))
 
     async def evaluate(
         self,
@@ -101,9 +99,7 @@ class RuleEngine:
                     results.append(result)
                     # 检测到异常时生成告警
                     if result.is_detected:
-                        alert = await self._create_alert_from_result(
-                            rule, announcement, result
-                        )
+                        alert = await self._create_alert_from_result(rule, announcement, result)
                         if alert is not None:
                             # 计算风险评分
                             await calculate_risk_score(self.db, alert)
@@ -188,9 +184,7 @@ class RuleEngine:
 
         if rule.rule_type == "withdraw_flap":
             time_window = conditions.get("time_window_minutes", 60)
-            return await detect_withdraw_flap(
-                self.db, announcement.prefix, time_window
-            )
+            return await detect_withdraw_flap(self.db, announcement.prefix, time_window)
 
         if rule.rule_type == "rpki_invalid":
             lookback_hours = conditions.get("lookback_hours", 24)
@@ -200,9 +194,7 @@ class RuleEngine:
 
         return None
 
-    def check_whitelist(
-        self, rule: DetectionRule, announcement: BGPAnnouncement
-    ) -> bool:
+    def check_whitelist(self, rule: DetectionRule, announcement: BGPAnnouncement) -> bool:
         """检查白名单。
 
         白名单配置示例：
@@ -233,16 +225,11 @@ class RuleEngine:
         # 前缀包含关系白名单（白名单前缀包含公告前缀）
         if whitelist_prefixes:
             try:
-                ann_net = ipaddress.ip_network(
-                    announcement.prefix, strict=False
-                )
+                ann_net = ipaddress.ip_network(announcement.prefix, strict=False)
                 for wl_prefix in whitelist_prefixes:
                     try:
                         wl_net = ipaddress.ip_network(wl_prefix, strict=False)
-                        if (
-                            ann_net.version == wl_net.version
-                            and ann_net.subnet_of(wl_net)
-                        ):
+                        if ann_net.version == wl_net.version and ann_net.subnet_of(wl_net):
                             return True
                     except ValueError:
                         continue
@@ -269,9 +256,7 @@ class RuleEngine:
 
         return False
 
-    def check_scope(
-        self, rule: DetectionRule, announcement: BGPAnnouncement
-    ) -> bool:
+    def check_scope(self, rule: DetectionRule, announcement: BGPAnnouncement) -> bool:
         """检查生效范围。
 
         生效范围配置示例：
@@ -300,19 +285,13 @@ class RuleEngine:
         scope_prefixes = scope.get("prefixes", [])
         if scope_prefixes:
             try:
-                ann_net = ipaddress.ip_network(
-                    announcement.prefix, strict=False
-                )
+                ann_net = ipaddress.ip_network(announcement.prefix, strict=False)
                 in_scope = False
                 for sc_prefix in scope_prefixes:
                     try:
                         sc_net = ipaddress.ip_network(sc_prefix, strict=False)
-                        if (
-                            ann_net.version == sc_net.version
-                            and (
-                                ann_net.subnet_of(sc_net)
-                                or ann_net == sc_net
-                            )
+                        if ann_net.version == sc_net.version and (
+                            ann_net.subnet_of(sc_net) or ann_net == sc_net
                         ):
                             in_scope = True
                             break
@@ -325,12 +304,8 @@ class RuleEngine:
 
         # origin AS 范围
         scope_asns = scope.get("origin_asns", [])
-        if (
-            scope_asns
-            and (
-                announcement.origin_as is None
-                or announcement.origin_as not in scope_asns
-            )
+        if scope_asns and (
+            announcement.origin_as is None or announcement.origin_as not in scope_asns
         ):
             return False
 
@@ -346,9 +321,7 @@ class RuleEngine:
 
         return True
 
-    def _apply_thresholds(
-        self, rule: DetectionRule, result: DetectionResult
-    ) -> DetectionResult:
+    def _apply_thresholds(self, rule: DetectionRule, result: DetectionResult) -> DetectionResult:
         """应用规则阈值配置。
 
         若规则配置了 severity 覆盖，则使用规则的 severity。
@@ -373,7 +346,7 @@ class RuleEngine:
         Returns:
             创建的告警对象（已持久化），失败返回 None
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         alert = Alert(
             rule_id=rule.id,
             alert_type=result.alert_type,
@@ -422,7 +395,7 @@ class RuleEngine:
             "risk_score": alert.risk_score,
             "confidence": alert.confidence,
             "evidence": result.evidence,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         kafka.send_event(
             topic=Topics.ALERT_EVENTS,
@@ -453,9 +426,7 @@ async def evaluate_announcement(
 
     # 按规则类型过滤
     if rule_types:
-        engine.rules = [
-            r for r in engine.rules if r.rule_type in rule_types
-        ]
+        engine.rules = [r for r in engine.rules if r.rule_type in rule_types]
 
     return await engine.evaluate(announcement, kafka=kafka)
 

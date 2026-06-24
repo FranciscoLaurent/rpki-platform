@@ -78,9 +78,7 @@ async def simulate_rov(
 # ──────────────────────────────────────────────
 
 
-@router.post(
-    "/simulate-roa-change", response_model=ROAChangeSimulationResult
-)
+@router.post("/simulate-roa-change", response_model=ROAChangeSimulationResult)
 async def simulate_roa_change_endpoint(
     request: ROAChangeSimulationRequest,
     db: AsyncSession = Depends(get_db),
@@ -109,9 +107,7 @@ async def simulate_roa_change_endpoint(
 # ──────────────────────────────────────────────
 
 
-@router.post(
-    "/simulate-roa-creation", response_model=ROAChangeSimulationResult
-)
+@router.post("/simulate-roa-creation", response_model=ROAChangeSimulationResult)
 async def simulate_roa_creation_endpoint(
     request: ROACreationSimulationRequest,
     db: AsyncSession = Depends(get_db),
@@ -140,9 +136,7 @@ async def simulate_roa_creation_endpoint(
         ) from e
 
 
-@router.post(
-    "/simulate-roa-modification", response_model=ROAChangeSimulationResult
-)
+@router.post("/simulate-roa-modification", response_model=ROAChangeSimulationResult)
 async def simulate_roa_modification_endpoint(
     request: ROAModificationSimulationRequest,
     db: AsyncSession = Depends(get_db),
@@ -170,9 +164,7 @@ async def simulate_roa_modification_endpoint(
         ) from e
 
 
-@router.post(
-    "/simulate-roa-revocation", response_model=ROAChangeSimulationResult
-)
+@router.post("/simulate-roa-revocation", response_model=ROAChangeSimulationResult)
 async def simulate_roa_revocation_endpoint(
     request: ROARevocationSimulationRequest,
     db: AsyncSession = Depends(get_db),
@@ -281,15 +273,10 @@ async def get_deployment_guide(
                 "对疑似良性 Invalid 前缀：排查 ROA 配置是否正确，"
                 "联系相关 AS 管理员确认，必要时临时修改 ROA。"
             ),
-            "critical_prefix": (
-                "对核心前缀 Invalid：优先排查根因，"
-                "在根因解决前不实施 drop 策略。"
-            ),
+            "critical_prefix": ("对核心前缀 Invalid：优先排查根因，在根因解决前不实施 drop 策略。"),
         },
         "risk_control": {
-            "approval_required": (
-                "核心前缀受影响或大规模合法路由受影响时需审批"
-            ),
+            "approval_required": ("核心前缀受影响或大规模合法路由受影响时需审批"),
             "rollback_plan": "可快速切换回 de-preference 或 monitor 模式",
             "monitoring": "持续监控 Invalid 路由数量、业务影响与告警",
         },

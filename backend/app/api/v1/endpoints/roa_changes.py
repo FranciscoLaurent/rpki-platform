@@ -85,9 +85,7 @@ async def _build_change_request_response(
 
     # 嵌入审批人信息
     if change_request.approved_by is not None:
-        approver_stmt = select(User).where(
-            User.id == change_request.approved_by
-        )
+        approver_stmt = select(User).where(User.id == change_request.approved_by)
         approver_result = await db.execute(approver_stmt)
         approver = approver_result.scalar_one_or_none()
         if approver is not None:
@@ -133,23 +131,16 @@ async def create_change_request(
 
 @changes_router.get("", response_model=ROAChangeRequestListResponse)
 async def list_change_requests(
-    change_type: str | None = Query(
-        None, description="按变更类型过滤：create/modify/revoke"
-    ),
+    change_type: str | None = Query(None, description="按变更类型过滤：create/modify/revoke"),
     request_status: str | None = Query(
         None,
         alias="status",
         description=(
-            "按状态过滤：draft/pending_approval/approved/rejected/"
-            "executed/failed/rolled_back"
+            "按状态过滤：draft/pending_approval/approved/rejected/executed/failed/rolled_back"
         ),
     ),
-    risk_level: str | None = Query(
-        None, description="按风险等级过滤：low/medium/high/critical"
-    ),
-    requested_by: int | None = Query(
-        None, description="按申请人 ID 过滤"
-    ),
+    risk_level: str | None = Query(None, description="按风险等级过滤：low/medium/high/critical"),
+    requested_by: int | None = Query(None, description="按申请人 ID 过滤"),
     roa_id: int | None = Query(None, description="按 ROA ID 过滤"),
     skip: int = Query(0, ge=0, description="跳过记录数"),
     limit: int = Query(50, ge=1, le=200, description="返回记录数上限"),
@@ -177,9 +168,7 @@ async def list_change_requests(
         db, filters=filters or None, skip=skip, limit=limit
     )
 
-    items = [
-        await _build_change_request_response(db, r) for r in requests
-    ]
+    items = [await _build_change_request_response(db, r) for r in requests]
 
     return ROAChangeRequestListResponse(
         items=items,
@@ -189,9 +178,7 @@ async def list_change_requests(
     )
 
 
-@changes_router.get(
-    "/{request_id}", response_model=ROAChangeRequestResponse
-)
+@changes_router.get("/{request_id}", response_model=ROAChangeRequestResponse)
 async def get_change_request(
     request_id: int,
     db: AsyncSession = Depends(get_db),
@@ -201,9 +188,7 @@ async def get_change_request(
 
     需要 ``roa:read`` 权限。
     """
-    change_request = await roa_change_service.get_change_request(
-        db, request_id
-    )
+    change_request = await roa_change_service.get_change_request(db, request_id)
     if change_request is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -263,9 +248,7 @@ async def execute_change_request(
     仅 approved 状态的变更请求可执行。执行后会自动触发变更后验证。
     """
     try:
-        result = await roa_change_service.execute_change_request(
-            db, request_id, current_user
-        )
+        result = await roa_change_service.execute_change_request(db, request_id, current_user)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -297,9 +280,7 @@ async def rollback_change(
     仅 executed 状态的变更请求可回滚。回滚会恢复 ROA 到变更前状态。
     """
     try:
-        change_request = await roa_change_service.rollback_change(
-            db, request_id, current_user
-        )
+        change_request = await roa_change_service.rollback_change(db, request_id, current_user)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -356,9 +337,7 @@ async def create_approval_rule(
     return ROAApprovalRuleResponse.model_validate(rule)
 
 
-@rules_router.get(
-    "", response_model=ROAApprovalRuleListResponse
-)
+@rules_router.get("", response_model=ROAApprovalRuleListResponse)
 async def list_approval_rules(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_permissions(ROA_READ)),
@@ -374,9 +353,7 @@ async def list_approval_rules(
     )
 
 
-@rules_router.put(
-    "/{rule_id}", response_model=ROAApprovalRuleResponse
-)
+@rules_router.put("/{rule_id}", response_model=ROAApprovalRuleResponse)
 async def update_approval_rule(
     rule_id: int,
     rule_update: ROAApprovalRuleUpdate,
@@ -394,15 +371,11 @@ async def update_approval_rule(
             detail=f"审批规则 ID {rule_id} 不存在",
         )
 
-    updated_rule = await roa_approval_service.update_approval_rule(
-        db, rule, rule_update
-    )
+    updated_rule = await roa_approval_service.update_approval_rule(db, rule, rule_update)
     return ROAApprovalRuleResponse.model_validate(updated_rule)
 
 
-@rules_router.delete(
-    "/{rule_id}", status_code=status.HTTP_204_NO_CONTENT
-)
+@rules_router.delete("/{rule_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_approval_rule(
     rule_id: int,
     db: AsyncSession = Depends(get_db),

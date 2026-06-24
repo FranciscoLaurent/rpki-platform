@@ -56,9 +56,7 @@ async def create_maintenance_window_endpoint(
 async def list_maintenance_windows(
     skip: int = Query(0, ge=0, description="跳过记录数"),
     limit: int = Query(50, ge=1, le=500, description="返回记录数上限"),
-    status_filter: str | None = Query(
-        None, alias="status", description="按状态过滤"
-    ),
+    status_filter: str | None = Query(None, alias="status", description="按状态过滤"),
     work_order_id: str | None = Query(None, description="按工单号过滤"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_permissions(ASSET_READ)),

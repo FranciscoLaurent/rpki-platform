@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func, select
@@ -31,9 +31,9 @@ from app.models.forensics import (
 )
 from app.schemas.forensics import (
     RemediationActionCreate,
-    RemediationExecuteRequest,
     RemediationActionQueryParams,
     RemediationActionUpdate,
+    RemediationExecuteRequest,
     RemediationSuggestionResult,
 )
 from app.services import incident_service
@@ -73,9 +73,7 @@ async def generate_remediation_suggestions(
     alerts = await _get_incident_alerts(db, incident_id)
 
     # 生成建议动作
-    suggestions_data = _build_suggestions(
-        incident, alerts, risk_score
-    )
+    suggestions_data = _build_suggestions(incident, alerts, risk_score)
 
     # 持久化建议动作
     created_actions: list[RemediationAction] = []
@@ -144,9 +142,7 @@ async def create_action(
     return action
 
 
-async def get_action(
-    db: AsyncSession, action_id: int
-) -> RemediationAction | None:
+async def get_action(db: AsyncSession, action_id: int) -> RemediationAction | None:
     """根据 ID 获取处置动作。"""
     stmt = select(RemediationAction).where(RemediationAction.id == action_id)
     result = await db.execute(stmt)
@@ -163,63 +159,39 @@ async def get_actions(
     stmt = select(RemediationAction)
 
     if query_params.incident_id is not None:
-        stmt = stmt.where(
-            RemediationAction.incident_id == query_params.incident_id
-        )
+        stmt = stmt.where(RemediationAction.incident_id == query_params.incident_id)
     if query_params.action_type:
-        stmt = stmt.where(
-            RemediationAction.action_type == query_params.action_type
-        )
+        stmt = stmt.where(RemediationAction.action_type == query_params.action_type)
     if query_params.status:
         stmt = stmt.where(RemediationAction.status == query_params.status)
     if query_params.priority:
-        stmt = stmt.where(
-            RemediationAction.priority == query_params.priority
-        )
+        stmt = stmt.where(RemediationAction.priority == query_params.priority)
     if query_params.start_time:
-        stmt = stmt.where(
-            RemediationAction.created_at >= query_params.start_time
-        )
+        stmt = stmt.where(RemediationAction.created_at >= query_params.start_time)
     if query_params.end_time:
-        stmt = stmt.where(
-            RemediationAction.created_at <= query_params.end_time
-        )
+        stmt = stmt.where(RemediationAction.created_at <= query_params.end_time)
 
-    stmt = stmt.order_by(
-        RemediationAction.created_at.desc()
-    ).offset(skip).limit(limit)
+    stmt = stmt.order_by(RemediationAction.created_at.desc()).offset(skip).limit(limit)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
 
-async def count_actions(
-    db: AsyncSession, query_params: RemediationActionQueryParams
-) -> int:
+async def count_actions(db: AsyncSession, query_params: RemediationActionQueryParams) -> int:
     """统计处置动作数量。"""
     stmt = select(func.count(RemediationAction.id))
 
     if query_params.incident_id is not None:
-        stmt = stmt.where(
-            RemediationAction.incident_id == query_params.incident_id
-        )
+        stmt = stmt.where(RemediationAction.incident_id == query_params.incident_id)
     if query_params.action_type:
-        stmt = stmt.where(
-            RemediationAction.action_type == query_params.action_type
-        )
+        stmt = stmt.where(RemediationAction.action_type == query_params.action_type)
     if query_params.status:
         stmt = stmt.where(RemediationAction.status == query_params.status)
     if query_params.priority:
-        stmt = stmt.where(
-            RemediationAction.priority == query_params.priority
-        )
+        stmt = stmt.where(RemediationAction.priority == query_params.priority)
     if query_params.start_time:
-        stmt = stmt.where(
-            RemediationAction.created_at >= query_params.start_time
-        )
+        stmt = stmt.where(RemediationAction.created_at >= query_params.start_time)
     if query_params.end_time:
-        stmt = stmt.where(
-            RemediationAction.created_at <= query_params.end_time
-        )
+        stmt = stmt.where(RemediationAction.created_at <= query_params.end_time)
 
     result = await db.execute(stmt)
     return int(result.scalar_one() or 0)
@@ -268,7 +240,7 @@ async def execute_action(
     if action is None:
         return None
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     action.status = request.status
     action.executed_by = executed_by
     action.executed_at = now
@@ -287,9 +259,7 @@ async def execute_action(
     return action
 
 
-async def get_actions_by_incident(
-    db: AsyncSession, incident_id: int
-) -> list[RemediationAction]:
+async def get_actions_by_incident(db: AsyncSession, incident_id: int) -> list[RemediationAction]:
     """获取事件关联的全部处置动作。"""
     stmt = (
         select(RemediationAction)
@@ -316,18 +286,14 @@ def _build_suggestions(
     # 从风险评分获取建议动作
     if risk_score is not None and risk_score.recommended_actions:
         for rec in risk_score.recommended_actions:
-            suggestion = _convert_recommended_action_to_suggestion(
-                rec, incident, alerts
-            )
+            suggestion = _convert_recommended_action_to_suggestion(rec, incident, alerts)
             if suggestion is not None:
                 suggestions.append(suggestion)
 
     # 根据告警类型补充建议
     alert_types = {a.alert_type for a in alerts}
     for alert_type in alert_types:
-        type_suggestions = _build_type_specific_suggestions(
-            alert_type, incident, alerts
-        )
+        type_suggestions = _build_type_specific_suggestions(alert_type, incident, alerts)
         suggestions.extend(type_suggestions)
 
     # 去重（按 action_type + target 去重）
@@ -429,122 +395,146 @@ def _build_type_specific_suggestions(
 
     if alert_type in ("hijack", "subprefix_hijack"):
         # 劫持类：联系异常 ASN、联系上游、修正 ROA、发布更具体合法前缀
-        suggestions.append({
-            "action_type": "contact_asn",
-            "title": f"联系异常 ASN {target_str or ''} 的 NOC，要求撤回异常公告",
-            "description": "源 AS 劫持/子前缀劫持，需立即联系异常 ASN 撤回",
-            "target": target_str,
-            "priority": "immediate",
-        })
-        suggestions.append({
-            "action_type": "contact_upstream",
-            "title": "通知上游提供商过滤异常前缀路由",
-            "description": "防止异常路由进一步传播",
-            "target": None,
-            "priority": "high",
-        })
-        suggestions.append({
-            "action_type": "fix_roa",
-            "title": "检查并修正 ROA 授权",
-            "description": "确认 ROA 配置正确，必要时更新授权",
-            "target": None,
-            "priority": "high",
-        })
-        suggestions.append({
-            "action_type": "announce_legitimate_prefix",
-            "title": "发布更具体的合法前缀以吸引流量",
-            "description": "通过更具体前缀公告夺回流量控制权",
-            "target": None,
-            "priority": "high",
-        })
+        suggestions.append(
+            {
+                "action_type": "contact_asn",
+                "title": f"联系异常 ASN {target_str or ''} 的 NOC，要求撤回异常公告",
+                "description": "源 AS 劫持/子前缀劫持，需立即联系异常 ASN 撤回",
+                "target": target_str,
+                "priority": "immediate",
+            }
+        )
+        suggestions.append(
+            {
+                "action_type": "contact_upstream",
+                "title": "通知上游提供商过滤异常前缀路由",
+                "description": "防止异常路由进一步传播",
+                "target": None,
+                "priority": "high",
+            }
+        )
+        suggestions.append(
+            {
+                "action_type": "fix_roa",
+                "title": "检查并修正 ROA 授权",
+                "description": "确认 ROA 配置正确，必要时更新授权",
+                "target": None,
+                "priority": "high",
+            }
+        )
+        suggestions.append(
+            {
+                "action_type": "announce_legitimate_prefix",
+                "title": "发布更具体的合法前缀以吸引流量",
+                "description": "通过更具体前缀公告夺回流量控制权",
+                "target": None,
+                "priority": "high",
+            }
+        )
 
     elif alert_type == "moas":
         # MOAS：联系异常 ASN、客户通知
-        suggestions.append({
-            "action_type": "contact_asn",
-            "title": f"核实 MOAS 是否为授权多 origin 或 Anycast",
-            "description": "联系相关 ASN 确认多 origin 是否为授权变更",
-            "target": target_str,
-            "priority": "medium",
-        })
-        suggestions.append({
-            "action_type": "customer_notification",
-            "title": "通知客户核实 MOAS 来源",
-            "description": "MOAS 可能影响客户业务，需通知客户确认",
-            "target": None,
-            "priority": "medium",
-        })
+        suggestions.append(
+            {
+                "action_type": "contact_asn",
+                "title": "核实 MOAS 是否为授权多 origin 或 Anycast",
+                "description": "联系相关 ASN 确认多 origin 是否为授权变更",
+                "target": target_str,
+                "priority": "medium",
+            }
+        )
+        suggestions.append(
+            {
+                "action_type": "customer_notification",
+                "title": "通知客户核实 MOAS 来源",
+                "description": "MOAS 可能影响客户业务，需通知客户确认",
+                "target": None,
+                "priority": "medium",
+            }
+        )
 
     elif alert_type == "route_leak":
         # 路由泄露：调整策略、联系上游
-        suggestions.append({
-            "action_type": "adjust_policy",
-            "title": "检查并调整 BGP 路由策略",
-            "description": "路由泄露通常源于策略配置错误，需调整 import/export 策略",
-            "target": "边界路由器",
-            "priority": "high",
-        })
-        suggestions.append({
-            "action_type": "contact_upstream",
-            "title": "协调上游撤回泄露的路由",
-            "description": "联系上游提供商过滤泄露路由",
-            "target": None,
-            "priority": "high",
-        })
+        suggestions.append(
+            {
+                "action_type": "adjust_policy",
+                "title": "检查并调整 BGP 路由策略",
+                "description": "路由泄露通常源于策略配置错误，需调整 import/export 策略",
+                "target": "边界路由器",
+                "priority": "high",
+            }
+        )
+        suggestions.append(
+            {
+                "action_type": "contact_upstream",
+                "title": "协调上游撤回泄露的路由",
+                "description": "联系上游提供商过滤泄露路由",
+                "target": None,
+                "priority": "high",
+            }
+        )
 
     elif alert_type == "rpki_invalid":
         # RPKI Invalid：调整策略、修正 ROA
-        suggestions.append({
-            "action_type": "adjust_policy",
-            "title": "在边界路由器部署 RPKI ROV 过滤",
-            "description": "拒绝 RPKI Invalid 路由",
-            "target": "边界路由器",
-            "priority": "high",
-        })
-        suggestions.append({
-            "action_type": "fix_roa",
-            "title": "检查 ROA 配置是否正确",
-            "description": "确认 ROA 授权的 origin AS 与 maxLength 正确",
-            "target": None,
-            "priority": "medium",
-        })
+        suggestions.append(
+            {
+                "action_type": "adjust_policy",
+                "title": "在边界路由器部署 RPKI ROV 过滤",
+                "description": "拒绝 RPKI Invalid 路由",
+                "target": "边界路由器",
+                "priority": "high",
+            }
+        )
+        suggestions.append(
+            {
+                "action_type": "fix_roa",
+                "title": "检查 ROA 配置是否正确",
+                "description": "确认 ROA 授权的 origin AS 与 maxLength 正确",
+                "target": None,
+                "priority": "medium",
+            }
+        )
 
     elif alert_type == "withdraw_flap":
         # 撤路震荡：联系 ASN、客户通知
-        suggestions.append({
-            "action_type": "contact_asn",
-            "title": f"联系 AS{target_asn or ''} 排查前缀稳定性",
-            "description": "频繁震荡可能影响业务，需联系 origin AS 排查",
-            "target": target_str,
-            "priority": "medium",
-        })
+        suggestions.append(
+            {
+                "action_type": "contact_asn",
+                "title": f"联系 AS{target_asn or ''} 排查前缀稳定性",
+                "description": "频繁震荡可能影响业务，需联系 origin AS 排查",
+                "target": target_str,
+                "priority": "medium",
+            }
+        )
 
     elif alert_type == "path_anomaly":
         # 路径异常：调整策略
-        suggestions.append({
-            "action_type": "adjust_policy",
-            "title": "检查 AS_PATH 异常并调整路由策略",
-            "description": "路径异常可能源于策略配置或中转 AS 问题",
-            "target": "边界路由器",
-            "priority": "medium",
-        })
+        suggestions.append(
+            {
+                "action_type": "adjust_policy",
+                "title": "检查 AS_PATH 异常并调整路由策略",
+                "description": "路径异常可能源于策略配置或中转 AS 问题",
+                "target": "边界路由器",
+                "priority": "medium",
+            }
+        )
 
     # 高风险事件补充清洗联动建议
     if incident.severity in ("P0", "P1"):
-        suggestions.append({
-            "action_type": "scrubber_coordination",
-            "title": "协调 DDoS 清洗商联动处置",
-            "description": "高风险事件，需协调清洗商准备联动",
-            "target": None,
-            "priority": "high",
-        })
+        suggestions.append(
+            {
+                "action_type": "scrubber_coordination",
+                "title": "协调 DDoS 清洗商联动处置",
+                "description": "高风险事件，需协调清洗商准备联动",
+                "target": None,
+                "priority": "high",
+            }
+        )
 
     return suggestions
 
 
-def _extract_target_asn(
-    incident: Incident, alerts: list[Alert]
-) -> int | None:
+def _extract_target_asn(incident: Incident, alerts: list[Alert]) -> int | None:
     """从事件或告警中提取目标 ASN。"""
     if incident.affected_asns:
         return incident.affected_asns[0]
@@ -571,13 +561,9 @@ def _build_summary(
     # 按优先级分组统计
     priority_counts: dict[str, int] = {}
     for action in actions:
-        priority_counts[action.priority] = (
-            priority_counts.get(action.priority, 0) + 1
-        )
+        priority_counts[action.priority] = priority_counts.get(action.priority, 0) + 1
     if priority_counts:
-        priority_str = "、".join(
-            f"{p}级 {c} 项" for p, c in priority_counts.items()
-        )
+        priority_str = "、".join(f"{p}级 {c} 项" for p, c in priority_counts.items())
         parts.append(f"优先级分布：{priority_str}")
 
     return "\n".join(parts)
@@ -588,18 +574,14 @@ def _build_summary(
 # ──────────────────────────────────────────────
 
 
-async def _get_incident(
-    db: AsyncSession, incident_id: int
-) -> Incident | None:
+async def _get_incident(db: AsyncSession, incident_id: int) -> Incident | None:
     """获取事件。"""
     stmt = select(Incident).where(Incident.id == incident_id)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
 
-async def _get_incident_risk_score(
-    db: AsyncSession, incident_id: int
-) -> RiskScore | None:
+async def _get_incident_risk_score(db: AsyncSession, incident_id: int) -> RiskScore | None:
     """获取事件关联的最新风险评分。"""
     stmt = (
         select(RiskScore)
@@ -611,15 +593,9 @@ async def _get_incident_risk_score(
     return result.scalar_one_or_none()
 
 
-async def _get_incident_alerts(
-    db: AsyncSession, incident_id: int
-) -> list[Alert]:
+async def _get_incident_alerts(db: AsyncSession, incident_id: int) -> list[Alert]:
     """获取事件关联的告警。"""
-    stmt = (
-        select(Alert)
-        .where(Alert.incident_id == incident_id)
-        .order_by(Alert.created_at.desc())
-    )
+    stmt = select(Alert).where(Alert.incident_id == incident_id).order_by(Alert.created_at.desc())
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -663,7 +639,7 @@ async def close_incident_with_review(
     Raises:
         ValueError: 事件不存在时抛出
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # 查询事件
     incident = await _get_incident(db, incident_id)
@@ -674,9 +650,7 @@ async def close_incident_with_review(
     recovery_status = await _check_recovery_status(db, incident)
 
     # 2. 记录根因与处置结论，关闭事件
-    incident = await incident_service.close_incident(
-        db, incident_id, resolution
-    )
+    incident = await incident_service.close_incident(db, incident_id, resolution)
     if incident is None:
         raise ValueError(f"事件 ID {incident_id} 不存在")
 
@@ -693,8 +667,7 @@ async def close_incident_with_review(
             "timestamp": now.isoformat(),
             "event_type": "reviewed",
             "description": (
-                f"事件复盘完成：根因={root_cause}，"
-                f"恢复状态={recovery_status['status']}"
+                f"事件复盘完成：根因={root_cause}，恢复状态={recovery_status['status']}"
             ),
             "operator": reviewer_id,
         }
@@ -723,9 +696,7 @@ async def close_incident_with_review(
 
     # 可选：沉淀到案例库
     if save_to_case_library:
-        await _create_case_from_incident(
-            db, incident, root_cause, resolution, reviewer_id
-        )
+        await _create_case_from_incident(db, incident, root_cause, resolution, reviewer_id)
 
     await db.flush()
 
@@ -738,9 +709,7 @@ async def close_incident_with_review(
     return incident
 
 
-async def _check_recovery_status(
-    db: AsyncSession, incident: Incident
-) -> dict[str, Any]:
+async def _check_recovery_status(db: AsyncSession, incident: Incident) -> dict[str, Any]:
     """检查事件恢复状态（检查当前 BGP 公告状态）。
 
     查询事件受影响前缀在近期的 BGP 公告，判断是否仍有异常公告。
@@ -750,7 +719,7 @@ async def _check_recovery_status(
         return {"status": "unknown", "reason": "无受影响前缀"}
 
     # 查询近 1 小时的 BGP 公告
-    since = datetime.now(timezone.utc) - timedelta(hours=1)
+    since = datetime.now(UTC) - timedelta(hours=1)
     stmt = (
         select(func.count(BGPAnnouncement.id))
         .where(BGPAnnouncement.prefix.in_(prefixes))
@@ -772,9 +741,7 @@ async def _check_recovery_status(
     }
 
 
-async def _build_operation_chain(
-    db: AsyncSession, incident_id: int
-) -> list[dict[str, Any]]:
+async def _build_operation_chain(db: AsyncSession, incident_id: int) -> list[dict[str, Any]]:
     """构建事件的操作链（处置动作与证据时间线）。"""
     chain: list[dict[str, Any]] = []
 
@@ -794,9 +761,7 @@ async def _build_operation_chain(
                 "title": action.title,
                 "status": action.status,
                 "executed_by": action.executed_by,
-                "executed_at": action.executed_at.isoformat()
-                if action.executed_at
-                else None,
+                "executed_at": action.executed_at.isoformat() if action.executed_at else None,
                 "result": action.result,
             }
         )
@@ -828,9 +793,7 @@ async def _build_operation_chain(
     return chain
 
 
-def _build_rule_updates(
-    incident: Incident, root_cause: str
-) -> list[dict[str, Any]]:
+def _build_rule_updates(incident: Incident, root_cause: str) -> list[dict[str, Any]]:
     """根据事件模式沉淀规则更新建议。
 
     将事件的关键特征（告警类型、受影响前缀/ASN、根因）转化为
