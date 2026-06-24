@@ -1,4 +1,5 @@
 """临时脚本：重建数据库表结构（同步方式）"""
+
 import os
 from pathlib import Path
 
