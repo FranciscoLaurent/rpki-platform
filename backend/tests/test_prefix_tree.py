@@ -141,9 +141,7 @@ def test_find_more_specific_invalid_prefix_returns_empty() -> None:
 
 def test_find_less_specific_equals_lookup(v4_tree: PrefixTree[str]) -> None:
     """find_less_specific 应与 lookup 行为一致。"""
-    assert v4_tree.find_less_specific("10.1.1.0/24") == v4_tree.lookup(
-        "10.1.1.0/24"
-    )
+    assert v4_tree.find_less_specific("10.1.1.0/24") == v4_tree.lookup("10.1.1.0/24")
 
 
 # ──────────────────────────────────────────────
