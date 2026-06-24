@@ -142,10 +142,7 @@ def test_compute_simulated_status_drop_invalid() -> None:
 
 def test_compute_simulated_status_de_preference_invalid() -> None:
     """de-preference_invalid 策略下 Invalid 应变为 de-preferenced。"""
-    assert (
-        _compute_simulated_status("invalid", "de-preference_invalid")
-        == "de-preferenced"
-    )
+    assert _compute_simulated_status("invalid", "de-preference_invalid") == "de-preferenced"
 
 
 def test_compute_simulated_status_monitor_only() -> None:
@@ -358,11 +355,13 @@ async def test_simulate_rov_policy_drop_invalid() -> None:
     valid_ann = _make_announcement("192.168.1.0/24", 65001, 24)
     invalid_ann = _make_announcement("192.168.1.0/24", 66666, 24)
     # execute 顺序：_fetch_all_vrps, _fetch_bgp_announcements, _build_prefix_metadata_map
-    db = _make_db_mock([
-        [vrp],                          # _fetch_all_vrps
-        [valid_ann, invalid_ann],       # _fetch_bgp_announcements
-        [],                             # _build_prefix_metadata_map
-    ])
+    db = _make_db_mock(
+        [
+            [vrp],  # _fetch_all_vrps
+            [valid_ann, invalid_ann],  # _fetch_bgp_announcements
+            [],  # _build_prefix_metadata_map
+        ]
+    )
 
     request = ROVSimulationRequest(policy="drop_invalid")
     result = await simulate_rov_policy(db, request)
@@ -380,11 +379,13 @@ async def test_simulate_rov_policy_monitor_only_no_impact() -> None:
     """monitor_only 策略不应影响任何路由。"""
     vrp = _make_vrp("192.168.1.0/24", 24, 65001, max_length=24)
     invalid_ann = _make_announcement("192.168.1.0/24", 66666, 24)
-    db = _make_db_mock([
-        [vrp],
-        [invalid_ann],
-        [],
-    ])
+    db = _make_db_mock(
+        [
+            [vrp],
+            [invalid_ann],
+            [],
+        ]
+    )
 
     request = ROVSimulationRequest(policy="monitor_only")
     result = await simulate_rov_policy(db, request)
@@ -402,11 +403,13 @@ async def test_simulate_roa_change_create() -> None:
     """新建 ROA 模拟应返回验证状态变化与攻击面分析。"""
     # 无现有 VRP，新建 ROA 后前缀从 NotFound 变为 Valid
     existing_ann = _make_announcement("192.168.1.0/24", 65001, 24)
-    db = _make_db_mock([
-        [],                 # _fetch_all_vrps（无现有 VRP）
-        [existing_ann],     # _fetch_bgp_announcements
-        [],                 # _build_prefix_metadata_map
-    ])
+    db = _make_db_mock(
+        [
+            [],  # _fetch_all_vrps（无现有 VRP）
+            [existing_ann],  # _fetch_bgp_announcements
+            [],  # _build_prefix_metadata_map
+        ]
+    )
 
     request = ROAChangeSimulationRequest(
         change_type="create",
@@ -430,12 +433,14 @@ async def test_simulate_roa_change_revoke() -> None:
     roa = _make_roa(1, "192.168.1.0/24", 24, 65001, max_length=24)
     existing_ann = _make_announcement("192.168.1.0/24", 65001, 24)
 
-    db = _make_db_mock([
-        [vrp],              # _fetch_all_vrps
-        [existing_ann],     # _fetch_bgp_announcements
-        [roa],              # select ROA by id
-        [],                 # _build_affected_announcements -> _build_prefix_metadata_map
-    ])
+    db = _make_db_mock(
+        [
+            [vrp],  # _fetch_all_vrps
+            [existing_ann],  # _fetch_bgp_announcements
+            [roa],  # select ROA by id
+            [],  # _build_affected_announcements -> _build_prefix_metadata_map
+        ]
+    )
 
     request = ROAChangeSimulationRequest(
         roa_id=1,
