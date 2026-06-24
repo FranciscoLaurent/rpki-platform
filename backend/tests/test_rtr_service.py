@@ -390,10 +390,12 @@ async def test_update_vrps_increments_serial() -> None:
     server = _make_server(server_id=1, current_serial=5)
     vrp = _make_vrp("10.0.0.0/8", 8, 65001, max_length=8)
     # execute 顺序：get_rtr_server, _load_vrps_from_db
-    db = _make_db_mock([
-        [server],     # get_rtr_server
-        [vrp],        # _load_vrps_from_db
-    ])
+    db = _make_db_mock(
+        [
+            [server],  # get_rtr_server
+            [vrp],  # _load_vrps_from_db
+        ]
+    )
 
     with patch("app.services.rtr_service._running_engines", {}):
         result = await update_vrps(db, 1)
@@ -419,10 +421,12 @@ async def test_rollback_serial_not_found_raises() -> None:
 async def test_rollback_serial_history_not_found_raises() -> None:
     """目标序列号历史不存在时应抛出 ValueError。"""
     server = _make_server(server_id=1, current_serial=5)
-    db = _make_db_mock([
-        [server],    # get_rtr_server
-        [],          # 历史查询返回空
-    ])
+    db = _make_db_mock(
+        [
+            [server],  # get_rtr_server
+            [],  # 历史查询返回空
+        ]
+    )
 
     with patch("app.services.rtr_service._running_engines", {}):
         with pytest.raises(ValueError, match="不存在序列号"):
@@ -448,10 +452,12 @@ async def test_check_consistency_server_not_running() -> None:
     """服务未运行时应返回一致（无差异）。"""
     server = _make_server(server_id=1, status="stopped")
     vrp = _make_vrp("10.0.0.0/8", 8, 65001, max_length=8)
-    db = _make_db_mock([
-        [server],   # get_rtr_server
-        [vrp],      # _load_vrps_from_db
-    ])
+    db = _make_db_mock(
+        [
+            [server],  # get_rtr_server
+            [vrp],  # _load_vrps_from_db
+        ]
+    )
 
     with patch("app.services.rtr_service._running_engines", {}):
         result = await check_consistency(db, 1)
