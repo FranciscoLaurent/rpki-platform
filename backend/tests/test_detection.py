@@ -153,12 +153,14 @@ async def test_hijack_rpki_invalid_origin_mismatch_detected() -> None:
     # 3. _get_historical_origin_asns -> 返回历史 AS 列表
     # 4. _count_propagation_scope -> 返回传播范围
     vrp = _make_vrp("192.168.1.0/24", 24, 65001, max_length=24)
-    db = _make_db_mock([
-        [vrp],          # query_vrps
-        [(65001, 1)],   # _get_authorized_origin_as
-        [],             # _get_historical_origin_asns
-        [3],            # _count_propagation_scope
-    ])
+    db = _make_db_mock(
+        [
+            [vrp],  # query_vrps
+            [(65001, 1)],  # _get_authorized_origin_as
+            [],  # _get_historical_origin_asns
+            [3],  # _count_propagation_scope
+        ]
+    )
 
     result = await detect_origin_as_hijack(db, ann)
 
@@ -172,12 +174,14 @@ async def test_hijack_not_detected_when_authorized() -> None:
     """授权 origin AS 与公告一致时不应检测到劫持。"""
     ann = _make_announcement(prefix="192.168.1.0/24", origin_as=65001)
     vrp = _make_vrp("192.168.1.0/24", 24, 65001, max_length=24)
-    db = _make_db_mock([
-        [vrp],          # query_vrps
-        [(65001, 1)],   # _get_authorized_origin_as
-        [65001],        # _get_historical_origin_asns
-        [1],            # _count_propagation_scope
-    ])
+    db = _make_db_mock(
+        [
+            [vrp],  # query_vrps
+            [(65001, 1)],  # _get_authorized_origin_as
+            [65001],  # _get_historical_origin_asns
+            [1],  # _count_propagation_scope
+        ]
+    )
 
     result = await detect_origin_as_hijack(db, ann)
 
@@ -249,9 +253,11 @@ async def test_subprefix_hijack_no_covering_vrp_returns_not_detected() -> None:
 async def test_moas_single_origin_not_detected() -> None:
     """仅一个 origin AS 时不构成 MOAS。"""
     ann = _make_announcement(prefix="192.168.1.0/24", origin_as=65001)
-    db = _make_db_mock([
-        [65001],        # _get_recent_origin_asns
-    ])
+    db = _make_db_mock(
+        [
+            [65001],  # _get_recent_origin_asns
+        ]
+    )
 
     result = await detect_moas(db, ann)
 
@@ -275,11 +281,13 @@ async def test_moas_unknown_type_detected() -> None:
     """多个未知关系 AS 宣告同一前缀应检测为未知 MOAS。"""
     ann = _make_announcement(prefix="192.168.1.0/24", origin_as=65001)
     # execute 顺序：_get_recent_origin_asns, _get_asn_metadata, _get_historical_moas
-    db = _make_db_mock([
-        [65001, 65002],     # _get_recent_origin_asns
-        [],                 # _get_asn_metadata（无 ASN 元信息）
-        [],                 # _get_historical_moas（无历史）
-    ])
+    db = _make_db_mock(
+        [
+            [65001, 65002],  # _get_recent_origin_asns
+            [],  # _get_asn_metadata（无 ASN 元信息）
+            [],  # _get_historical_moas（无历史）
+        ]
+    )
 
     result = await detect_moas(db, ann)
 
@@ -292,11 +300,13 @@ async def test_moas_unknown_type_detected() -> None:
 async def test_moas_authorized_multi_origin_not_detected() -> None:
     """全部 AS 在历史基线中应判定为授权多 origin。"""
     ann = _make_announcement(prefix="192.168.1.0/24", origin_as=65001)
-    db = _make_db_mock([
-        [65001, 65002],                 # _get_recent_origin_asns
-        [],                             # _get_asn_metadata
-        [(65001, 5), (65002, 3)],       # _get_historical_moas（含历史）
-    ])
+    db = _make_db_mock(
+        [
+            [65001, 65002],  # _get_recent_origin_asns
+            [],  # _get_asn_metadata
+            [(65001, 5), (65002, 3)],  # _get_historical_moas（含历史）
+        ]
+    )
 
     result = await detect_moas(db, ann)
 
@@ -328,9 +338,11 @@ async def test_route_leak_customer_to_provider_detected() -> None:
     asn_customer = _make_asn(65001, asn_type="customer")
     asn_provider = _make_asn(65002, asn_type="provider")
     asn_origin = _make_asn(65003, asn_type="own")
-    db = _make_db_mock([
-        [asn_customer, asn_provider, asn_origin],  # _get_asn_metadata
-    ])
+    db = _make_db_mock(
+        [
+            [asn_customer, asn_provider, asn_origin],  # _get_asn_metadata
+        ]
+    )
 
     result = await detect_route_leak(db, ann)
 
@@ -345,9 +357,11 @@ async def test_route_leak_peer_to_peer_detected() -> None:
     asn_peer1 = _make_asn(65001, asn_type="peer")
     asn_peer2 = _make_asn(65002, asn_type="peer")
     asn_origin = _make_asn(65003, asn_type="own")
-    db = _make_db_mock([
-        [asn_peer1, asn_peer2, asn_origin],
-    ])
+    db = _make_db_mock(
+        [
+            [asn_peer1, asn_peer2, asn_origin],
+        ]
+    )
 
     result = await detect_route_leak(db, ann)
 
@@ -362,9 +376,11 @@ async def test_route_leak_normal_path_not_detected() -> None:
     asn1 = _make_asn(65001, asn_type="own")
     asn2 = _make_asn(65002, asn_type="own")
     asn3 = _make_asn(65003, asn_type="own")
-    db = _make_db_mock([
-        [asn1, asn2, asn3],
-    ])
+    db = _make_db_mock(
+        [
+            [asn1, asn2, asn3],
+        ]
+    )
 
     result = await detect_route_leak(db, ann)
 
@@ -393,10 +409,12 @@ async def test_path_anomaly_blackhole_risk_detected() -> None:
     """路径仅 1 跳且 origin AS 风险画像异常应检测到黑洞风险。"""
     ann = _make_announcement(as_path=[65001])
     asn = _make_asn(65001, risk_profile="blackhole_high_risk")
-    db = _make_db_mock([
-        [],             # _get_baseline_path（无基线）
-        [asn],          # _get_asn_metadata
-    ])
+    db = _make_db_mock(
+        [
+            [],  # _get_baseline_path（无基线）
+            [asn],  # _get_asn_metadata
+        ]
+    )
 
     result = await detect_path_anomaly(db, ann)
 
@@ -411,10 +429,12 @@ async def test_path_anomaly_abnormal_transit_detected() -> None:
     asn1 = _make_asn(65001, asn_type="own")
     asn2 = _make_asn(65002, asn_type="ixp")
     asn3 = _make_asn(65003, asn_type="own")
-    db = _make_db_mock([
-        [],                                 # _get_baseline_path
-        [asn1, asn2, asn3],                 # _get_asn_metadata
-    ])
+    db = _make_db_mock(
+        [
+            [],  # _get_baseline_path
+            [asn1, asn2, asn3],  # _get_asn_metadata
+        ]
+    )
 
     result = await detect_path_anomaly(db, ann)
 
@@ -430,10 +450,12 @@ async def test_path_anomaly_abnormal_transit_detected() -> None:
 @pytest.mark.asyncio
 async def test_withdraw_flap_no_anomaly() -> None:
     """无撤路与公告时应返回未检测到异常。"""
-    db = _make_db_mock([
-        _make_result_mock([(0, 0)]),    # _count_withdraws
-        _make_result_mock([(0, 0)]),    # _count_announcements
-    ])
+    db = _make_db_mock(
+        [
+            _make_result_mock([(0, 0)]),  # _count_withdraws
+            _make_result_mock([(0, 0)]),  # _count_announcements
+        ]
+    )
 
     result = await detect_withdraw_flap(db, "192.168.1.0/24", time_window=60)
 
@@ -445,10 +467,12 @@ async def test_withdraw_flap_no_anomaly() -> None:
 @pytest.mark.asyncio
 async def test_withdraw_flap_large_scale_withdraw_detected() -> None:
     """大范围撤路（>=5 观察点）应被检测。"""
-    db = _make_db_mock([
-        _make_result_mock([(10, 7)]),   # _count_withdraws: 10 次, 7 个观察点
-        _make_result_mock([(2, 2)]),    # _count_announcements
-    ])
+    db = _make_db_mock(
+        [
+            _make_result_mock([(10, 7)]),  # _count_withdraws: 10 次, 7 个观察点
+            _make_result_mock([(2, 2)]),  # _count_announcements
+        ]
+    )
 
     result = await detect_withdraw_flap(db, "192.168.1.0/24", time_window=60)
 
@@ -461,10 +485,12 @@ async def test_withdraw_flap_large_scale_withdraw_detected() -> None:
 async def test_withdraw_flap_frequent_flap_detected() -> None:
     """频繁震荡（频率 >= 0.5 次/分钟）应被检测。"""
     # 60 分钟内 40 次事件 -> 频率 0.67 次/分钟
-    db = _make_db_mock([
-        _make_result_mock([(20, 3)]),   # _count_withdraws
-        _make_result_mock([(20, 3)]),   # _count_announcements
-    ])
+    db = _make_db_mock(
+        [
+            _make_result_mock([(20, 3)]),  # _count_withdraws
+            _make_result_mock([(20, 3)]),  # _count_announcements
+        ]
+    )
 
     result = await detect_withdraw_flap(db, "192.168.1.0/24", time_window=60)
 
