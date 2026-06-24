@@ -93,9 +93,7 @@ def test_access_token_with_extra_claims() -> None:
 
 def test_access_token_with_custom_expiry() -> None:
     """JWT 应支持自定义过期时间。"""
-    token = create_access_token(
-        subject=1, expires_delta=timedelta(seconds=1)
-    )
+    token = create_access_token(subject=1, expires_delta=timedelta(seconds=1))
     payload = decode_access_token(token)
     assert payload is not None
     assert "exp" in payload
