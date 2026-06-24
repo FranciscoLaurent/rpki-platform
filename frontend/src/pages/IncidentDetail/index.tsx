@@ -431,7 +431,7 @@ function IncidentDetail() {
           <List
             bordered
             dataSource={data.related_alerts}
-            renderItem={(alert: Record<string, unknown>, idx: number) => (
+            renderItem={(alert: Record<string, unknown>) => (
               <List.Item>
                 <Space direction="vertical" size={4} style={{ width: '100%' }}>
                   <Space>
@@ -448,11 +448,11 @@ function IncidentDetail() {
                     <Text type="secondary" style={{ fontSize: 12 }}>
                       前缀：<Text code>{(alert.prefix as string) || '-'}</Text>
                     </Text>
-                    {alert.origin_as && (
+                    {alert.origin_as ? (
                       <Text type="secondary" style={{ fontSize: 12 }}>
                         Origin AS：AS{alert.origin_as as number}
                       </Text>
-                    )}
+                    ) : null}
                     <Text type="secondary" style={{ fontSize: 12 }}>
                       风险评分：{((alert.risk_score as number) ?? 0).toFixed(1)}
                     </Text>

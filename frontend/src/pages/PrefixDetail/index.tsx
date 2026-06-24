@@ -35,7 +35,7 @@ import type {
   PrefixAlertItem,
 } from '@/api/dashboard';
 
-const { Text, Paragraph, Title } = Typography;
+const { Text, Title } = Typography;
 
 /** 状态颜色映射 */
 const STATUS_COLOR: Record<string, string> = {

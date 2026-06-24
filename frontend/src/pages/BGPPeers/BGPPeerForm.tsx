@@ -52,7 +52,6 @@ function isValidIPv6(ip: string): boolean {
   if (colons > 7 && !ip.includes('::')) return false;
   // 简化校验：尝试构造 URL 解析
   try {
-    // eslint-disable-next-line no-new
     new URL(`http://[${ip}]`);
     return true;
   } catch {
