@@ -167,7 +167,10 @@ async def test_validation_invalid_length_exceeded() -> None:
 async def test_validation_invalid_roa_revoked() -> None:
     """所有匹配 VRP 都已撤销应返回 Invalid（roa_revoked）。"""
     vrp = _make_vrp(
-        "192.168.1.0/24", 24, 65001, max_length=24,
+        "192.168.1.0/24",
+        24,
+        65001,
+        max_length=24,
         validation_status="revoked",
     )
     db = _make_db_mock([vrp])
@@ -219,12 +222,8 @@ async def test_validation_covers_ancestor_chain() -> None:
 @pytest.mark.asyncio
 async def test_validation_multiple_vrps_one_matches() -> None:
     """多个匹配 VRP 中只要有一个完全匹配应返回 Valid。"""
-    vrp1 = _make_vrp(
-        "192.168.1.0/24", 24, 65001, max_length=24, vrp_id=1
-    )
-    vrp2 = _make_vrp(
-        "192.168.1.0/24", 24, 65002, max_length=24, vrp_id=2
-    )
+    vrp1 = _make_vrp("192.168.1.0/24", 24, 65001, max_length=24, vrp_id=1)
+    vrp2 = _make_vrp("192.168.1.0/24", 24, 65002, max_length=24, vrp_id=2)
     db = _make_db_mock([vrp1, vrp2])
 
     # 公告 origin AS 为 65002，应匹配 vrp2
