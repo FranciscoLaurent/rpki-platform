@@ -152,10 +152,7 @@ async def test_hijack_detection_performance() -> None:
     elapsed = time.perf_counter() - start
 
     avg_ms = (elapsed / DETECTION_COUNT) * 1000
-    print(
-        f"\n[源 AS 劫持检测] {DETECTION_COUNT} 次，"
-        f"总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次"
-    )
+    print(f"\n[源 AS 劫持检测] {DETECTION_COUNT} 次，总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次")
 
     assert avg_ms < DETECTION_THRESHOLD_MS
 
@@ -170,8 +167,8 @@ async def test_moas_detection_performance() -> None:
     """MOAS 检测性能测试。"""
     ann = _make_announcement(prefix="192.168.1.0/24", origin_as=65001)
     execute_returns = [
-        [65001, 65002],     # _get_recent_origin_asns
-        [],                 # _get_asn_metadata
+        [65001, 65002],  # _get_recent_origin_asns
+        [],  # _get_asn_metadata
         [(65001, 5), (65002, 3)],  # _get_historical_moas
     ]
 
@@ -183,10 +180,7 @@ async def test_moas_detection_performance() -> None:
     elapsed = time.perf_counter() - start
 
     avg_ms = (elapsed / DETECTION_COUNT) * 1000
-    print(
-        f"\n[MOAS 检测] {DETECTION_COUNT} 次，"
-        f"总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次"
-    )
+    print(f"\n[MOAS 检测] {DETECTION_COUNT} 次，总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次")
 
     assert avg_ms < DETECTION_THRESHOLD_MS
 
@@ -218,10 +212,7 @@ async def test_route_leak_detection_performance() -> None:
     elapsed = time.perf_counter() - start
 
     avg_ms = (elapsed / DETECTION_COUNT) * 1000
-    print(
-        f"\n[路由泄露检测] {DETECTION_COUNT} 次，"
-        f"总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次"
-    )
+    print(f"\n[路由泄露检测] {DETECTION_COUNT} 次，总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次")
 
     assert avg_ms < DETECTION_THRESHOLD_MS
 
@@ -238,8 +229,8 @@ async def test_path_anomaly_detection_performance() -> None:
     asns = [_make_asn(asn) for asn in [65001, 65002, 65003, 65004, 65005]]
 
     execute_returns = [
-        [],         # _get_baseline_path
-        asns,       # _get_asn_metadata
+        [],  # _get_baseline_path
+        asns,  # _get_asn_metadata
     ]
 
     db = _make_db_mock(execute_returns * DETECTION_COUNT)
@@ -250,10 +241,7 @@ async def test_path_anomaly_detection_performance() -> None:
     elapsed = time.perf_counter() - start
 
     avg_ms = (elapsed / DETECTION_COUNT) * 1000
-    print(
-        f"\n[路径异常检测] {DETECTION_COUNT} 次，"
-        f"总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次"
-    )
+    print(f"\n[路径异常检测] {DETECTION_COUNT} 次，总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次")
 
     assert avg_ms < DETECTION_THRESHOLD_MS
 
@@ -267,7 +255,7 @@ async def test_path_anomaly_detection_performance() -> None:
 async def test_withdraw_flap_detection_performance() -> None:
     """撤路与震荡检测性能测试。"""
     execute_returns = [
-        _make_result_mock([(5, 3)]),   # _count_withdraws
+        _make_result_mock([(5, 3)]),  # _count_withdraws
         _make_result_mock([(10, 4)]),  # _count_announcements
     ]
 
@@ -279,10 +267,7 @@ async def test_withdraw_flap_detection_performance() -> None:
     elapsed = time.perf_counter() - start
 
     avg_ms = (elapsed / DETECTION_COUNT) * 1000
-    print(
-        f"\n[撤路与震荡检测] {DETECTION_COUNT} 次，"
-        f"总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次"
-    )
+    print(f"\n[撤路与震荡检测] {DETECTION_COUNT} 次，总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次")
 
     assert avg_ms < DETECTION_THRESHOLD_MS
 
@@ -347,7 +332,9 @@ def test_large_scale_vrp_validation_performance() -> None:
         vrps.append(vrp)
 
     # 生成待验证公告
-    announcements = [(v.prefix, v.origin_as) for v in random.sample(vrps, min(DETECTION_COUNT, len(vrps)))]
+    announcements = [
+        (v.prefix, v.origin_as) for v in random.sample(vrps, min(DETECTION_COUNT, len(vrps)))
+    ]
 
     start = time.perf_counter()
     for prefix, origin_as in announcements:
