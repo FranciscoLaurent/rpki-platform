@@ -1,0 +1,220 @@
+# Redis StatefulSet - 3 副本 + Sentinel 高可用集群
+# Sentinel 负责监控与自动故障转移，主节点宕机时自动选举新主
+# 客户端应通过 Sentinel 获取主节点地址，而非直连固定 IP
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: rpki-platform
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: cache
+spec:
+  ports:
+    - name: tcp-redis
+      port: 6379
+      targetPort: 6379
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: cache
+  clusterIP: None
+---
+# Sentinel 服务（客户端通过此服务连接 Sentinel 获取主节点信息）
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-sentinel
+  namespace: rpki-platform
+  labels:
+    app.kubernetes.io/name: redis-sentinel
+    app.kubernetes.io/component: cache
+spec:
+  ports:
+    - name: tcp-sentinel
+      port: 26379
+      targetPort: 26379
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: cache
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: rpki-platform
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: cache
+    app.kubernetes.io/part-of: rpki-platform
+spec:
+  serviceName: redis
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+      app.kubernetes.io/component: cache
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/component: cache
+        app.kubernetes.io/part-of: rpki-platform
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: redis
+                topologyKey: kubernetes.io/hostname
+      terminationGracePeriodSeconds: 30
+      initContainers:
+        # 初始化 Sentinel 配置与集群发现脚本
+        - name: init-config
+          image: redis:7-alpine
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              cat > /etc/redis/sentinel.conf <<EOF
+              port 26379
+              sentinel monitor rpki-master redis-0.redis.rpki-platform.svc.cluster.local 6379 2
+              sentinel down-after-milliseconds rpki-master 5000
+              sentinel failover-timeout rpki-master 30000
+              sentinel parallel-syncs rpki-master 1
+              EOF
+              echo "Sentinel 配置生成完成"
+          volumeMounts:
+            - name: redis-config
+              mountPath: /etc/redis
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: tcp-redis
+              containerPort: 6379
+              protocol: TCP
+          command:
+            - redis-server
+            - --appendonly
+            - "yes"
+            - --maxmemory
+            - 512mb
+            - --maxmemory-policy
+            - allkeys-lru
+            - --requirepass
+            - "$(REDIS_PASSWORD)"
+            - --replica-announce-ip
+            - "$(POD_IP)"
+            - --replica-announce-port
+            - "6379"
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rpki-platform-secrets
+                  key: REDIS_PASSWORD
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: rpki-platform-config
+                  key: TZ
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - redis-cli -a "$REDIS_PASSWORD" ping
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - redis-cli -a "$REDIS_PASSWORD" ping
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+        # Sentinel 边车容器，负责监控与故障转移
+        - name: sentinel
+          image: redis:7-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: tcp-sentinel
+              containerPort: 26379
+              protocol: TCP
+          command:
+            - redis-sentinel
+            - /etc/redis/sentinel.conf
+          env:
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: rpki-platform-config
+                  key: TZ
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+          volumeMounts:
+            - name: redis-config
+              mountPath: /etc/redis
+              readOnly: true
+          readinessProbe:
+            tcpSocket:
+              port: 26379
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 26379
+            initialDelaySeconds: 30
+            periodSeconds: 30
+      securityContext:
+        fsGroup: 999
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+        # storageClassName: fast-ssd
+    - metadata:
+        name: redis-config
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 100Mi

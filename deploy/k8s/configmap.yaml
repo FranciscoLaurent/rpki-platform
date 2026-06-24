@@ -1,0 +1,77 @@
+# Kubernetes ConfigMap 配置映射
+# 集中管理 RPKI 平台非敏感配置项，所有服务共享
+# 敏感信息（密码、密钥）请使用 secrets.yaml 或外部密钥管理
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rpki-platform-config
+  namespace: rpki-platform
+  labels:
+    app.kubernetes.io/name: rpki-platform
+    app.kubernetes.io/component: config
+data:
+  # 应用通用配置
+  APP_NAME: "RPKI 网络安全管理平台"
+  DEBUG: "false"
+  LOG_LEVEL: "INFO"
+  TZ: "Asia/Shanghai"
+
+  # 后端服务配置
+  BACKEND_HOST: "0.0.0.0"
+  BACKEND_PORT: "8000"
+  BACKEND_WORKERS: "4"
+  ACCESS_TOKEN_EXPIRE_MINUTES: "120"
+
+  # PostgreSQL 配置（非敏感部分）
+  POSTGRES_HOST: "postgres.rpki-platform.svc.cluster.local"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "rpki_platform"
+  POSTGRES_USER: "rpki"
+
+  # Redis 配置（非敏感部分）
+  REDIS_HOST: "redis.rpki-platform.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  # Sentinel 高可用配置
+  REDIS_SENTINEL_ENABLED: "true"
+  REDIS_SENTINEL_MASTER: "rpki-master"
+  REDIS_SENTINEL_HOSTS: "redis-sentinel.rpki-platform.svc.cluster.local:26379"
+
+  # Kafka 配置
+  KAFKA_BOOTSTRAP_SERVERS: "kafka-0.kafka.rpki-platform.svc.cluster.local:9092,kafka-1.kafka.rpki-platform.svc.cluster.local:9092,kafka-2.kafka.rpki-platform.svc.cluster.local:9092"
+  KAFKA_NUM_PARTITIONS: "6"
+  KAFKA_DEFAULT_REPLICATION_FACTOR: "3"
+  KAFKA_MIN_INSYNC_REPLICAS: "2"
+
+  # ClickHouse 配置
+  CLICKHOUSE_HOST: "clickhouse.rpki-platform.svc.cluster.local"
+  CLICKHOUSE_HTTP_PORT: "8123"
+  CLICKHOUSE_NATIVE_PORT: "9000"
+  CLICKHOUSE_DB: "rpki_platform"
+  CLICKHOUSE_USER: "default"
+
+  # CORS 配置
+  CORS_ORIGINS: "https://rpki.example.com"
+---
+# 后端应用级 ConfigMap（业务参数）
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: rpki-platform
+  labels:
+    app.kubernetes.io/name: rpki-backend
+    app.kubernetes.io/component: backend
+data:
+  # 速率限制
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_REQUESTS: "100"
+  RATE_LIMIT_WINDOW: "60"
+
+  # 审计日志
+  AUDIT_LOG_ENABLED: "true"
+  AUDIT_LOG_RETENTION_DAYS: "90"
+
+  # RPKI 同步配置
+  RPKI_SYNC_INTERVAL: "300"
+  RPKI_VALIDATOR_URL: "https://rpki-validator.example.com"

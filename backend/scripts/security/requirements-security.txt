@@ -1,0 +1,31 @@
+# 安全工具依赖
+# 用于容器镜像扫描、依赖漏洞扫描、SBOM 生成、静态代码安全检查
+#
+# 安装方式：
+#   pip install -r scripts/security/requirements-security.txt
+#
+# 各工具用途：
+# - pip-audit: Python 依赖漏洞扫描（基于 PyPI Advisory 数据库）
+# - cyclonedx-bom: SBOM（软件物料清单）生成，CycloneDX 标准格式
+# - bandit: Python 静态安全漏洞扫描（SAST）
+# - ruff: 代码风格与简化检查（快速 linter）
+# - safety: 依赖漏洞扫描（pip-audit 的备选方案）
+# - trivy: 容器镜像漏洞扫描（需通过二进制安装，非 pip）
+
+# 依赖漏洞扫描
+pip-audit>=2.7.0
+
+# SBOM 生成（CycloneDX 标准）
+cyclonedx-bom>=4.4.0
+
+# Python 静态安全扫描（SAST）
+bandit>=1.7.8
+
+# 代码风格与简化检查
+ruff>=0.2.0
+
+# 依赖漏洞扫描（备选方案）
+safety>=3.2.0
+
+# 注：trivy 为容器镜像扫描工具，需通过官方安装脚本或包管理器安装：
+#   https://aquasecurity.github.io/trivy/latest/getting-started/installation/

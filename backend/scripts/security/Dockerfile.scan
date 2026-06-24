@@ -1,0 +1,41 @@
+# 容器镜像安全扫描 Dockerfile
+#
+# 基于 trivy 对应用镜像进行漏洞扫描与配置审计。
+# 本镜像不用于运行应用，仅作为安全扫描的运行环境。
+#
+# 用法：
+#   1. 构建扫描镜像：
+#      docker build -f scripts/security/Dockerfile.scan -t rpki-platform:scan .
+#   2. 运行扫描（需挂载 docker.sock 以便扫描其他镜像）：
+#      docker run --rm \
+#          -v /var/run/docker.sock:/var/run/docker.sock \
+#          -e TARGET_IMAGE=rpki-platform:latest \
+#          rpki-platform:scan
+#
+# 也可在 CI 中直接使用 trivy 扫描应用镜像：
+#   trivy image --severity HIGH,CRITICAL rpki-platform:latest
+
+FROM aquasec/trivy:latest
+
+# 扫描配置
+# - TARGET_IMAGE：待扫描的目标镜像（必填）
+# - SEVERITY：扫描漏洞等级（默认 HIGH,CRITICAL）
+# - OUTPUT_FORMAT：输出格式（table/json）
+# - EXIT_ON_VULNERABILITY：发现漏洞时是否非零退出（默认 1）
+ENV TARGET_IMAGE="" \
+    SEVERITY="HIGH,CRITICAL" \
+    OUTPUT_FORMAT="table" \
+    EXIT_ON_VULNERABILITY="1"
+
+# 复制项目依赖文件，便于 SBOM 与依赖扫描
+WORKDIR /work
+COPY requirements.txt requirements-dev.txt pyproject.toml ./
+
+# 默认扫描入口
+# 若设置 TARGET_IMAGE 则扫描镜像，否则扫描本地依赖文件
+CMD ["sh", "-c", "if [ -n \"$TARGET_IMAGE\" ]; then \
+        trivy image --severity $SEVERITY --format $OUTPUT_FORMAT $TARGET_IMAGE; \
+    else \
+        echo '[INFO] 未设置 TARGET_IMAGE，扫描 requirements.txt'; \
+        trivy fs --severity $SEVERITY --format $OUTPUT_FORMAT /work; \
+    fi"]

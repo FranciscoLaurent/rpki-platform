@@ -1,0 +1,12 @@
+# Kubernetes 命名空间定义
+# RPKI 网络安全管理平台所有资源统一部署在 rpki-platform 命名空间下
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rpki-platform
+  labels:
+    app.kubernetes.io/name: rpki-platform
+    app.kubernetes.io/part-of: rpki-platform
+    # pod-security.kubernetes.io/enforce: restricted
+    # pod-security.kubernetes.io/audit: restricted
+    # pod-security.kubernetes.io/warn: restricted

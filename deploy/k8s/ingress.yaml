@@ -1,0 +1,99 @@
+# Ingress 入口路由配置
+# 统一对外暴露前端与后端 API，支持 TLS 终止
+# 需提前安装 Ingress Controller（nginx-ingress / traefik）
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rpki-platform-ingress
+  namespace: rpki-platform
+  labels:
+    app.kubernetes.io/name: rpki-platform
+    app.kubernetes.io/component: ingress
+  annotations:
+    # nginx-ingress 配置
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    # 限流：每秒 20 请求，突发 50
+    nginx.ingress.kubernetes.io/limit-rps: "20"
+    nginx.ingress.kubernetes.io/limit-burst: "50"
+    # 跨域配置
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://rpki.example.com"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    # HSTS
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+spec:
+  tls:
+    - hosts:
+        - rpki.example.com
+      secretName: rpki-tls-secret
+  rules:
+    - host: rpki.example.com
+      http:
+        paths:
+          # API 请求路由到后端服务
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          # 健康检查路由到后端
+          - path: /health
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          # 其他请求路由到前端
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+---
+# Canary Ingress（用于灰度发布，配合 canary-deployment.yaml 使用）
+# 通过 header/cookie 将部分流量路由到 canary 版本
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rpki-platform-canary-ingress
+  namespace: rpki-platform
+  labels:
+    app.kubernetes.io/name: rpki-platform
+    app.kubernetes.io/component: ingress
+    app.kubernetes.io/variant: canary
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    # 启用 canary 注解
+    nginx.ingress.kubernetes.io/canary: "true"
+    # 按权重灰度：20% 流量到 canary
+    nginx.ingress.kubernetes.io/canary-weight: "20"
+    # 按 header 灰度：携带 X-Canary: true 的请求路由到 canary
+    nginx.ingress.kubernetes.io/canary-by-header: "X-Canary"
+    nginx.ingress.kubernetes.io/canary-by-header-value: "true"
+    # 按 cookie 灰度
+    nginx.ingress.kubernetes.io/canary-by-cookie: "rpki-canary"
+spec:
+  rules:
+    - host: rpki.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-canary
+                port:
+                  number: 8000

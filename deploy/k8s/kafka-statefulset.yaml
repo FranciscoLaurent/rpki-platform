@@ -1,0 +1,155 @@
+# Kafka StatefulSet - 3 副本高可用集群（KRaft 模式，无 Zookeeper）
+# 使用 bitnami/kafka:3.7 镜像，启用 KRaft 共识协议
+# 复制因子 3，min.insync.replicas 2，acks=all 保证消息持久化
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: rpki-platform
+  labels:
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/component: messaging
+spec:
+  ports:
+    - name: tcp-client
+      port: 9092
+      targetPort: 9092
+      protocol: TCP
+    - name: tcp-controller
+      port: 9093
+      targetPort: 9093
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/component: messaging
+  clusterIP: None
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+  namespace: rpki-platform
+  labels:
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/component: messaging
+    app.kubernetes.io/part-of: rpki-platform
+spec:
+  serviceName: kafka
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kafka
+      app.kubernetes.io/component: messaging
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kafka
+        app.kubernetes.io/component: messaging
+        app.kubernetes.io/part-of: rpki-platform
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: kafka
+                topologyKey: kubernetes.io/hostname
+      terminationGracePeriodSeconds: 120
+      containers:
+        - name: kafka
+          image: bitnami/kafka:3.7
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: tcp-client
+              containerPort: 9092
+              protocol: TCP
+            - name: tcp-controller
+              containerPort: 9093
+              protocol: TCP
+          env:
+            # KRaft 模式：每个节点同时承担 broker 与 controller 角色
+            - name: KAFKA_CFG_NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            # 简化处理：通过 ordinal 索引生成 node id（实际部署可用 initContainer 处理）
+            - name: KAFKA_CFG_PROCESS_ROLES
+              value: "controller,broker"
+            - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
+              value: "1@kafka-0.kafka.rpki-platform.svc.cluster.local:9093,2@kafka-1.kafka.rpki-platform.svc.cluster.local:9093,3@kafka-2.kafka.rpki-platform.svc.cluster.local:9093"
+            - name: KAFKA_CFG_LISTENERS
+              value: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
+            - name: KAFKA_CFG_ADVERTISED_LISTENERS
+              value: "PLAINTEXT://$(POD_NAME).kafka.rpki-platform.svc.cluster.local:9092"
+            - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
+              value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+            - name: KAFKA_CFG_INTER_BROKER_LISTENER_NAME
+              value: "PLAINTEXT"
+            - name: KAFKA_CFG_CONTROLLER_LISTENER_NAMES
+              value: "CONTROLLER"
+            # 高可用与持久化配置
+            - name: KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: "3"
+            - name: KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+              value: "3"
+            - name: KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR
+              value: "2"
+            - name: KAFKA_CFG_DEFAULT_REPLICATION_FACTOR
+              value: "3"
+            - name: KAFKA_CFG_MIN_INSYNC_REPLICAS
+              value: "2"
+            - name: KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE
+              value: "false"
+            - name: KAFKA_CFG_NUM_PARTITIONS
+              value: "6"
+            - name: KAFKA_CFG_LOG_RETENTION_HOURS
+              value: "168"
+            - name: ALLOW_PLAINTEXT_LISTENER
+              value: "yes"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2000m"
+              memory: "4Gi"
+          volumeMounts:
+            - name: kafka-data
+              mountPath: /bitnami/kafka
+          readinessProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+      securityContext:
+        fsGroup: 1001
+  volumeClaimTemplates:
+    - metadata:
+        name: kafka-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 50Gi
+        # storageClassName: fast-ssd
