@@ -81,15 +81,10 @@ def test_prefix_tree_insert_medium_scale() -> None:
     elapsed = time.perf_counter() - start
 
     avg_ms = (elapsed / MEDIUM_SCALE) * 1000
-    print(
-        f"\n[中等规模插入] {MEDIUM_SCALE} 个前缀，"
-        f"总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/条"
-    )
+    print(f"\n[中等规模插入] {MEDIUM_SCALE} 个前缀，总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/条")
 
     assert tree.size == MEDIUM_SCALE
-    assert avg_ms < INSERT_THRESHOLD_MS, (
-        f"单次插入 {avg_ms:.4f}ms 超过阈值 {INSERT_THRESHOLD_MS}ms"
-    )
+    assert avg_ms < INSERT_THRESHOLD_MS, f"单次插入 {avg_ms:.4f}ms 超过阈值 {INSERT_THRESHOLD_MS}ms"
 
 
 def test_prefix_tree_insert_large_scale() -> None:
@@ -103,10 +98,7 @@ def test_prefix_tree_insert_large_scale() -> None:
     elapsed = time.perf_counter() - start
 
     avg_ms = (elapsed / LARGE_SCALE) * 1000
-    print(
-        f"\n[大规模插入] {LARGE_SCALE} 个前缀，"
-        f"总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/条"
-    )
+    print(f"\n[大规模插入] {LARGE_SCALE} 个前缀，总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/条")
 
     assert tree.size == LARGE_SCALE
     assert avg_ms < INSERT_THRESHOLD_MS
@@ -124,8 +116,7 @@ def test_prefix_tree_insert_ipv6_large_scale() -> None:
 
     avg_ms = (elapsed / MEDIUM_SCALE) * 1000
     print(
-        f"\n[IPv6 大规模插入] {MEDIUM_SCALE} 个前缀，"
-        f"总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/条"
+        f"\n[IPv6 大规模插入] {MEDIUM_SCALE} 个前缀，总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/条"
     )
 
     assert tree.size == MEDIUM_SCALE
@@ -152,10 +143,7 @@ def test_prefix_tree_lookup_medium_scale() -> None:
     elapsed = time.perf_counter() - start
 
     avg_ms = (elapsed / QUERY_COUNT) * 1000
-    print(
-        f"\n[中等规模查询] {QUERY_COUNT} 次查询，"
-        f"总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次"
-    )
+    print(f"\n[中等规模查询] {QUERY_COUNT} 次查询，总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次")
 
     assert avg_ms < LOOKUP_THRESHOLD_MS
 
@@ -227,10 +215,7 @@ def test_build_vrp_prefix_tree_performance() -> None:
     elapsed = time.perf_counter() - start
 
     avg_ms = (elapsed / MEDIUM_SCALE) * 1000
-    print(
-        f"\n[工厂函数构建] {MEDIUM_SCALE} 个 VRP，"
-        f"总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/条"
-    )
+    print(f"\n[工厂函数构建] {MEDIUM_SCALE} 个 VRP，总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/条")
 
     assert tree.size == MEDIUM_SCALE
 
@@ -256,9 +241,6 @@ def test_prefix_tree_remove_performance() -> None:
     elapsed = time.perf_counter() - start
 
     avg_ms = (elapsed / QUERY_COUNT) * 1000
-    print(
-        f"\n[删除] {QUERY_COUNT} 次删除，"
-        f"总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次"
-    )
+    print(f"\n[删除] {QUERY_COUNT} 次删除，总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次")
 
     assert tree.size == MEDIUM_SCALE - QUERY_COUNT
