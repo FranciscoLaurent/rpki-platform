@@ -60,8 +60,9 @@ def _generate_vrps(count: int) -> list[MagicMock]:
     return vrps
 
 
-def _make_vrp(prefix: str, prefix_length: int, origin_as: int,
-              max_length: int | None = None) -> MagicMock:
+def _make_vrp(
+    prefix: str, prefix_length: int, origin_as: int, max_length: int | None = None
+) -> MagicMock:
     """构造单个 VRP mock。"""
     vrp = MagicMock()
     vrp.prefix = prefix
@@ -113,10 +114,7 @@ def test_get_covering_prefixes_performance() -> None:
     elapsed = time.perf_counter() - start
 
     avg_ms = (elapsed / VALIDATION_COUNT) * 1000
-    print(
-        f"\n[祖先链计算] {VALIDATION_COUNT} 次，"
-        f"总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次"
-    )
+    print(f"\n[祖先链计算] {VALIDATION_COUNT} 次，总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次")
 
     assert avg_ms < COVERING_PREFIX_THRESHOLD_MS
 
@@ -164,7 +162,9 @@ def test_validate_against_vrps_valid_case() -> None:
     """Valid 验证性能测试（匹配 VRP）。"""
     vrps = _generate_vrps(VRP_SCALE)
     # 选取现有 VRP 构造 Valid 公告
-    test_cases = [(v.prefix, v.origin_as) for v in random.sample(vrps, min(VALIDATION_COUNT, len(vrps)))]
+    test_cases = [
+        (v.prefix, v.origin_as) for v in random.sample(vrps, min(VALIDATION_COUNT, len(vrps)))
+    ]
 
     start = time.perf_counter()
     for prefix, origin_as in test_cases:
@@ -172,10 +172,7 @@ def test_validate_against_vrps_valid_case() -> None:
     elapsed = time.perf_counter() - start
 
     avg_ms = (elapsed / len(test_cases)) * 1000
-    print(
-        f"\n[Valid 验证] {len(test_cases)} 次，"
-        f"总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次"
-    )
+    print(f"\n[Valid 验证] {len(test_cases)} 次，总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次")
 
 
 def test_validate_against_vrps_not_found_case() -> None:
@@ -197,10 +194,7 @@ def test_validate_against_vrps_not_found_case() -> None:
     elapsed = time.perf_counter() - start
 
     avg_ms = (elapsed / VALIDATION_COUNT) * 1000
-    print(
-        f"\n[NotFound 验证] {VALIDATION_COUNT} 次，"
-        f"总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次"
-    )
+    print(f"\n[NotFound 验证] {VALIDATION_COUNT} 次，总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次")
 
 
 # ──────────────────────────────────────────────
@@ -221,10 +215,7 @@ async def test_validate_bgp_announcement_performance() -> None:
     elapsed = time.perf_counter() - start
 
     avg_ms = (elapsed / VALIDATION_COUNT) * 1000
-    print(
-        f"\n[异步验证] {VALIDATION_COUNT} 次，"
-        f"总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次"
-    )
+    print(f"\n[异步验证] {VALIDATION_COUNT} 次，总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/次")
 
 
 # ──────────────────────────────────────────────
@@ -251,9 +242,6 @@ async def test_batch_validation_performance() -> None:
     elapsed = time.perf_counter() - start
 
     avg_ms = (elapsed / VALIDATION_COUNT) * 1000
-    print(
-        f"\n[批量验证] {VALIDATION_COUNT} 条公告，"
-        f"总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/条"
-    )
+    print(f"\n[批量验证] {VALIDATION_COUNT} 条公告，总耗时 {elapsed:.3f}s，平均 {avg_ms:.4f}ms/条")
 
     assert len(results) == VALIDATION_COUNT
